@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recomart/Screens/Customer/Login/ForgotPassword.dart';
-import 'package:recomart/Screens/Customer/Login/Intro.dart';
+import 'routes/app_router.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,10 +10,14 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'RecoMart App',
-      home: WrongPasswordScreen(), 
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        fontFamily: 'RobotoMono',
+      ),
+      routerConfig: appRouter, // sử dụng GoRouter
     );
   }
 }
