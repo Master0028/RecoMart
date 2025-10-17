@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:recomart/Screens/Customer/Login/SetUpNewPasswordScreen.dart';
+import 'package:go_router/go_router.dart';
+import 'package:recomart/Screens/Customer/Login/EmailOptions.dart';
 
 final Color primaryBlue = Colors.blue.shade700; 
 
@@ -140,10 +141,7 @@ class _RecoveryCodeScreenState extends State<RecoveryCodeScreen> {
 
                   ElevatedButton(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SetupNewPasswordScreen()),
-                      );
+                      context.push('/setup-newpass');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.pink.shade300,

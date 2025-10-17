@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:recomart/Screens/Customer/Login/PreparePassword.dart';
+import 'package:go_router/go_router.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0); 
+const Color cancelButtonColor = Color(0xFFEEEEEE);
+const Color cancelTextColor = Color(0xFF616161);
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -11,107 +13,88 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
-    return Scaffold(
-      body: SingleChildScrollView(
-        child: SizedBox(
-          height: size.height,
-          child: Stack(
-            children: [
-              Positioned(
-                top: -50,
-                left: -100,
-                child: Transform.rotate(
-                  angle: -0.2,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          context.go('/'); 
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SingleChildScrollView(
+          child: SizedBox(
+            height: size.height,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -120,
+                  left: -150,
                   child: Container(
-                    width: size.width * 1.5,
-                    height: 300,
+                    width: size.width * 1.2,
+                    height: size.height * 0.5,
                     decoration: BoxDecoration(
-                      color: primaryBlue.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(150),
+                      color: primaryBlue.withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
                   ),
                 ),
-              ),
-
-              Positioned(
-                top: 100,
-                right: -50,
-                child: Container(
-                  width: 200,
-                  height: 200,
-                  decoration: BoxDecoration(
-                    color: primaryBlue.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(100),
+                Positioned(
+                  bottom: -80,
+                  right: -100,
+                  child: Container(
+                    width: size.width * 0.8,
+                    height: size.height * 0.3,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-
-              Positioned(
-                top: 150,
-                left: -20,
-                child: Container(
-                  width: size.width * 0.9,
-                  height: 400,
-                  decoration: BoxDecoration(
-                    color: primaryBlue.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(200),
-                  ),
-                ),
-              ),
-
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 50),
-
-                      buildLogo(),
-                      
-                      const SizedBox(height: 40),
-
-                      const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.black,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Dòng phụ
-                      const Row(
-                        children: [
-                          Text(
-                            'So good to see you back!',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.black54,
-                            ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 50),
+                        buildLogo(),
+                        const SizedBox(height: 40),
+                        const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
                           ),
-                          SizedBox(width: 5),
-                          Icon(Icons.favorite, size: 18, color: Colors.black),
-                        ],
-                      ),
-                      
-                      const SizedBox(height: 40),
-
-                      buildEmailField(),
-                      
-                      const SizedBox(height: 40),
-
-                      buildNextButton(context),
-
-                      const SizedBox(height: 20),
-
-                      buildCancelTextButton(context),
-                    ],
+                        ),
+                        const SizedBox(height: 10),
+                        const Row(
+                          children: [
+                            Text(
+                              'So good to see you back!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            SizedBox(width: 5),
+                            Icon(Icons.favorite, size: 18, color: Colors.black),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                        buildEmailField(),
+                        const Spacer(),
+                        buildNextButton(context),
+                        const SizedBox(height: 20),
+                        buildCancelButton(context),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -123,9 +106,17 @@ class LoginScreen extends StatelessWidget {
       children: [
         Image.asset(
           'assets/assets/logo.png',
-          height: 100, 
-          width: 100, 
+          height: 60, 
         ),
+        const SizedBox(width: 10),
+        const Text(
+          "Flutter",
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            color: Colors.black54
+          ),
+        )
       ],
     );
   }
@@ -149,20 +140,15 @@ class LoginScreen extends StatelessWidget {
   Widget buildNextButton(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        debugPrint('Tiếp tục (Next)!');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const PasswordVerifyScreen(), 
-          ),
-        );
+        context.push('/password-verify');
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryBlue,
-        padding: const EdgeInsets.symmetric(vertical: 18),
+        minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
+        elevation: 2,
       ),
       child: const Text(
         'Next',
@@ -175,16 +161,25 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  Widget buildCancelTextButton(BuildContext context) {
-    return TextButton(
+  Widget buildCancelButton(BuildContext context) {
+    return ElevatedButton(
       onPressed: () {
-        Navigator.pop(context); 
+        context.go('/'); 
       },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: cancelButtonColor,
+        foregroundColor: cancelTextColor,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0, 
+      ),
       child: const Text(
         'Cancel',
         style: TextStyle(
-          fontSize: 16,
-          color: Colors.grey,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );

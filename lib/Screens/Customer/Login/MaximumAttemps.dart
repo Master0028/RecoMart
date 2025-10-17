@@ -109,7 +109,7 @@ class MaximumAttemptsScreen extends StatelessWidget {
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black, // Màu đen
+                    backgroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),

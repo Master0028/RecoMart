@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recomart/Screens/Customer/Login/Login.dart';
+import 'package:go_router/go_router.dart';
 
 final Color primaryBlue = Colors.blue.shade700; 
 
@@ -138,13 +138,7 @@ class SetupNewPasswordScreen extends StatelessWidget {
 
                   ElevatedButton(
                       onPressed: () {                          
-                          Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const LoginScreen(), 
-                              ),
-                              (route) => false,
-                          );
+                          context.push('/login');
                       },
                       style: ElevatedButton.styleFrom(
                           backgroundColor: primaryBlue,

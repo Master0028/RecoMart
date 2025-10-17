@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:recomart/Screens/Customer/Login/SetUpNewPasswordScreen.dart';
+import 'package:go_router/go_router.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 final Color primaryPink = Colors.pink.shade300;
@@ -155,7 +155,7 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
             onChanged: (value) {
                 if (value.length == _codeLength) {
                     _codeFocusNode.unfocus();
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => const SetupNewPasswordScreen()));
+                    context.push('/setup-newpass');
                     debugPrint('OTP 6 số đã nhập xong.');
                 }
             },
@@ -219,10 +219,7 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                   ElevatedButton(
                     onPressed: () {
                       debugPrint('Gửi lại Email OTP!');
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const SetupNewPasswordScreen()),
-                      );
+                      context.push('/setup-newpass');
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: primaryPink,

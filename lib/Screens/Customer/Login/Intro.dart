@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:recomart/Screens/Customer/Login/CreateAccountScreen.dart';
-import 'package:recomart/Screens/Customer/Login/Login.dart';
+import 'package:go_router/go_router.dart';
 
 class RecoMartLogo extends StatelessWidget {
   const RecoMartLogo({super.key});
@@ -67,7 +66,6 @@ class WelcomeScreen extends StatelessWidget {
               ),
               const SizedBox(height: 10),
 
-              // Mô tả
               const Text(
                 'Personalized Product\nRecommendation System',
                 textAlign: TextAlign.center,
@@ -83,12 +81,7 @@ class WelcomeScreen extends StatelessWidget {
 
               ElevatedButton(
                 onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreateAccountScreen(), 
-                    ),
-                  );
+                  context.go('/create-account');
                 },
                 style: ElevatedButton.styleFrom( 
                   backgroundColor: Colors.blue.shade700,
@@ -111,12 +104,7 @@ class WelcomeScreen extends StatelessWidget {
               
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const LoginScreen(), 
-                    ),
-                  );
+                  context.go('/login');
                 },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 
@@ -161,6 +162,7 @@ class OnboardingCard extends StatelessWidget {
                       ElevatedButton(
                         onPressed: () {
                           debugPrint("Bắt đầu ứng dụng!");
+                          context.push('/home');
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryBlue,
