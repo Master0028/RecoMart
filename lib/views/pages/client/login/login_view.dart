@@ -1,0 +1,342 @@
+import 'dart:convert';
+import 'package:recomart/routes/app_routes.dart';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+final Color primaryBlue = Colors.blue.shade700;
+const Color inputFillColor = Color(0xFFF0F0F0);
+const Color cancelTextColor = Color(0xFF616161);
+const double largeRadius = 32.0;
+
+class LoginView extends StatefulWidget {
+  const LoginView({super.key});
+
+  @override
+  _LoginViewState createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _emailFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+
+  bool _loading = false;
+  bool _isPasswordVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _emailFocus.dispose();
+    _passwordFocus.dispose();
+    super.dispose();
+  }
+
+  void _focusAndShowError(FocusNode node, String message) {
+    FocusScope.of(context).requestFocus(node);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(message), 
+      backgroundColor: Colors.red,
+    ));
+  }
+  
+  Future<void> _isLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('accessToken');
+    final userJson = prefs.getString('user');
+    if (accessToken != null && userJson != null) {
+      if (mounted) {
+        final user = jsonDecode(userJson) as Map<String, dynamic>;
+        final userRole = user['role']?.toString().toUpperCase();
+        if (userRole == 'ADMIN') {
+          Navigator.pushReplacementNamed(context, 'admin');
+          context.go('/admin'); 
+        } else {
+          Navigator.pushReplacementNamed(context, 'home');
+          context.go('/home'); 
+        }
+      }
+    }
+  }
+
+  Future<void> signIn() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty) {
+      _focusAndShowError(_emailFocus, 'Please enter your email');
+      return;
+    }
+    if (password.isEmpty) {
+      _focusAndShowError(_passwordFocus, 'Please enter your password');
+      return;
+    }
+    if (password.length < 6) {
+      _focusAndShowError(_passwordFocus, 'Password must be at least 6 characters');
+      return;
+    }
+
+    setState(() => _loading = true);
+    
+    try {
+    
+      await Future.delayed(const Duration(seconds: 2)); 
+      
+      if (mounted) {
+        context.go('/home');
+      }
+
+    } catch (e) {
+      if (mounted) {
+        _focusAndShowError(_emailFocus, 'Login failed. Check credentials.');
+      }
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Widget buildEmailField() {
+    return TextFormField(
+      controller: _emailController,
+      focusNode: _emailFocus,
+      keyboardType: TextInputType.emailAddress,
+      decoration: InputDecoration(
+        hintText: 'Email',
+        prefixIcon: Icon(Icons.email, color: primaryBlue.withOpacity(0.7)),
+        filled: true,
+        fillColor: inputFillColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(largeRadius),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      ),
+    );
+  }
+
+  Widget buildPasswordField() {
+    return TextFormField(
+      controller: _passwordController,
+      focusNode: _passwordFocus,
+      obscureText: !_isPasswordVisible,
+      keyboardType: TextInputType.visiblePassword,
+      decoration: InputDecoration(
+        hintText: 'Password',
+        prefixIcon: Icon(Icons.lock, color: primaryBlue.withOpacity(0.7)),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+            color: primaryBlue.withOpacity(0.6),
+          ),
+          onPressed: () {
+            setState(() {
+              _isPasswordVisible = !_isPasswordVisible;
+            });
+          },
+        ),
+        filled: true,
+        fillColor: inputFillColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(largeRadius),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+      ),
+    );
+  }
+
+  Widget buildSignInButton() {
+    return ElevatedButton(
+      onPressed: _loading ? null : signIn,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: primaryBlue,
+        minimumSize: const Size(double.infinity, 56),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(largeRadius),
+        ),
+        elevation: 2,
+      ),
+      child: _loading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 3.0,
+              ),
+            )
+          : const Text(
+              'Sign In',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+    );
+  }
+
+  Widget buildLogo() {
+    return Row(
+      children: [
+        Image.asset(
+          'assets/logo/logo.png',
+          height: 40, 
+        ),
+        const SizedBox(width: 10),
+        const Text(
+          "RecoMart", 
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w500,
+            color: Colors.black54,
+          ),
+        )
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          context.go('/splash');
+        }
+      },
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SingleChildScrollView(
+          child: SizedBox(
+            height: size.height,
+            child: Stack(
+              children: [
+                Positioned(
+                  top: -size.height * 0.15, 
+                  left: -size.width * 0.5,
+                  child: Container(
+                    width: size.width * 1.5,
+                    height: size.height * 0.6,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: -size.height * 0.1,
+                  right: -size.width * 0.3,
+                  child: Container(
+                    width: size.width * 0.8,
+                    height: size.height * 0.4,
+                    decoration: BoxDecoration(
+                      color: primaryBlue.withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 100),
+                        buildLogo(),
+                        const SizedBox(height: 60),
+                        const Text(
+                          'Login',
+                          style: TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Row(
+                          children: [
+                            Text(
+                              'So good to see you back!',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            SizedBox(width: 5),
+                            Icon(Icons.favorite, size: 18, color: Colors.black),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                        // Email
+                        buildEmailField(),
+                        const SizedBox(height: 15),
+                        // Password
+                        buildPasswordField(),
+                        const SizedBox(height: 10),
+                        
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              context.push('/recovery?email=${_emailController.text.trim()}');
+                            },
+                            child: Text(
+                              'Forgot Password?',
+                              style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                        
+                        const SizedBox(height: 10),
+                        
+                        // Nút Sign In
+                        buildSignInButton(),
+                        
+                        const SizedBox(height: 40),
+
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              "Don't have an account?",
+                              style: TextStyle(fontSize: 16, color: Colors.black54),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                context.push('/signup');
+                              },
+                              child: Text(
+                                'Sign up',
+                                style: TextStyle(
+                                  color: primaryBlue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
