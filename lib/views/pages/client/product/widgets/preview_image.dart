@@ -1,8 +1,9 @@
 import 'dart:ui';
+import 'package:flutter/material.dart';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/utils/responsive.dart';
-import 'package:flutter/material.dart';
 
 class PreviewImage extends StatefulWidget {
   const PreviewImage({
@@ -63,7 +64,7 @@ class _PreviewImageState extends State<PreviewImage> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
           child: Container(
-            padding: Responsive.isMobile(context) ? EdgeInsets.all(10) : null,
+            padding: Responsive.isMobile(context) ? const EdgeInsets.all(10) : null,
             decoration: BoxDecoration(
               color: Responsive.isMobile(context)
                   ? Colors.white.withAlpha(50)
@@ -131,7 +132,7 @@ class _PreviewImageState extends State<PreviewImage> {
                     ),
                   ),
                 ),
-                separatorBuilder: (context, index) => SizedBox(
+                separatorBuilder: (context, index) => const SizedBox(
                   width: 10,
                   height: 10,
                 ),

@@ -1,5 +1,4 @@
 import 'package:recomart/config/color.dart';
-import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/views/pages/client/Chat/widgets/chat_body.dart';
 import 'package:recomart/views/pages/client/home/widgets/home_body.dart';

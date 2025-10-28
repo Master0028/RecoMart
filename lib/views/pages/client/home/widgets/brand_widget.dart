@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 
 class AppColors {
   static const Color primary = Color(0xFF1E88E5);
@@ -32,7 +31,6 @@ class _BrandWidgetState extends State<BrandWidget> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Title Section
         Text(
           'Product Filters',
           style: TextStyle(
@@ -54,13 +52,11 @@ class _BrandWidgetState extends State<BrandWidget> {
 
               return InkWell(
                 onTap: () {
-                  // --- LOGIC CŨ ĐƯỢC GIỮ NGUYÊN ---
                   setState(
                     () {
                       isSelectedList = index;
                     },
                   );
-                  // --- END LOGIC CŨ ---
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: AnimatedContainer( 
@@ -70,7 +66,6 @@ class _BrandWidgetState extends State<BrandWidget> {
                   decoration: BoxDecoration(
                     color: isSelected ? AppColors.orangePastel : AppColors.backgroundLight,
                     borderRadius: BorderRadius.circular(20),
-                    // Tạo hiệu ứng viền/bóng mờ cho cảm giác hiện đại hơn (Tech Look)
                     border: Border.all(
                       color: isSelected ? AppColors.primary.withOpacity(0.5) : Colors.transparent,
                       width: 1.5,

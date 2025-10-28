@@ -1,9 +1,10 @@
-import 'package:recomart/config/color.dart';
 import 'package:flutter/material.dart';
+
+const Color primaryColor = Color(0xFF1976D2);
 
 class MyButton extends StatelessWidget {
   final String text;
-  final Function(BuildContext)? onTap;
+  final Function(BuildContext)? onTap; 
   final bool isLoading;
   final bool variantIsOutline;
   final double fontSize;
@@ -30,10 +31,10 @@ class MyButton extends StatelessWidget {
               ? Colors.black12
               : variantIsOutline
                   ? Colors.white
-                  : AppColors.primary,
+                  : primaryColor,
           border: variantIsOutline
               ? Border.all(
-                  color: AppColors.primary,
+                  color: primaryColor,
                   width: 1,
                 )
               : null,
@@ -42,8 +43,6 @@ class MyButton extends StatelessWidget {
             child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          spacing: 20,
           children: [
             if (isLoading)
               const SizedBox(
@@ -54,10 +53,11 @@ class MyButton extends StatelessWidget {
                   strokeWidth: 2,
                 ),
               ),
+            if (isLoading) const SizedBox(width: 10),
             Text(
               text,
               style: TextStyle(
-                color: variantIsOutline ? AppColors.primary : Colors.white,
+                color: variantIsOutline ? primaryColor : Colors.white,
                 fontSize: fontSize,
                 fontWeight: FontWeight.w400,
               ),

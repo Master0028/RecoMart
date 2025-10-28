@@ -1,4 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/bottom_navigation_bar.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
@@ -7,24 +9,56 @@ import 'package:recomart/components/ui/slider_product.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/product.model.dart';
-import 'package:recomart/models/review.model.dart';
-import 'package:recomart/provider/cart_provider.dart';
-import 'package:recomart/services/product.service.dart';
-import 'package:recomart/services/review.service.dart';
-import 'package:recomart/services/socket_io_client.dart';
-import 'package:recomart/utils/responsive.dart';
+import 'package:recomart/utils/responsive.dart' as utils;
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/product/widgets/description_product.dart';
-import 'package:recomart/views/pages/client/product/widgets/product_comment.dart';
-import 'package:recomart/views/pages/client/product/widgets/product_review_section.dart';
 import 'package:recomart/views/pages/client/product/widgets/quantity.dart';
 import 'package:recomart/views/pages/client/product/widgets/title_product.dart';
 import 'package:recomart/views/pages/client/product/widgets/version_product.dart';
 import 'package:feather_icons/feather_icons.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
+
+class ProductImageFE {
+  final String url;
+  ProductImageFE({required this.url});
+}
+
+final Map<String, dynamic> FE_PRODUCT_STUB = {
+  'id': 'stub_id',
+  'variantName': 'FE Product Name',
+  'variantColor': 'FE Color',
+  'variantDescription': 'FE Description for the product.',
+  'price': 5000000.0,
+  'discount': 0.1,
+  'quantity': 10,
+  'averageRating': 4.7,
+  'reviewCount': 150,
+  'images': [ProductImageFE(url: 'https://picsum.photos/id/400/600/400')],
+  'categoryId': 'FE_CAT_ID',
+  'isActive': true,
+};
+
+final List<Map<String, dynamic>> FE_RELATED_VARIANTS = [
+  {'id': 'v1', 'variantName': 'Variant 1', 'variantColor': 'Gray', 'images': [ProductImageFE(url: 'https://picsum.photos/id/401/600/400')], 'price': 5000000.0, 'discount': 0.05, 'averageRating': 4.5, 'reviewCount': 100},
+  {'id': 'v2', 'variantName': 'Variant 2', 'variantColor': 'Silver', 'images': [ProductImageFE(url: 'https://picsum.photos/id/402/600/400')], 'price': 5500000.0, 'discount': 0.0, 'averageRating': 4.8, 'reviewCount': 120},
+];
+
+final List<dynamic> FE_REVIEWS = List.generate(3, (i) => {'id': 'rv_$i', 'rating': 5, 'content': 'Review FE $i'});
+final List<dynamic> FE_COMMENTS = List.generate(2, (i) => {'id': 'cmt_$i', 'rating': 0, 'content': 'Comment FE $i'});
+
+
+class MockSocketServiceFE { 
+  void connect({required String productVariantId}) {
+    debugPrint('FE: Connect Socket stub to $productVariantId');
+  }
+  void disconnect() {
+    debugPrint('FE: Disconnect Socket stub');
+  }
+  void onNewReview(Function(Map<String, dynamic> data) callback) {
+    debugPrint('FE: Listen for new review stub');
+  }
+}
+
 
 class ProductDetailsView extends StatefulWidget {
   const ProductDetailsView(
@@ -37,129 +71,83 @@ class ProductDetailsView extends StatefulWidget {
 }
 
 class _ProductDetailsViewState extends State<ProductDetailsView> {
-  late ProductModel product;
-  List<ProductModel> relatedProductsVariant = [];
+  final MockSocketServiceFE socketService = MockSocketServiceFE(); 
 
-  List<ReviewModel> reviews = [];
-  List<ReviewModel> comments = [];
-  int currentPage = 0;
-  int totalPages = 0;
+  Map<String, dynamic> product = FE_PRODUCT_STUB;
+  List<dynamic> relatedProductsVariant = [];
+
+  List<dynamic> reviews = [];
+  List<dynamic> comments = [];
+  int currentPage = 1;
+  int totalPages = 5;
   bool isLoadingReview = false;
   bool isLoadingComment = false;
+  bool isLoading = false;
 
   double averageRating = 0.0;
   int reviewCount = 0;
 
   List<String> images = ['https://placehold.co/600x400.png'];
   int quantity = 1;
-  bool isLoading = false;
-
-  final SocketService socketService = SocketService();
-  ProductService productService = ProductService();
-  ReviewService reviewService = ReviewService();
 
   Future<void> fetchProductDetails() async {
     setState(() {
       isLoading = true;
     });
-    try {
-      final response =
-          await productService.getProductVariantsById(widget.productId);
-      final newProduct = ProductModel.fromJson(response['productVariant']);
-      final newRelated = (response['relatedVariants'] as List)
-          .map((item) => ProductModel.fromJson(item))
-          .toList();
+    await Future.delayed(const Duration(milliseconds: 500)); 
 
-      setState(() {
-        product = newProduct;
-        relatedProductsVariant = [newProduct, ...newRelated];
-        images = newProduct.images.map((image) => image.url).toList();
-      });
-    } catch (e) {
-      // Handle any errors that occur during the fetch
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
+    setState(() {
+      product = FE_RELATED_VARIANTS.firstWhere(
+          (v) => v['id'] == widget.productId,
+          orElse: () => FE_PRODUCT_STUB);
+          
+      relatedProductsVariant = FE_RELATED_VARIANTS;
+      images = (product['images'] as List<ProductImageFE>).map((img) => img.url).toList();
+      averageRating = product['averageRating'] ?? 0.0;
+      reviewCount = product['reviewCount'] ?? 0;
+      isLoading = false;
+    });
   }
 
   void handleSelectVariant(String variantId) async {
-    final newProduct =
-        relatedProductsVariant.firstWhere((variant) => variant.id == variantId);
+    setState(() {
+      isLoadingReview = true;
+      isLoadingComment = true;
+    });
+
+    final newProduct = relatedProductsVariant.firstWhere(
+        (variant) => variant['id'] == variantId,
+        orElse: () => product);
+
+    socketService.disconnect();
+    socketService.connect(productVariantId: newProduct['id']);
 
     setState(() {
       product = newProduct;
-      images = newProduct.images.map((image) => image.url).toList();
+      images = (newProduct['images'] as List<ProductImageFE>).map((img) => img.url).toList();
     });
 
-    // Ngắt kết nối socket hiện tại (nếu cần), rồi kết nối lại
-    socketService.disconnect();
-    await socketService.connect(productVariantId: newProduct.id);
+    await Future.delayed(const Duration(milliseconds: 300)); 
 
-    // Đăng ký lại lắng nghe review mới
-    socketService.onNewReview((data) {
-      final newReview = ReviewModel.fromJson(data);
-      if (newReview.rating != 0) {
-        setState(() {
-          reviews.insert(0, newReview);
-          reviewCount += 1;
-
-          if (reviewCount == 1) {
-            averageRating = newReview.rating!.toDouble();
-          } else {
-            averageRating =
-                ((averageRating * (reviewCount - 1)) + newReview.rating!) /
-                    reviewCount;
-          }
-        });
-      } else {
-        setState(() {
-          comments.insert(0, newReview);
-        });
-      }
+    setState(() {
+      reviews = FE_REVIEWS;
+      comments = FE_COMMENTS;
+      isLoadingReview = false;
+      isLoadingComment = false;
     });
-
-    await fetchReviewsRating();
-    await fetchComments();
   }
 
   Future<void> fetchReviewsRating({int page = 1}) async {
     setState(() {
       isLoadingReview = true;
-      reviews.clear();
     });
-    try {
-      final res = await reviewService.getAllReviews(
-        productVariantId: product.id,
-        page: page,
-        limit: 200,
-      );
-      //Only get reviews with rating
-      final filterReviewsRating = res['data']
-          .where((review) => review.userId != null && review.rating != 0)
-          .toList();
-      if (res['data'].isNotEmpty) {
-        setState(() {
-          reviews.addAll(
-            filterReviewsRating,
-          );
-          totalPages = res['totalPage'];
-          currentPage = res['page'];
-          averageRating = (res['average_rating'] ?? 0).toDouble();
-          reviewCount = res['reviews_with_rating'];
-        });
-      } else {
-        setState(() {
-          averageRating = 0;
-          reviewCount = 0;
-        });
-      }
-    } catch (e) {
-      print('Error fetching comments: $e');
-    }
-
+    await Future.delayed(const Duration(milliseconds: 300)); 
     setState(() {
+      reviews = FE_REVIEWS;
+      totalPages = 5;
+      currentPage = page;
+      averageRating = 4.7;
+      reviewCount = 150;
       isLoadingReview = false;
     });
   }
@@ -167,83 +155,27 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
   Future<void> fetchComments({int page = 1}) async {
     setState(() {
       isLoadingComment = true;
-      comments.clear();
     });
-    try {
-      final res = await reviewService.getAllReviews(
-        productVariantId: product.id,
-        page: page,
-        limit: 200,
-      );
-      //only get comments without rating
-      final filterReview =
-          res['data'].where((review) => review.rating == 0).toList();
-
-      if (res['data'].isNotEmpty) {
-        setState(() {
-          comments.addAll(
-            filterReview,
-          );
-          totalPages = res['totalPage'];
-          currentPage = res['page'];
-        });
-      }
-    } catch (e) {
-      print('Error fetching comments: $e');
-    }
-
+    await Future.delayed(const Duration(milliseconds: 300)); 
     setState(() {
+      comments = FE_COMMENTS;
+      totalPages = 5;
+      currentPage = page;
       isLoadingComment = false;
     });
   }
 
   Future<void> _initSocketAndLoadData() async {
-    await socketService.connect(productVariantId: product.id);
-    socketService.onNewReview((data) async {
-      final newReview = ReviewModel.fromJson(data);
-      // Chỉ thêm nếu có rating hợp lệ
-      if (newReview.rating != 0) {
-        setState(() {
-          reviews.insert(0, newReview);
-          reviewCount = reviews.length;
-
-          if (reviewCount == 1) {
-            averageRating = newReview.rating!.toDouble();
-          } else {
-            averageRating =
-                ((averageRating * (reviewCount - 1)) + newReview.rating!) /
-                    reviewCount;
-          }
-        });
-      } else {
-        setState(() {
-          comments.insert(0, newReview);
-        });
-      }
-    });
+    socketService.connect(productVariantId: product['id']);
   }
 
   @override
   void initState() {
     super.initState();
-    product = ProductModel(
-      id: widget.productId,
-      productId: '',
-      variantName: '',
-      variantColor: '',
-      variantDescription: '',
-      price: 0,
-      discount: 0,
-      quantity: 0,
-      averageRating: 0,
-      reviewCount: 0,
-      images: [
-        ProductImage(url: 'https://placehold.co/600x400.png', publicId: '')
-      ],
-      isActive: true,
-    );
+    product = FE_PRODUCT_STUB; 
+
     fetchProductDetails().then((_) {
-      _initSocketAndLoadData(); // Chỉ gọi sau khi đã có product.id chính xác
+      _initSocketAndLoadData();
     });
     fetchReviewsRating();
     fetchComments();
@@ -254,18 +186,27 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     super.dispose();
     socketService.disconnect();
   }
+  
+  void _handleAddToCartFE() {
+      showCustomSnackBar(
+          context,
+          'You have added to cart (FE Action)',
+          type: SnackBarType.success,
+        );
+  }
+
 
   @override
   Widget build(BuildContext context) {
     double isWrap = MediaQuery.of(context).size.width;
-    bool isMobile = Responsive.isMobile(context);
-    bool isDesktop = Responsive.isDesktop(context);
-    bool isTablet = Responsive.isTablet(context);
-
-    //get data from route arguments
+    bool isMobile = utils.Responsive.isMobile(context);
+    bool isDesktop = utils.Responsive.isDesktop(context);
+    
+    final currentProduct = product; 
+    
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: !isMobile ? AppBarHomeCustom() : null,
+      appBar: !isMobile ? const AppBarHomeCustom() : null,
       body: ListView.builder(
         itemCount: 1,
         itemBuilder: (context, index) => Stack(
@@ -279,18 +220,18 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 crossAxisAlignment: WrapCrossAlignment.start,
                 children: [
                   ConstrainedBox(
-                    constraints: BoxConstraints(
+                    constraints: const BoxConstraints(
                       minWidth: 300,
                       minHeight: 300,
                     ),
                     child: Container(
                         padding: !isMobile
-                            ? EdgeInsets.only(
+                            ? const EdgeInsets.only(
                                 top: 16,
                                 left: 64,
                                 right: 64,
                               )
-                            : EdgeInsets.only(
+                            : const EdgeInsets.only(
                                 left: 16,
                                 right: 16,
                               ),
@@ -302,17 +243,17 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                         )),
                   ),
                   ConstrainedBox(
-                    constraints: BoxConstraints(
+                    constraints: const BoxConstraints(
                       minWidth: 300,
                     ),
                     child: Container(
                       padding: !isMobile
-                          ? EdgeInsets.only(
+                          ? const EdgeInsets.only(
                               top: 16,
                               left: 64,
                               right: 64,
                             )
-                          : EdgeInsets.only(
+                          : const EdgeInsets.only(
                               left: 16,
                               right: 16,
                             ),
@@ -320,18 +261,17 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.start,
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        // Dùng Column với spacing 
                         children: [
                           TitleProduct(
-                            title: product.variantName,
-                            price: product.price,
-                            discount: product.discount,
+                            title: currentProduct['variantName'] ?? 'FE Product',
+                            price: currentProduct['price'] ?? 0.0,
+                            discount: currentProduct['discount'] ?? 0.0,
                           ),
                           const SizedBox(height: 20),
                           VersionProduct(
                             relatedProductsVariant: relatedProductsVariant,
                             handleSelectVariant: handleSelectVariant,
-                            isSelected: product.id,
+                            isSelected: currentProduct['id'],
                           ),
                           const SizedBox(height: 20),
                           Quantity(
@@ -357,72 +297,62 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                               mainAxisAlignment: MainAxisAlignment.start,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Nút Add to cart - Màu Xanh dương Chính
                                 Expanded(
                                   child: Container(
                                     height: 50,
                                     margin: const EdgeInsets.only(right: 10),
                                     decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(12), // Bo góc lớn hơn
+                                      borderRadius: BorderRadius.circular(12),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.primary.withOpacity(0.3),
+                                          color: AppColors.primary
+                                              .withOpacity(0.3),
                                           blurRadius: 10,
                                           offset: const Offset(0, 5),
                                         ),
                                       ],
                                     ),
                                     child: ElevatedButton.icon(
-                                      onPressed: () {
-                                        final provider =
-                                            Provider.of<CartProvider>(context,
-                                                listen: false);
-                                        provider.handleAddToCart(
-                                          product.id,
-                                          quantity,
-                                        );
-                                        showCustomSnackBar(
-                                          context,
-                                          'You have added to cart',
-                                          type: SnackBarType.success,
-                                        );
-                                      },
-                                      icon: const Icon(FeatherIcons.shoppingCart, color: Colors.white, size: 20),
+                                      onPressed: _handleAddToCartFE, 
+                                      icon: const Icon(FeatherIcons.shoppingCart,
+                                          color: Colors.white, size: 20),
                                       label: const Text(
                                         'Add to cart',
                                         style: TextStyle(
                                           color: Colors.white,
-                                          fontWeight: FontWeight.bold, // Chữ in đậm
+                                          fontWeight: FontWeight.bold,
                                         ),
                                       ),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: AppColors.primary,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                       ),
                                     ),
                                   ),
                                 ),
-                                // Nút Buy now - Màu Xanh dương Outline
                                 Expanded(
                                   child: Container(
                                     height: 50,
                                     margin: const EdgeInsets.only(left: 10),
-                                    child: OutlinedButton( // Dùng OutlinedButton cho style hiện đại
+                                    child: OutlinedButton(
                                       onPressed: () {
-                                        // Logic Buy now
+                                        print('Buy now clicked');
                                       },
                                       style: OutlinedButton.styleFrom(
                                         foregroundColor: AppColors.primary,
                                         side: BorderSide(
-                                            color: AppColors.primary,
-                                            width: 2), // Viền dày hơn
+                                            color: AppColors.primary, width: 2),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
                                         ),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                       ),
                                       child: Text(
                                         'Buy now',
@@ -443,12 +373,12 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   Container(
                     width: !isDesktop ? double.infinity : isWrap * 0.43,
                     padding: !isMobile
-                        ? EdgeInsets.only(
+                        ? const EdgeInsets.only(
                             top: 16,
                             left: 64,
                             right: 64,
                           )
-                        : EdgeInsets.only(
+                        : const EdgeInsets.only(
                             left: 16,
                             right: 16,
                             bottom: 16,
@@ -456,27 +386,21 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                     color: Colors.white,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      // Dùng Column với spacing 
                       children: [
                         DescriptionProduct(
-                          description: product.variantDescription,
+                          description: currentProduct['variantDescription'] ?? 'FE Description',
                         ),
                         const SizedBox(height: 20),
-                        ProductReviewSection(
-                          productId: product.id,
-                          productName: product.variantName,
-                          averageRating: averageRating,
-                          reviewCount: reviewCount,
-                          images: images,
-                          socketService: socketService,
-                          reviews: reviews,
-                          isLoading: isLoadingReview,
+                        Container(
+                          height: 200, 
+                          color: Colors.grey[100], 
+                          child: const Center(child: Text('Product Review Section (FE Placeholder)')),
                         ),
                         const SizedBox(height: 20),
                         Text(
                           'Related Products',
                           style: TextStyle(
-                            fontSize: 20, // Tăng kích thước font
+                            fontSize: 20,
                             fontWeight: FontWeight.bold,
                             color: AppColors.black,
                           ),
@@ -486,44 +410,47 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   ),
                   Padding(
                     padding: !isMobile
-                        ? EdgeInsets.only(
+                        ? const EdgeInsets.only(
                             top: 16,
                             left: 64,
                             right: 64,
                           )
-                        : EdgeInsets.only(
+                        : const EdgeInsets.only(
                             left: 16,
                             right: 16,
                           ),
-                    child: ProductRelevant(
-                      categoryId: widget.categoryId,
+                    child: Container(
+                        height: 350, 
+                        width: isWrap < 1200 ? double.infinity : isWrap * 0.43,
+                        color: Colors.grey[100], 
+                        child: const Center(child: Text('Product Relevant Section (FE Placeholder)'))
                     ),
                   ),
                   Padding(
                     padding: !isMobile
-                        ? EdgeInsets.only(
+                        ? const EdgeInsets.only(
                             top: 16,
                             left: 64,
                             right: 64,
                           )
-                        : EdgeInsets.only(
+                        : const EdgeInsets.only(
                             left: 16,
                             right: 16,
                           ),
-                    child: ProductComment(
-                      socketService: socketService,
-                      productId: product.id,
-                      comments: comments,
-                      isLoading: isLoadingComment,
+                    child: Container(
+                        height: 200, 
+                        width: isWrap < 1200 ? double.infinity : isWrap * 0.43,
+                        color: Colors.grey[100], 
+                        child: const Center(child: Text('Product Comment Section (FE Placeholder)'))
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                 ],
               ),
             ),
-            if (isTablet)
+            if (utils.Responsive.isTablet(context))
               Positioned(
                 top: 0,
                 left: 64,
@@ -532,13 +459,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                     IconButton(
                       icon: const Icon(Icons.arrow_back_ios_new_rounded),
                       onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BottomNavigationBarCustom(),
-                          ),
-                          (Route<dynamic> route) => false,
-                        );
+                        Navigator.pop(context); 
                       },
                     ),
                     const Text(
@@ -551,7 +472,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   ],
                 ),
               ),
-
             if (isMobile)
               Positioned(
                 top: 20,
@@ -569,19 +489,12 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                     IconButtonCustom(
                       icon: CupertinoIcons.square_grid_2x2,
                       onPressed: () {
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BottomNavigationBarCustom(),
-                          ),
-                          (Route<dynamic> route) => false,
-                        );
+                         Navigator.pop(context);
                       },
                     ),
                   ],
                 ),
               ),
-            // isMobile ? DraggableScrollCustom() : SizedBox(),
           ],
         ),
       ),
@@ -591,35 +504,35 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1), // Shadow hiện đại hơn
-                    blurRadius: 15, // Blur rộng hơn
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 15,
                     offset: const Offset(0, -5),
                   ),
                 ],
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20), // Bo góc cho thanh bottom bar
+                  topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
               ),
               width: double.infinity,
-              height: 70, // Chiều cao tối ưu hơn
+              height: 70,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Nút Chat - Icon màu xanh dương
                   Expanded(
                     flex: 1,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5)),
                       ),
                       margin: const EdgeInsets.only(right: 8),
                       child: IconButton(
                         onPressed: () {
-                          // Logic Chat
+                          print('Chat button clicked');
                         },
                         icon: Icon(
                           FeatherIcons.messageCircle,
@@ -629,19 +542,19 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       ),
                     ),
                   ),
-                  // Nút Cart - Icon màu xanh dương
                   Expanded(
                     flex: 1,
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                        border: Border.all(
+                            color: AppColors.primary.withOpacity(0.5)),
                       ),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       child: IconButton(
                         onPressed: () {
-                          Navigator.pushNamed(context, 'cart');
+                          debugPrint('Go to Cart');
                         },
                         icon: Icon(
                           FeatherIcons.shoppingCart,
@@ -651,32 +564,19 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       ),
                     ),
                   ),
-                  // Nút Add to cart - Màu Xanh dương Chính
                   Expanded(
                     flex: 3,
                     child: Container(
                       height: double.infinity,
                       margin: const EdgeInsets.only(left: 8),
                       child: ElevatedButton(
-                        onPressed: () {
-                          final provider =
-                              Provider.of<CartProvider>(context, listen: false);
-                          provider.handleAddToCart(
-                            product.id,
-                            quantity,
-                          );
-                          showCustomSnackBar(
-                            context,
-                            'You have added to cart',
-                            type: SnackBarType.success,
-                          );
-                        },
+                        onPressed: _handleAddToCartFE,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12), // Bo góc
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 5, // Thêm elevation để nổi bật
+                          elevation: 5,
                           shadowColor: AppColors.primary.withOpacity(0.5),
                         ),
                         child: Text(
@@ -731,7 +631,7 @@ class IconButtonCustom extends StatelessWidget {
         icon: Icon(
           icon,
           size: 20,
-          color: AppColors.primary, // Icon màu xanh dương
+          color: AppColors.primary,
         ),
       ),
     );
@@ -751,11 +651,23 @@ class ProductRelevant extends StatefulWidget {
 
 class _ProductRelevantState extends State<ProductRelevant> {
   bool _isLoading = true;
-  List<ProductModel> products = [];
-  int totalPage = 0;
+  List<dynamic> products = [];
+  int totalPage = 1;
   int currentPage = 1;
   String errorMessage = '';
-  final ProductService productSerice = ProductService();
+  
+  final List<Map<String, dynamic>> FE_RELEVANT_PRODUCTS = List.generate(
+      4,
+      (index) => {
+          'id': 'rel_var_id_$index', 
+          'categoryId': 'FE_CAT_ID',
+          'variantName': 'Relevant Product $index', 
+          'variantDescription': 'FE relevant description $index',
+          'price': 1000000.0 * (index + 1),
+          'averageRating': 4.0 + index * 0.2,
+          'images': [ProductImageFE(url: 'https://picsum.photos/id/${500 + index}/600/400')],
+      });
+
 
   @override
   void initState() {
@@ -766,30 +678,15 @@ class _ProductRelevantState extends State<ProductRelevant> {
   Future<void> _fetchProductsRelevant() async {
     setState(() {
       _isLoading = true;
+      errorMessage = '';
     });
-    try {
-      final getProductVariants = await productSerice
-          .searchProductVariants(categoryIds: [widget.categoryId]);
+    await Future.delayed(const Duration(milliseconds: 700)); 
 
-      setState(() {
-        products = getProductVariants['data'];
-        totalPage = getProductVariants['totalPages'];
-        currentPage = getProductVariants['page'];
-      });
-    } catch (e) {
-      print('Error fetching products: $e');
-      showCustomSnackBar(
-        context,
-        'Please check your internet connection',
-      );
-      setState(() {
-        errorMessage = 'Please check your internet connection';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    setState(() {
+      products = FE_RELEVANT_PRODUCTS;
+      totalPage = 10;
+      _isLoading = false;
+    });
   }
 
   Future<void> handleOnPageChanged(int page) async {
@@ -814,9 +711,9 @@ class _ProductRelevantState extends State<ProductRelevant> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/images/No_Internet.png', // Đường dẫn ảnh bạn muốn hiển thị
-                width: 250, // Chiều rộng bạn muốn
-                height: 250, // Chiều cao bạn muốn
+                'assets/images/No_Internet.png',
+                width: 250,
+                height: 250,
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 16),
@@ -840,15 +737,15 @@ class _ProductRelevantState extends State<ProductRelevant> {
     return Column(
       children: [
         GridView.builder(
-          itemCount: _isLoading ? 4 : products.length, // Giảm xuống 4 cho mobile/tablet
+          itemCount: _isLoading ? 4 : products.length,
           physics: const NeverScrollableScrollPhysics(),
           shrinkWrap: true,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: Responsive.isDesktop(context) ? 4 : 2,
+            crossAxisCount: utils.Responsive.isDesktop(context) ? 4 : 2,
             childAspectRatio: 0.55,
-            crossAxisSpacing: 16, // Giảm spacing một chút
-            mainAxisSpacing: 16, // Giảm spacing một chút
-            mainAxisExtent: 300, // Chiều cao hợp lý hơn cho card sản phẩm
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: 300,
           ),
           itemBuilder: (context, index) {
             final variant =
@@ -856,14 +753,14 @@ class _ProductRelevantState extends State<ProductRelevant> {
             return _isLoading
                 ? const Skeleton()
                 : ProductView(
-                    id: variant?.id ?? '',
-                    categoryId: variant?.categoryId ?? '',
-                    variantName: variant?.variantName ?? '',
-                    images: (variant?.images as List<ProductImage>),
-                    price: (variant?.price as double),
-                    variantDescription: variant?.variantDescription ??
+                    id: variant?['id'] ?? '',
+                    categoryId: variant?['categoryId'] ?? '',
+                    variantName: variant?['variantName'] ?? '',
+                    images: (variant?['images'] as List<ProductImageFE>),
+                    price: (variant?['price'] as double),
+                    variantDescription: variant?['variantDescription'] ??
                         'No description available',
-                    averageRating: variant?.averageRating.toString() ?? '0.0',
+                    averageRating: variant?['averageRating']?.toStringAsFixed(1) ?? '0.0',
                   );
           },
         ),
@@ -887,7 +784,7 @@ class _ProductRelevantState extends State<ProductRelevant> {
 
 class ProductView extends StatelessWidget {
   final String variantName;
-  final List<ProductImage> images;
+  final List<dynamic> images; 
   final double price;
   final String variantDescription;
   final String averageRating;
@@ -908,18 +805,17 @@ class ProductView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          Navigator.pushNamed(context, '/product-details/$id', arguments: {
-        'categoryId': categoryId,
-      }),
+      onTap: () {
+          print('Navigate to product detail ID: $id');
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16), // Bo góc lớn hơn
-          border: Border.all(color: AppColors.primary.withOpacity(0.1)), // Viền nhẹ
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withOpacity(0.1)),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withOpacity(0.05), // Shadow màu xanh nhẹ
+              color: AppColors.primary.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 5),
             ),
@@ -928,15 +824,14 @@ class ProductView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Khu vực ảnh sản phẩm
             Container(
               width: double.infinity,
-              height: 150, // Chiều cao ảnh cố định
+              height: 150,
               padding: const EdgeInsets.all(8),
               child: ClipRRect(
-                borderRadius: const BorderRadius.all(Radius.circular(12)), // Bo góc ảnh
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
                 child: CachedNetworkImage(
-                  imageUrl: images[0].url,
+                  imageUrl: images.isNotEmpty ? images[0].url : 'default_image_url',
                   placeholder: (context, url) => const SkeletonImage(
                     imageHeight: 140,
                   ),
@@ -946,7 +841,6 @@ class ProductView extends StatelessWidget {
                 ),
               ),
             ),
-            // Khu vực thông tin sản phẩm
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12),
@@ -961,7 +855,7 @@ class ProductView extends StatelessWidget {
                           variantName,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16, // Font lớn hơn
+                            fontSize: 16,
                             color: Colors.black87,
                           ),
                           maxLines: 2,
@@ -983,21 +877,22 @@ class ProductView extends StatelessWidget {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                         Text(
+                        Text(
                           formatMoney(price.toDouble()),
                           style: TextStyle(
-                            fontWeight: FontWeight.w900, // Rất đậm
-                            color: AppColors.primary, // Màu xanh dương nổi bật
-                            fontSize: FontSizes.large, // Font to hơn
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.primary,
+                            fontSize: FontSizes.large,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, size: 16, color: Colors.amber),
+                            const Icon(Icons.star,
+                                size: 16, color: Colors.amber),
                             const SizedBox(width: 4),
                             Text(
-                              double.parse(averageRating).toStringAsFixed(1),
+                              averageRating,
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,

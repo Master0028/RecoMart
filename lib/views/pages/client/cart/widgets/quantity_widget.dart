@@ -1,8 +1,6 @@
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/config/color.dart';
-import 'package:recomart/provider/cart_provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:recomart/components/custom/snackbar.dart'; 
+import 'package:recomart/config/color.dart';
 
 class QuantitySelector extends StatefulWidget {
   const QuantitySelector({
@@ -47,23 +45,26 @@ class _QuantitySelectorState extends State<QuantitySelector> {
 
   void _incrementQuantity() async {
     if (widget.isProcessing) return;
+    
     if (widget.onChangeProgressing != null) widget.onChangeProgressing!(true);
 
     try {
-      final provider = Provider.of<CartProvider>(context, listen: false);
-
+      
       if (widget.maxQuantity == null || _quantity < widget.maxQuantity!) {
-        await provider.handleAddToCart(widget.productId, 1);
-
+        
         setState(() {
           _quantity++;
         });
 
         widget.onQuantityChanged(_quantity);
+      } else {
+         if (mounted) {
+            showCustomSnackBar(context, 'Max quantity reached (FE Check)');
+         }
       }
     } finally {
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (widget.onChangeProgressing != null) {
+        if (mounted && widget.onChangeProgressing != null) {
           widget.onChangeProgressing!(false);
         }
       });
@@ -72,25 +73,26 @@ class _QuantitySelectorState extends State<QuantitySelector> {
 
   void _decrementQuantity() async {
     if (widget.isProcessing) return;
+    
     if (widget.onChangeProgressing != null) widget.onChangeProgressing!(true);
 
     try {
-      final provider = Provider.of<CartProvider>(context, listen: false);
 
       if (_quantity > 1) {
-        await provider.handleRemoveToCart(widget.productId, 1);
-
+        
         setState(() {
           _quantity--;
         });
 
         widget.onQuantityChanged(_quantity);
       } else {
-        showCustomSnackBar(context, "You can't descrease quantity below 1");
+        if (mounted) {
+          showCustomSnackBar(context, "You can't descrease quantity below 1 (FE Check)");
+        }
       }
     } finally {
       Future.delayed(const Duration(milliseconds: 500), () {
-        if (widget.onChangeProgressing != null) {
+        if (mounted && widget.onChangeProgressing != null) {
           widget.onChangeProgressing!(false);
         }
       });
@@ -105,8 +107,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
-        spacing: 10,
-        children: [
+        children: [ 
           Container(
             decoration: BoxDecoration(
               shape: BoxShape.circle,

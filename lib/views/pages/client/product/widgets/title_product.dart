@@ -1,7 +1,6 @@
 import 'dart:ui';
-
-import 'package:recomart/helpers/formatMoney.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/helpers/formatMoney.dart'; 
 
 class TitleProduct extends StatelessWidget {
   const TitleProduct(
@@ -9,7 +8,8 @@ class TitleProduct extends StatelessWidget {
       required this.title,
       required this.price,
       this.oldPrice,
-      this.discount});
+      this.discount = 0.0});
+  
   final String title;
   final double price;
   final int? oldPrice;
@@ -17,10 +17,11 @@ class TitleProduct extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final double discountedPrice = price * (1 - (discount ?? 0.0));
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 5,
       children: [
         Text(
           title,
@@ -35,7 +36,7 @@ class TitleProduct extends StatelessWidget {
           children: [
             Text(
               formatMoney(price),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 16,
                 color: Colors.grey,
                 decoration: TextDecoration.lineThrough,
@@ -43,8 +44,8 @@ class TitleProduct extends StatelessWidget {
               softWrap: true,
             ),
             Text(
-              formatMoney(price - discount! * price),
-              style: TextStyle(
+              formatMoney(discountedPrice),
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.red,

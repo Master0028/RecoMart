@@ -24,7 +24,7 @@ class PointSummary extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SizedBox(
+            const SizedBox(
               width: double.infinity,
               child: const Text(
                 'Point Summary',
@@ -33,7 +33,7 @@ class PointSummary extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 5),
-            SizedBox(
+            const SizedBox(
               width: double.infinity,
               child: Text(
                 'You can only use points up to 50% !',
@@ -45,12 +45,21 @@ class PointSummary extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            _buildRow('Current Points',
-                '${currentPoints.toStringAsFixed(0)} Points', Colors.black),
-            _buildRow('Points Used', '${pointsToUse.toStringAsFixed(0)} Points',
-                Colors.black),
-            _buildRow('Points Earned',
-                '${pointsToReceive.toStringAsFixed(0)} Points', Colors.black),
+            _buildRow(
+              'Current Points',
+              '${currentPoints.toStringAsFixed(0)} Points', 
+              Colors.black
+            ),
+            _buildRow(
+              'Points Used', 
+              '${pointsToUse.toStringAsFixed(0)} Points',
+              Colors.black
+            ),
+            _buildRow(
+              'Points Earned',
+              '${pointsToReceive.toStringAsFixed(0)} Points', 
+              Colors.black
+            ),
           ],
         ),
       ),

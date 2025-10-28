@@ -2,25 +2,26 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/models/user.model.dart';
-import 'package:recomart/provider/user_provider.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/user.service.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/views/pages/client/login/widgets/button.dart';
 import 'package:recomart/views/pages/client/login/widgets/otp_input.dart';
-import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+final Map<String, dynamic> FE_USER_INFO = {
+  'fullName': 'FE User Name',
+  'email': 'fe.user@email.com',
+  'phone': '0123456789',
+  'address': 'District 1, HCM City',
+  'avatar': {'url': 'https://picsum.photos/200'},
+};
+
 
 class ModernAccountListTile extends StatelessWidget {
   const ModernAccountListTile({
@@ -73,6 +74,9 @@ class MyAccountView extends StatefulWidget {
 }
 
 class _MyAccountView extends State<MyAccountView> {
+  final bool isExistUser = true; 
+  final Map<String, dynamic>? userInfo = FE_USER_INFO;
+  
   List<Map<String, dynamic>> myAccountItems = [
     {'title': 'Personal Information', 'icon': CupertinoIcons.person, 'type': 'auth'},
     {'title': 'My Utilities', 'icon': CupertinoIcons.square_grid_2x2, 'type': 'general'},
@@ -80,108 +84,89 @@ class _MyAccountView extends State<MyAccountView> {
     {'title': 'Address', 'icon': CupertinoIcons.location_north, 'type': 'general'},
     {'title': 'Switch Account/Logout', 'icon': CupertinoIcons.arrow_right_square, 'type': 'auth'},
   ];
-
-  Future<void> fetchUserInfo() async {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.loadUserData();
-  }
   
-  // Hàm xử lý Đăng xuất
   Future<void> _handleLogout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear(); 
-    if (!mounted) return;
-    Provider.of<UserProvider>(context, listen: false).clearUserData(); 
-    showCustomSnackBar(context, 'Logged out successfully!', type: SnackBarType.success);
+    showCustomSnackBar(context, 'Logged out successfully! (FE Action)', type: SnackBarType.success);
     context.go('/login');
+    debugPrint('FE: Navigated to /login');
   }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        fetchUserInfo();
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<UserProvider>(
-      builder: (context, value, child) {
-        final isExistUser = value.userModel != null;
-        final userInfo = value.userModel;
+    
+    final visibleItems = List<Map<String, dynamic>>.from(myAccountItems).where((item) {
+      if (item['title'] == 'Personal Information' || item['title'] == 'Change Password') {
+        return isExistUser;
+      }
+      if (item['title'] == 'Switch Account/Logout') {
+        return true;
+      }
+      return true;
+    }).toList();
 
-        final visibleItems = List<Map<String, dynamic>>.from(myAccountItems).where((item) {
-          if (item['title'] == 'Personal Information' || item['title'] == 'Change Password') {
-            return isExistUser;
-          }
-          if (item['title'] == 'Switch Account/Logout') {
-            return true;
-          }
-          return true;
-        }).toList();
-
-        return Padding(
-          padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ...visibleItems.map((item) {
-                return ModernAccountListTile(
-                  icon: item['icon'],
-                  title: item['title'] == 'Switch Account/Logout' 
-                      ? (isExistUser ? 'Đăng Xuất' : 'Switch Account/Logout') 
-                      : item['title'],
-                  onTap: () {
-                    switch (item['title']) {
-                      case 'Personal Information':
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PersonelInformation(userInfo: userInfo),
-                          ),
-                        );
-                        break;
-                      case 'My Utilities':
-                        showCustomSnackBar(context, 'Chuyển đến trang Tiện ích của tôi', type: SnackBarType.info);
-                        break;
-                      case 'Change Password':
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => ChangePassword()),
-                        );
-                        break;
-                      case 'Address':
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => AddressPage()),
-                        );
-                        break;
-                      case 'Switch Account/Logout':
-                        if (isExistUser) {
-                          _handleLogout();
-                        } else {
-                          showCustomSnackBar(context, 'Chuyển đến màn hình Đăng nhập', type: SnackBarType.info);
-                          context.push('/login');
-                        }
-                        break;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ...visibleItems.map((item) {
+            return ModernAccountListTile(
+              icon: item['icon'],
+              title: item['title'] == 'Switch Account/Logout' 
+                  ? (isExistUser ? 'Đăng Xuất' : 'Switch Account/Logout') 
+                  : item['title'],
+              onTap: () {
+                switch (item['title']) {
+                  case 'Personal Information':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PersonelInformation(userInfo: userInfo),
+                      ),
+                    );
+                    break;
+                  case 'My Utilities':
+                    showCustomSnackBar(context, 'Chuyển đến trang Tiện ích của tôi', type: SnackBarType.info);
+                    break;
+                  case 'Change Password':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ChangePassword()),
+                    );
+                    break;
+                  case 'Address':
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AddressPage()),
+                    );
+                    break;
+                  case 'Switch Account/Logout':
+                    if (isExistUser) {
+                      _handleLogout();
+                    } else {
+                      showCustomSnackBar(context, 'Chuyển đến màn hình Đăng nhập', type: SnackBarType.info);
+                      context.push('/login');
+                      debugPrint('FE: Navigated to /login');
                     }
-                  },
-                );
-              }).toList(),
-            ],
-          ),
-        );
-      },
+                    break;
+                }
+              },
+            );
+          }).toList(),
+        ],
+      ),
     );
   }
 }
 
 class PersonelInformation extends StatefulWidget {
   const PersonelInformation({super.key, required this.userInfo});
-  final UserModel? userInfo;
+  final Map<String, dynamic>? userInfo; 
 
   @override
   State<PersonelInformation> createState() => _PersonelInformationState();
@@ -198,33 +183,12 @@ class _PersonelInformationState extends State<PersonelInformation> {
   final FocusNode _addressFocusNode = FocusNode();
   final FocusNode _emailFocusNode = FocusNode();
 
-  UserService userService = UserService();
-
   bool _isLoading = false;
   File? _selectedFile;
   Uint8List? _selectedImageBytes;
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile =
-        await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-
-    if (pickedFile != null) {
-      if (kIsWeb) {
-        final bytes = await pickedFile.readAsBytes();
-        if (!mounted) return; 
-        setState(() {
-          _selectedImageBytes = bytes;
-          _selectedFile = null;
-        });
-      } else {
-        if (!mounted) return; 
-        setState(() {
-          _selectedFile = File(pickedFile.path);
-          _selectedImageBytes = null;
-        });
-      }
-    }
+    showCustomSnackBar(context, 'Image Picker disabled', type: SnackBarType.info);
   }
 
   void _removeImage() {
@@ -236,12 +200,11 @@ class _PersonelInformationState extends State<PersonelInformation> {
 
   Future<void> handleChangeInfomation() async {
     final fullName = _fullNameController.text.trim();
-    final phone = _phoneNumberController.text.trim();
     final address = _addressController.text.trim();
 
     if (fullName.isEmpty || address.isEmpty) {
       if (!mounted) return; 
-      showCustomSnackBar(context, 'Please fill in all required fields',
+      showCustomSnackBar(context, 'Please fill in all required fields (FE Check)',
           type: SnackBarType.error);
       return;
     }
@@ -249,50 +212,27 @@ class _PersonelInformationState extends State<PersonelInformation> {
     if (!mounted) return; 
     setState(() => _isLoading = true);
 
-    try {
-      dynamic uploadedAvatar;
-        if (_selectedFile != null) {
-        uploadedAvatar = await userService.uploadAvatar(file: _selectedFile!);
-      } else if (_selectedImageBytes != null) {
-        uploadedAvatar = await userService.uploadAvatar(
-            bytes: _selectedImageBytes, filename: 'avatar.jpg');
-      }
+    await Future.delayed(const Duration(milliseconds: 500));
 
-      await userService.updateUserInfo(
-        fullName: fullName,
-        phone: phone,
-        address: address,
-        avatar: uploadedAvatar,
-      );
-
-      if (!mounted) return; 
-      await Provider.of<UserProvider>(context, listen: false).loadUserData();
-
-      if (!mounted) return; 
-      showCustomSnackBar(context, 'Information updated successfully',
-          type: SnackBarType.success);
-    } on FetchDataException catch (e) {
-      debugPrint('Failed to update info: ${e.message}');
-      if (!mounted) return; 
-      showCustomSnackBar(context, 'Failed to update information',
-          type: SnackBarType.error);
-    } finally {
-      if (!mounted) return; 
-      setState(() => _isLoading = false);
-    }
+    if (!mounted) return; 
+    showCustomSnackBar(context, 'Information updated successfully (FE Success)',
+        type: SnackBarType.success);
+    
+    setState(() => _isLoading = false);
   }
 
   @override
   void initState() {
     super.initState();
     if (widget.userInfo != null) {
-      _fullNameController.text = widget.userInfo!.fullName;
-      _phoneNumberController.text = widget.userInfo!.phone ?? '';
-      _addressController.text = widget.userInfo!.address ?? '';
-      _emailController.text = widget.userInfo!.email;
+      // Dùng cú pháp Map access
+      _fullNameController.text = widget.userInfo!['fullName'] ?? '';
+      _phoneNumberController.text = widget.userInfo!['phone'] ?? '';
+      _addressController.text = widget.userInfo!['address'] ?? '';
+      _emailController.text = widget.userInfo!['email'] ?? '';
     }
   }
-
+  
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -308,9 +248,11 @@ class _PersonelInformationState extends State<PersonelInformation> {
 
   @override
   Widget build(BuildContext context) {
+    final avatarUrl = widget.userInfo?['avatar']?['url'];
+    
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: CustomAppBarMobile(
+      appBar: const CustomAppBarMobile(
         title: 'Personal Information',
         isBack: true,
       ),
@@ -347,9 +289,8 @@ class _PersonelInformationState extends State<PersonelInformation> {
                         ? FileImage(_selectedFile!)
                         : (_selectedImageBytes != null
                                 ? MemoryImage(_selectedImageBytes!)
-                                : (widget.userInfo != null &&
-                                        widget.userInfo!.avatar.url.isNotEmpty
-                                    ? NetworkImage(widget.userInfo!.avatar.url)
+                                : (avatarUrl != null && avatarUrl.isNotEmpty
+                                    ? NetworkImage(avatarUrl)
                                     : const AssetImage('assets/logo/logo.png')))
                             as ImageProvider,
                   ),
@@ -387,7 +328,6 @@ class _PersonelInformationState extends State<PersonelInformation> {
             ),
             const SizedBox(height: 30),
 
-            // Form Fields
             Card(
               elevation: 5,
               shape: RoundedRectangleBorder(
@@ -434,7 +374,6 @@ class _PersonelInformationState extends State<PersonelInformation> {
             ),
             const SizedBox(height: 24),
 
-            // Nút Save
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 200, maxWidth: 350),
               child: MyButton(
@@ -445,14 +384,14 @@ class _PersonelInformationState extends State<PersonelInformation> {
             ),
             const SizedBox(height: 16),
             
-            // Nút Change Password (Đã bổ sung)
+            // Nút Change Password 
             ConstrainedBox(
               constraints: const BoxConstraints(minWidth: 200, maxWidth: 350),
               child: OutlinedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => ChangePassword()),
+                    MaterialPageRoute(builder: (context) => const ChangePassword()),
                   );
                 },
                 style: OutlinedButton.styleFrom(
@@ -512,10 +451,6 @@ class _PersonelInformationState extends State<PersonelInformation> {
   }
 }
 
-// ========================================================================
-// CHANGE PASSWORD (SỬA LỖI OVERFLOW VÀ CHUYỂN LOGIC NHẬP MẬT KHẨU MỚI)
-// ChangePassword giờ đây là màn hình nhập OTP/Yêu cầu đổi mật khẩu
-// ========================================================================
 class ChangePassword extends StatefulWidget {
   const ChangePassword({super.key});
 
@@ -529,16 +464,16 @@ class _ChangePasswordState extends State<ChangePassword> {
   final TextEditingController otp3Controller = TextEditingController();
   final TextEditingController otp4Controller = TextEditingController();
   
-  // Hành động giả định: Gửi OTP thành công và chuyển sang màn hình nhập mật khẩu mới
   void _verifyOtpAndNavigate() {
     String otp = otp1Controller.text + otp2Controller.text + otp3Controller.text + otp4Controller.text;
     if (otp.length == 4) {
       if (!mounted) return;
-      showCustomSnackBar(context, 'Verification successful! Please enter new password.', type: SnackBarType.success);
+      showCustomSnackBar(context, 'Verification successful! (FE Action)', type: SnackBarType.success);
       context.push('/change-password');
+      debugPrint('FE: Navigated to New Password Screen');
     } else {
       if (!mounted) return;
-      showCustomSnackBar(context, 'Please enter the full 4-digit code.', type: SnackBarType.error);
+      showCustomSnackBar(context, 'Please enter the full 4-digit code. (FE Check)', type: SnackBarType.error);
     }
   }
 
@@ -546,15 +481,15 @@ class _ChangePasswordState extends State<ChangePassword> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: CustomAppBarMobile(
+      appBar: const CustomAppBarMobile(
         title: 'Verify Code',
         isBack: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-        child: Center( // Thêm Center để căn giữa nội dung trên màn hình lớn
+        child: Center( 
           child: SizedBox(
-            width: Responsive.isMobile(context) ? double.infinity : 400, // Giới hạn chiều rộng
+            width: Responsive.isMobile(context) ? double.infinity : 400, 
             child: Column(
               mainAxisAlignment: MainAxisAlignment.start,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -578,9 +513,8 @@ class _ChangePasswordState extends State<ChangePassword> {
                 ),
                 const SizedBox(height: 30),
 
-                // OTP Inputs
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround, // Dùng spaceAround thay vì spaceBetween để tránh căng quá mức trên màn hình nhỏ
+                  mainAxisAlignment: MainAxisAlignment.spaceAround, 
                   children: [
                     OtpInput(controller: otp1Controller, autoFocus: true),
                     OtpInput(controller: otp2Controller),
@@ -590,7 +524,6 @@ class _ChangePasswordState extends State<ChangePassword> {
                 ),
                 const SizedBox(height: 30),
 
-                // Nút Get Code (Kiểm tra OTP)
                 SizedBox(
                   width: double.infinity,
                   child: MyButton(
@@ -609,9 +542,6 @@ class _ChangePasswordState extends State<ChangePassword> {
   }
 }
 
-// ========================================================================
-// ADDRESS PAGE (GIỮ NGUYÊN)
-// ========================================================================
 class AddressPage extends StatefulWidget {
   const AddressPage({super.key});
 
@@ -620,110 +550,30 @@ class AddressPage extends StatefulWidget {
 }
 
 class _AddressPageState extends State<AddressPage> {
-  List<dynamic> provinces = [];
-  List<dynamic> districts = [];
-  List<dynamic> wards = [];
+  // Dữ liệu tỉnh thành giả lập (FE Stub)
+  final List<dynamic> provinces = [{'code': 1, 'name': 'Province A'}, {'code': 2, 'name': 'Province B'}];
+  final List<dynamic> districts = [{'code': 101, 'name': 'District X'}, {'code': 102, 'name': 'District Y'}];
+  final List<dynamic> wards = [{'code': 1001, 'name': 'Ward M'}, {'code': 1002, 'name': 'Ward N'}];
+  
   String? selectedProvinceCode;
   String? selectedDistrictCode;
   String? selectedWardCode;
-  String currentAddress = '';
+  String currentAddress = 'No address set';
   String _addressOption = 'saved';
   bool _addNewAddress = false;
-  List<String> savedAddresses = [];
+  
+  List<String> savedAddresses = ['FE Saved Address 1', 'FE Saved Address 2']; 
 
   @override
   void initState() {
     super.initState();
-    loadSavedLocation();
-    fetchProvinces();
-    getSavedAddresses();
-  }
-
-  Future<void> loadSavedLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (!mounted) return; 
-    setState(() {
-      currentAddress = prefs.getString('location_current') ?? 'No address set';
-    });
-  }
-
-  Future<void> getSavedAddresses() async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> checkSavedAddresses =
-        prefs.getStringList('manual_location') ?? [];
-    if (currentAddress != 'No address set' && !checkSavedAddresses.contains(currentAddress)) {
-      checkSavedAddresses.add(currentAddress);
-      await prefs.setStringList('manual_location', checkSavedAddresses);
-    }
-    if (!mounted) return; 
-    setState(() {
-      savedAddresses = checkSavedAddresses;
-    });
-  }
-
-  Future<void> fetchProvinces() async {
-    try {
-      final res = await http
-          .get(Uri.parse('https://provinces.open-api.vn/api/?depth=1'));
-      if (res.statusCode == 200) {
-        if (!mounted) return; 
-        setState(() {
-          provinces = jsonDecode(utf8.decode(res.bodyBytes));
-        });
-      } else {
-        throw Exception('Failed to load provinces');
-      }
-    } catch (e) {
-      debugPrint('Error loading provinces: $e');
-    }
-  }
-
-  Future<void> fetchDistricts(String provinceCode) async {
-    try {
-      final res = await http.get(Uri.parse(
-          'https://provinces.open-api.vn/api/p/$provinceCode?depth=2'));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(res.bodyBytes));
-        if (!mounted) return; 
-        setState(() {
-          districts = data['districts'];
-        });
-      } else {
-        throw Exception('Failed to load districts');
-      }
-    } catch (e) {
-      debugPrint('Error loading districts: $e');
-    }
-  }
-
-  Future<void> fetchWards(String districtCode) async {
-    try {
-      final res = await http.get(Uri.parse(
-          'https://provinces.open-api.vn/api/d/$districtCode?depth=2'));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(utf8.decode(res.bodyBytes));
-        if (!mounted) return; 
-        setState(() {
-          wards = data['wards'];
-        });
-      } else {
-        throw Exception('Failed to load wards');
-      }
-    } catch (e) {
-      debugPrint('Error loading wards: $e');
-    }
-  }
-
-  Future<void> saveLocationToPreferences(String newAddress) async {
-    final prefs = await SharedPreferences.getInstance();
-    List<String> savedAddresses = prefs.getStringList('manual_location') ?? [];
-    if (!savedAddresses.contains(newAddress)) {
-      savedAddresses.add(newAddress);
-      await prefs.setStringList('manual_location', savedAddresses);
-    }
   }
   
-  // Helper Widget cho Dropdown
+  Future<void> fetchProvinces() async { debugPrint('FE: Fetched provinces stub'); }
+  Future<void> fetchDistricts(String provinceCode) async { debugPrint('FE: Fetched districts stub for $provinceCode'); }
+  Future<void> fetchWards(String districtCode) async { debugPrint('FE: Fetched wards stub for $districtCode'); }
+
+
   Widget _buildAddressDropdown({
     required String label,
     required String? value,
@@ -734,7 +584,7 @@ class _AddressPageState extends State<AddressPage> {
       dropdownColor: Colors.white,
       value: value,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: '$label',
         labelStyle: const TextStyle(color: Colors.black54),
         contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         border: OutlineInputBorder(
@@ -759,12 +609,37 @@ class _AddressPageState extends State<AddressPage> {
       onChanged: onChanged,
     );
   }
+  
+  Future<void> _handleSaveLocation() async {
+      if (selectedWardCode == null || selectedDistrictCode == null || selectedProvinceCode == null) {
+        showCustomSnackBar(context, 'Please select a complete address (FE Check)', type: SnackBarType.error);
+        return;
+      }
+
+      String getNameByCode(List<dynamic> list, String? code) {
+          return 'Selected Name';
+      }
+
+      String newAddress = 'FE New Address: Ward/Dist/Prov';
+      
+      showCustomSnackBar(context, 'New address added (FE Success)', type: SnackBarType.success);
+
+      if (!mounted) return;
+      setState(() {
+          savedAddresses.add(newAddress);
+          _addNewAddress = false;
+          selectedProvinceCode = null;
+          selectedDistrictCode = null;
+          selectedWardCode = null;
+      });
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      appBar: CustomAppBarMobile(
+      appBar: const CustomAppBarMobile(
         title: 'Address',
         isBack: true,
       ),
@@ -816,7 +691,6 @@ class _AddressPageState extends State<AddressPage> {
 
                   const SizedBox(height: 24),
 
-                  // Saved Addresses
                   const Text(
                     'Saved Addresses',
                     style: TextStyle(
@@ -839,12 +713,11 @@ class _AddressPageState extends State<AddressPage> {
                         trailing: Radio<String>(
                           value: address,
                           groupValue: currentAddress,
-                          onChanged: (value) async {
-                            final prefs = await SharedPreferences.getInstance();
-                            await prefs.setString('location_current', value!);
+                          onChanged: (value) {
+                            // LOẠI BỎ: Logic SharedPreferences
                             if (!mounted) return;
                             setState(() {
-                              currentAddress = value;
+                              currentAddress = value!;
                               _addressOption = 'saved';
                             });
                           },
@@ -854,7 +727,6 @@ class _AddressPageState extends State<AddressPage> {
                     );
                   }).toList(), 
 
-                  // Add New Address Toggle
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(
@@ -872,7 +744,6 @@ class _AddressPageState extends State<AddressPage> {
                     },
                   ),
 
-                  // Dropdowns (nếu mở)
                   if (_addNewAddress)
                     Padding(
                       padding: const EdgeInsets.only(top: 8.0),
@@ -888,8 +759,6 @@ class _AddressPageState extends State<AddressPage> {
                                 selectedProvinceCode = value;
                                 selectedDistrictCode = null;
                                 selectedWardCode = null;
-                                districts = [];
-                                wards = [];
                               });
                               if (value != null) fetchDistricts(value);
                             },
@@ -904,7 +773,6 @@ class _AddressPageState extends State<AddressPage> {
                               setState(() {
                                 selectedDistrictCode = value;
                                 selectedWardCode = null;
-                                wards = [];
                               });
                               if (value != null) fetchWards(value);
                             },
@@ -925,36 +793,7 @@ class _AddressPageState extends State<AddressPage> {
                             width: double.infinity,
                             child: MyButton(
                               text: 'Save Location',
-                              onTap: (_) async {
-                                if (selectedWardCode == null || selectedDistrictCode == null || selectedProvinceCode == null) {
-                                  showCustomSnackBar(context, 'Please select a complete address', type: SnackBarType.error);
-                                  return;
-                                }
-
-                                String getNameByCode(List<dynamic> list, String? code) {
-                                  return list.firstWhere(
-                                    (item) => item['code'].toString() == code,
-                                    orElse: () => {'name': 'Unknown'},
-                                  )['name'];
-                                }
-
-                                String newAddress =
-                                    '${getNameByCode(wards, selectedWardCode)}, ${getNameByCode(districts, selectedDistrictCode)}, ${getNameByCode(provinces, selectedProvinceCode)}';
-
-                                await saveLocationToPreferences(newAddress);
-                                await getSavedAddresses();
-                                showCustomSnackBar(context, 'New address added', type: SnackBarType.success);
-
-                                if (!mounted) return;
-                                setState(() {
-                                  _addNewAddress = false;
-                                  selectedProvinceCode = null;
-                                  selectedDistrictCode = null;
-                                  selectedWardCode = null;
-                                  districts = [];
-                                  wards = [];
-                                });
-                              },
+                              onTap: (_) => _handleSaveLocation(),
                             ),
                           ),
                         ],

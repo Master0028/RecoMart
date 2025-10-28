@@ -1,18 +1,36 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/cart.model.dart';
-import 'package:flutter/material.dart';
+
+final Map<String, dynamic> _placeholderItem = {
+  'productVariantName': 'Tên sản phẩm (Placeholder)',
+  'quantity': 2,
+  'unitPrice': 100000.0,
+  'discount': 0.1, // 10%
+  'images': {
+    'url': 'https://via.placeholder.com/150/0000FF/808080?text=Product',
+  },
+};
 
 class ProductOrdered extends StatelessWidget {
-  final ProductForCartModel item;
+  final dynamic item;
 
   const ProductOrdered({
     super.key,
-    required this.item,
+    this.item = const {}, 
   });
+
+  String get _productVariantName => item['productVariantName'] ?? _placeholderItem['productVariantName'];
+  int get _quantity => item['quantity'] ?? _placeholderItem['quantity'];
+  double get _unitPrice => item['unitPrice'] ?? _placeholderItem['unitPrice'];
+  double get _discount => item['discount'] ?? _placeholderItem['discount'];
+  String get _imageUrl => item['images']?['url'] ?? _placeholderItem['images']['url'];
 
   @override
   Widget build(BuildContext context) {
+    double discountedPrice = _unitPrice - (_unitPrice * _discount);
+    double totalPrice = discountedPrice * _quantity;
+
     return Container(
       color: Colors.white,
       margin: const EdgeInsets.all(16),
@@ -22,7 +40,6 @@ class ProductOrdered extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // IMAGE + NAME + PRICE
             Expanded(
               flex: 3,
               child: Row(
@@ -33,7 +50,7 @@ class ProductOrdered extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       image: DecorationImage(
-                        image: NetworkImage(item.images.url),
+                        image: NetworkImage(_imageUrl),
                         fit: BoxFit.cover,
                       ),
                     ),
@@ -44,7 +61,7 @@ class ProductOrdered extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.productVariantName,
+                          _productVariantName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -55,8 +72,7 @@ class ProductOrdered extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          formatMoney(item.unitPrice -
-                              (item.unitPrice * item.discount)),
+                          formatMoney(discountedPrice),
                           style: const TextStyle(
                             fontSize: 14,
                             color: AppColors.black,
@@ -69,11 +85,10 @@ class ProductOrdered extends StatelessWidget {
               ),
             ),
 
-            // QUANTITY
             Expanded(
               flex: 1,
               child: Text(
-                'x${item.quantity}',
+                'x$_quantity',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 14,
@@ -82,14 +97,10 @@ class ProductOrdered extends StatelessWidget {
               ),
             ),
 
-            // TOTAL PRICE
             Expanded(
               flex: 1,
               child: Text(
-                formatMoney(
-                  (item.unitPrice - (item.unitPrice * item.discount)) *
-                      item.quantity,
-                ),
+                formatMoney(totalPrice),
                 textAlign: TextAlign.end,
                 style: const TextStyle(
                   fontSize: 14,

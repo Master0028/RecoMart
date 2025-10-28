@@ -1,6 +1,7 @@
-import 'package:recomart/config/color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
+const Color primaryColor = Color(0xFF1976D2); 
 
 class OtpInput extends StatelessWidget {
   final TextEditingController controller;
@@ -22,25 +23,25 @@ class OtpInput extends StatelessWidget {
         textAlign: TextAlign.center,
         maxLength: 1,
         autofocus: autoFocus,
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-        cursorColor: AppColors.primary,
+        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+        cursorColor: primaryColor,
         inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly, // Chỉ cho nhập số
+          FilteringTextInputFormatter.digitsOnly,
         ],
         decoration: InputDecoration(
           counterText: "",
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey),
+            borderSide: const BorderSide(color: Colors.grey),
           ),
           focusedBorder: OutlineInputBorder(
-            borderSide: BorderSide(color: AppColors.primary),
+            borderSide: const BorderSide(color: primaryColor),
             borderRadius: BorderRadius.circular(12),
           ),
         ),
         onChanged: (value) {
           if (value.isNotEmpty) {
-            FocusScope.of(context).nextFocus(); // Chuyển sang ô tiếp theo
+            FocusScope.of(context).nextFocus(); 
           }
         },
       ),

@@ -53,6 +53,7 @@ class ChangePasswordScreen extends StatelessWidget {
               ),
             ),
           ),
+          // Hình dạng cố định
           Positioned(
             top: -size.height * 0.05,
             left: -size.width * 0.1,
@@ -65,14 +66,12 @@ class ChangePasswordScreen extends StatelessWidget {
             ),
           ),
 
-          // Nội dung chính
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 30.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Khoảng trống trên cùng
                   SizedBox(height: size.height * 0.15), 
 
                   Row(
@@ -92,7 +91,6 @@ class ChangePasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Tiêu đề
                   const Text(
                     'Đổi Mật Khẩu',
                     style: TextStyle(
@@ -103,7 +101,6 @@ class ChangePasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
 
-                  // Thông điệp phụ
                   const Text(
                     'Hãy tạo một mật khẩu mới thật mạnh mẽ!',
                     style: TextStyle(
@@ -128,7 +125,6 @@ class ChangePasswordScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () {
                         context.go('/profile');
-                        print('Đổi Mật Khẩu');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
@@ -145,14 +141,12 @@ class ChangePasswordScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 15),
 
-                  // Nút Hủy (Cancel)
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: ElevatedButton(
                       onPressed: () {
                         context.pop();
-                        print('Hủy');
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.grey.shade100,

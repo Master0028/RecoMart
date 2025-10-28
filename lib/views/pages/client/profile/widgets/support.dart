@@ -33,7 +33,6 @@ class ModernListTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Icon hiện đại, màu xanh dương, nền bo tròn
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -66,7 +65,6 @@ class ModernListTile extends StatelessWidget {
                 ),
               ],
             ),
-            // Divider tùy chỉnh chỉ hiển thị giữa các item
             if (!isLast)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0, left: 56.0),
@@ -92,21 +90,18 @@ class SupportAccount extends StatefulWidget {
 
 class _SupportAccountState extends State<SupportAccount> {
   List<Map<String, dynamic>> supportItems = [
-    {'title': 'Contact & Support', 'icon': FeatherIcons.phoneCall}, // Icon hiện đại hơn
-    {'title': 'Frequently Asked Questions', 'icon': FeatherIcons.messageCircle}, // Icon hiện đại hơn
+    {'title': 'Contact & Support', 'icon': FeatherIcons.phoneCall},
+    {'title': 'Frequently Asked Questions', 'icon': FeatherIcons.messageCircle},
     {'title': 'Send Feedback', 'icon': FeatherIcons.edit},
   ];
 
   void _handleTap(int index) {
     if (index == 0) {
-      // Logic Contact Us
-      print('Navigate to Contact Us');
+      print('FE: Navigate to Contact Us');
     } else if (index == 1) {
-      // Logic FAQ
-      print('Navigate to FAQ');
+      print('FE: Navigate to FAQ');
     } else if (index == 2) {
-      // Logic Feedback
-      print('Navigate to Feedback');
+      print('FE: Navigate to Feedback');
     }
   }
 
@@ -128,7 +123,7 @@ class _SupportAccountState extends State<SupportAccount> {
         ),
         child: Column(
           children: List.generate(supportItems.length, (index) {
-            return ModernListTile( // Sử dụng widget thiết kế hiện đại
+            return ModernListTile(
               icon: supportItems[index]['icon'],
               title: supportItems[index]['title'],
               isFirst: index == 0,

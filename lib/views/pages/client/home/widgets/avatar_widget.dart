@@ -1,18 +1,32 @@
 import 'package:go_router/go_router.dart';
-import 'package:recomart/components/custom/bottom_navigation_bar.dart';
-import 'package:recomart/components/custom/cart.dart';
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/provider/user_provider.dart';
-import 'package:recomart/routes/app_routes.dart';
-import 'package:recomart/utils/responsive.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:recomart/components/custom/snackbar.dart';
+
+class Responsive {
+  static bool isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= 1000;
+  }
+}
+
+class _MockCartWidget extends StatelessWidget {
+  const _MockCartWidget();
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(FeatherIcons.shoppingCart, size: 25),
+      onPressed: () {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Chuyển đến giỏ hàng (Mock)'))
+        );
+      },
+    );
+  }
+}
 
 class AvatarWidget extends StatelessWidget {
-  const AvatarWidget({ // Thêm const constructor
+  const AvatarWidget({
     super.key,
     this.userName,
     this.userId,
@@ -21,7 +35,7 @@ class AvatarWidget extends StatelessWidget {
   final String? userName;
   final String? userId;
 
-  final List<String> recentSearches = const [ // Thêm const cho danh sách hằng số
+  final List<String> recentSearches = const [ 
     "Macbook",
     "Lenovo",
     "Asus",
@@ -33,8 +47,9 @@ class AvatarWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final avatarUrl = userProvider.userModel?.avatar.url;
+    const String mockAvatarUrl = "https://placehold.co/100x100/A0C0E0/ffffff?text=U";
+    final bool isUserLoggedIn = userId != null; 
+    
     return Padding(
       padding: const EdgeInsets.only(right: 20),
       child: Row(
@@ -42,11 +57,7 @@ class AvatarWidget extends StatelessWidget {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Responsive.isDesktop(context)
-                  ? const SizedBox() // Kích thước trống để giữ vị trí
-                  : const SizedBox(),
-
+            children: [              
               Responsive.isDesktop(context)
                   ? Row(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -61,15 +72,15 @@ class AvatarWidget extends StatelessWidget {
                           },
                         ),
                         const SizedBox(width: 10),
-                        const CartWidget(),
+                        const _MockCartWidget(),
                         const SizedBox(width: 10),
                       ],
                     )
-                  : Padding(
-                      padding: const EdgeInsets.only(right: 10.0),
-                      child: const CartWidget(),
+                  : const Padding(
+                      padding: EdgeInsets.only(right: 10.0),
+                      child: _MockCartWidget(),
                     ),
-                            
+                    
               SizedBox(
                 height: 50,
                 child: PopupMenuButton<String>(
@@ -80,10 +91,10 @@ class AvatarWidget extends StatelessWidget {
                   offset: const Offset(0, 50),
                   itemBuilder: (BuildContext context) {
                     return [
-                      if (userId != null && Responsive.isDesktop(context))
-                        PopupMenuItem<String>(
+                      if (isUserLoggedIn && Responsive.isDesktop(context))
+                        const PopupMenuItem<String>(
                           value: 'profile',
-                          child: const Row(
+                          child: Row(
                             children: [
                               Icon(CupertinoIcons.person),
                               SizedBox(width: 8),
@@ -91,9 +102,9 @@ class AvatarWidget extends StatelessWidget {
                             ],
                           ),
                         ),
-                      PopupMenuItem<String>(
+                      const PopupMenuItem<String>(
                         value: 'home',
-                        child: const Row( // Thêm const
+                        child: Row( 
                           children: [
                             Icon(CupertinoIcons.square_grid_2x2),
                             SizedBox(width: 8),
@@ -102,17 +113,17 @@ class AvatarWidget extends StatelessWidget {
                         ),
                       ),
                       PopupMenuItem<String>(
-                        value: userId != null ? 'logout' : 'login',
+                        value: isUserLoggedIn ? 'logout' : 'login',
                         child: Row(
                           children: [
                             Icon(
-                              userId != null
+                              isUserLoggedIn
                                   ? Icons.logout_rounded
                                   : CupertinoIcons.arrow_right_circle,
                             ),
-                            const SizedBox(width: 8), // Thêm const
+                            const SizedBox(width: 8), 
                             Text(
-                              userId != null ? 'Logout' : 'Login',
+                              isUserLoggedIn ? 'Logout' : 'Login',
                             ),
                           ],
                         ),
@@ -120,10 +131,7 @@ class AvatarWidget extends StatelessWidget {
                     ];
                   },
                   child: CircleAvatar(
-                    backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                        ? NetworkImage(avatarUrl)
-                        : const AssetImage('assets/images/profile.jpg')
-                            as ImageProvider,
+                    backgroundImage: NetworkImage(mockAvatarUrl) as ImageProvider,
                     radius: Responsive.isDesktop(context) ? 25 : 20,
                   ),
                 ),
@@ -135,7 +143,7 @@ class AvatarWidget extends StatelessWidget {
     );
   }
 
-  void _handleMenuSelection(String value, BuildContext context) async {
+  void _handleMenuSelection(String value, BuildContext context) {
     switch (value) {
       case 'profile':
         context.go('/profile');
@@ -147,18 +155,8 @@ class AvatarWidget extends StatelessWidget {
         context.go('/login');
         break;
       case 'logout':
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('accessToken');
-        await prefs.remove('user');
-        await prefs.remove('cart'); // Xử lý Giỏ hàng
-        await prefs.remove('isCartSynced'); // Xử lý trạng thái Giỏ hàng
-        if (context.mounted) {
-          final userProvider =
-              Provider.of<UserProvider>(context, listen: false);
-          userProvider.clearUser();
-          showCustomSnackBar(context, 'Sign out successfully',
-              type: SnackBarType.success);
-        }
+        context.go('/login');
+        showCustomSnackBar(context, 'Đăng xuất thành công (Mock)');
         break;
       default:
         break;

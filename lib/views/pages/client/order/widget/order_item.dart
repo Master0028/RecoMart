@@ -1,57 +1,81 @@
-import 'package:recomart/config/color.dart';
-import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/order.model.dart';
-import 'package:recomart/views/pages/client/order/widget/button_order.dart';
-import 'package:recomart/views/pages/client/order/widget/order_details_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/config/color.dart'; 
+
+String formatMoney(dynamic amount) {
+  if (amount is int) {
+    return '${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]},')} VND';
+  }
+  return '0 VND';
+}
+
+String formatDate(String? dateString) {
+  return dateString ?? '2025-10-27';
+}
+
 
 class OrderItem extends StatelessWidget {
-  final OrderModel order;
+  final Map<String, dynamic> order;
   final String state;
 
   const OrderItem({super.key, required this.order, required this.state});
 
-  void _showOrderDetails(BuildContext context, OrderModel order) {
+  void _showOrderDetails(BuildContext context, Map<String, dynamic> order) {
+    print("Mở chi tiết đơn hàng: ${order['id']}");
+
     showDialog(
-      barrierColor: Colors.black54,
       context: context,
-      builder: (_) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: OrderDetailDialog(
-          order: order,
-        ),
+      builder: (_) => AlertDialog(
+        title: Text('Order Details (FE Only)'),
+        content: Text('Details for order ID: ${order['id']}'),
       ),
     );
   }
 
+  Widget _buildActionButton({required String title, required bool isOutlined, required VoidCallback onPressed}) {
+    final style = isOutlined
+        ? OutlinedButton.styleFrom(
+            side: const BorderSide(color: AppColors.primary),
+            foregroundColor: AppColors.primary,
+          )
+        : ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+          );
+
+    return isOutlined 
+        ? OutlinedButton(onPressed: onPressed, style: style, child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis))
+        : ElevatedButton(onPressed: onPressed, style: style, child: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis));
+  }
+
+
   @override
   Widget build(BuildContext context) {
-    // Định nghĩa icon và màu sắc theo trạng thái
-    IconData statusIcon;
+    final List<dynamic>? items = order['items'] as List<dynamic>?;
+    final Map<String, dynamic>? firstItem = items?.isNotEmpty == true ? items![0] : null;
+
+    final String productName = firstItem?['productVariantName'] ?? 'No Name';
+    final int totalAmount = order['totalAmount'] as int? ?? 0;
+    final String imageURL = firstItem?['images']?['url'] ?? '';
+    final String createdAt = order['createdAt'] as String? ?? '';
+    final int itemLength = items?.length ?? 0;
+
     Color statusColor;
     String statusText;
 
     switch (state) {
       case 'PENDING':
-        statusIcon = Icons.pending_actions;
         statusColor = AppColors.primary;
         statusText = 'Pending';
         break;
       case 'SHIPPING':
-        statusIcon = Icons.local_shipping;
         statusColor = AppColors.primary;
         statusText = 'Shipping';
         break;
       case 'CANCELLED':
-        statusIcon = Icons.cancel;
         statusColor = AppColors.red;
         statusText = 'Cancelled';
         break;
       default:
-        statusIcon = Icons.help_outline;
         statusColor = Colors.grey;
         statusText = 'Unknown';
     }
@@ -61,7 +85,7 @@ class OrderItem extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
             color: Colors.black12,
             blurRadius: 6,
@@ -72,13 +96,12 @@ class OrderItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row hình + thông tin sản phẩm
           Row(
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Image.network(
-                  order.items?[0].images?.url ?? '',
+                  imageURL,
                   width: 80,
                   height: 80,
                   fit: BoxFit.cover,
@@ -96,7 +119,7 @@ class OrderItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      order.items?[0].productVariantName ?? 'No Name',
+                      productName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -106,7 +129,7 @@ class OrderItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatMoney(order.totalAmount ?? 0),
+                      formatMoney(totalAmount),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -127,14 +150,14 @@ class OrderItem extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                "Quantity: ${order.items?.length}",
+                "Quantity: $itemLength",
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.black54,
                 ),
               ),
               Text(
-                formatDate(order.createdAt.toString()),
+                formatDate(createdAt),
                 style: const TextStyle(
                   fontSize: 14,
                   color: Colors.black54,
@@ -145,7 +168,6 @@ class OrderItem extends StatelessWidget {
 
           const SizedBox(height: 6),
 
-          // Trạng thái đơn hàng và nút thao tác
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -174,18 +196,19 @@ class OrderItem extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: 100,
-                      child: ButtonOrder(
+                      child: _buildActionButton(
                         isOutlined: true,
                         title: "Cancel",
                         onPressed: () {
-                          // TODO: xử lý hủy đơn
+                          print("Cancel order: ${order['id']}");
                         },
                       ),
                     ),
                     const SizedBox(width: 8),
                     SizedBox(
                       width: 100,
-                      child: ButtonOrder(
+                      child: _buildActionButton(
+                        isOutlined: false,
                         title: "Details",
                         onPressed: () {
                           _showOrderDetails(context, order);
@@ -197,20 +220,22 @@ class OrderItem extends StatelessWidget {
               else if (state == 'SHIPPING')
                 SizedBox(
                   width: 120,
-                  child: ButtonOrder(
+                  child: _buildActionButton(
+                    isOutlined: false,
                     title: "Track",
                     onPressed: () {
-                      // TODO: Xem trạng thái vận chuyển
+                      print("Track order: ${order['id']}");
                     },
                   ),
                 )
               else
                 SizedBox(
                   width: 120,
-                  child: ButtonOrder(
+                  child: _buildActionButton(
+                    isOutlined: false,
                     title: "Order Again",
                     onPressed: () {
-                      // TODO: Đặt lại đơn hàng
+                      print("Order Again: ${order['id']}");
                     },
                   ),
                 ),

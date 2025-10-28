@@ -1,25 +1,35 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/review.model.dart';
-import 'package:recomart/services/socket_io_client.dart';
+import 'package:recomart/helpers/formatMoney.dart'; 
 import 'package:recomart/views/pages/client/login/widgets/button.dart';
-import 'package:flutter/material.dart';
+
+String formatDate(String date) {
+  return '2 hours ago';
+}
+
+class ReviewModelFE {
+  final String content;
+  final String createdAt;
+  final String userName;
+
+  ReviewModelFE({required this.content, required this.createdAt, required this.userName});
+}
+
+final List<ReviewModelFE> FE_MOCK_COMMENTS = [
+];
 
 class ProductComment extends StatefulWidget {
   const ProductComment({
     super.key,
-    required this.socketService,
-    required this.productId,
-    required this.comments,
     this.isLoading = false,
   });
-
-  final SocketService socketService;
-  final String productId;
-  final List<ReviewModel> comments;
+  
+  final dynamic socketService = null; 
+  final String productId = '';
+  final List<dynamic> comments = const [];
   final bool isLoading;
 
   @override
@@ -30,8 +40,7 @@ class _ProductCommentState extends State<ProductComment> {
   final TextEditingController _commentController = TextEditingController();
   bool isSending = false;
   int currentPage = 1;
-  int totalPage = 1;
-  int limit = 10;
+  int limit = 3;
 
   void _addComment() {
     setState(() {
@@ -46,18 +55,13 @@ class _ProductCommentState extends State<ProductComment> {
       return;
     }
 
-    try {
-      widget.socketService.sendReview(
-        productVariantId: widget.productId,
-        review: _commentController.text,
-        onError: (err) {
-          showCustomSnackBar(
-            context,
-            'Failed to add comment',
-          );
-        },
+    try {      
+      showCustomSnackBar(
+          context,
+          'Comment sent (FE Action)',
+          type: SnackBarType.success
       );
-
+      
       setState(() {
         _commentController.clear();
       });
@@ -72,22 +76,22 @@ class _ProductCommentState extends State<ProductComment> {
   @override
   void initState() {
     super.initState();
-    // _initSocketAndLoadComments();
   }
 
   @override
   void dispose() {
-    widget.socketService.disconnect();
+    _commentController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPage =
-        widget.comments.length > 10 ? (widget.comments.length / 10).ceil() : 1;
+    final List<dynamic> allComments = FE_MOCK_COMMENTS; 
+
+    final int totalPage = allComments.length > limit ? (allComments.length / limit).ceil() : 1;
 
     final commentPagination =
-        widget.comments.skip((currentPage - 1) * limit).take(limit).toList();
+        allComments.skip((currentPage - 1) * limit).take(limit).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +100,7 @@ class _ProductCommentState extends State<ProductComment> {
           'Comments',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         TextField(
           cursorColor: Colors.black,
           controller: _commentController,
@@ -110,7 +114,7 @@ class _ProductCommentState extends State<ProductComment> {
             ),
           ),
         ),
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
         MyButton(
           text: 'Send',
           isLoading: isSending,
@@ -123,10 +127,10 @@ class _ProductCommentState extends State<ProductComment> {
             ? ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 10,
+                itemCount: 3,
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 10),
-                itemBuilder: (context, index) => SkeletonHorizontalProduct(),
+                itemBuilder: (context, index) => const SkeletonHorizontalProduct(),
               )
             : commentPagination.isEmpty
                 ? const Center(
@@ -135,9 +139,7 @@ class _ProductCommentState extends State<ProductComment> {
                 : ListView.separated(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: commentPagination.length >= 10
-                        ? 10
-                        : commentPagination.length,
+                    itemCount: commentPagination.length,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 10),
                     itemBuilder: (context, index) {
@@ -153,8 +155,8 @@ class _ProductCommentState extends State<ProductComment> {
                             backgroundColor: Colors.black12,
                             child: Icon(Icons.person, color: Colors.black),
                           ),
-                          title: Text(comment.user?.name ?? 'Anonymous'),
-                          subtitle: Text(comment.content),
+                          title: Text(comment.userName ?? 'Anonymous'), 
+                          subtitle: Text(comment.content ?? 'Comment content'),
                           trailing: Text(
                             formatDate(comment.createdAt.toString()),
                             style: const TextStyle(color: Colors.grey),
@@ -163,9 +165,7 @@ class _ProductCommentState extends State<ProductComment> {
                       );
                     },
                   ),
-        SizedBox(
-          height: 10,
-        ),
+        const SizedBox(height: 10),
         PaginationWidget(
           currentPage: currentPage,
           totalPages: totalPage,

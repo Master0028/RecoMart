@@ -1,15 +1,11 @@
-import 'package:recomart/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/auth.service.dart';
+// Các import BE đã được loại bỏ
 
-// --- Khai Báo Biến Màu Chung ---
 final Color primaryBlue = const Color(0xFF1976D2); 
 final Color primaryPink = Colors.pink.shade300; 
 
-// --- Component: RecoveryHeader (Phần đầu trang) ---
 class RecoveryHeader extends StatelessWidget {
   const RecoveryHeader({super.key});
 
@@ -19,7 +15,6 @@ class RecoveryHeader extends StatelessWidget {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
-        // Lớp nền màu xanh đậm hơn (lớp dưới)
         Container(
           width: size.width,
           height: size.height * 0.4,
@@ -32,7 +27,6 @@ class RecoveryHeader extends StatelessWidget {
           ),
           child: Align(
             alignment: Alignment.bottomCenter,
-            // Lớp nền màu xanh nhạt hơn (lớp trên) tạo hiệu ứng gợn sóng
             child: Container(
               width: size.width,
               height: size.height * 0.35,
@@ -48,20 +42,18 @@ class RecoveryHeader extends StatelessWidget {
         ),
         // Icon Khóa (thay thế Icons.person) ở giữa
         Positioned(
-          top: size.height * 0.4 - 70, // Đặt ở vị trí hợp lý hơn
+          top: size.height * 0.4 - 70,
           child: Stack(
             alignment: Alignment.center,
             children: [
-              // Vòng tròn màu hồng nhạt (nền)
               Container(
                 width: 140,
                 height: 140,
                 decoration: BoxDecoration(
-                  color: primaryPink.withOpacity(0.3), // Dùng primaryPink
+                  color: primaryPink.withOpacity(0.3),
                   shape: BoxShape.circle,
                 ),
               ),
-              // Vòng tròn màu trắng (trên)
               Container(
                 width: 120,
                 height: 120,
@@ -78,7 +70,7 @@ class RecoveryHeader extends StatelessWidget {
                 ),
                 child: Center(
                   child: Icon(
-                    Icons.lock_reset_rounded, // Icon reset mật khẩu
+                    Icons.lock_reset_rounded,
                     size: 70,
                     color: primaryBlue,
                   ),
@@ -92,9 +84,8 @@ class RecoveryHeader extends StatelessWidget {
   }
 }
 
-// --- Màn Hình: SetupNewPasswordScreen (Thiết Lập Mật Khẩu Mới) ---
 class SetupNewPasswordScreen extends StatefulWidget {
-  final String userId; // ID người dùng, cần thiết để reset mật khẩu
+  final String userId;
 
   const SetupNewPasswordScreen({super.key, required this.userId});
 
@@ -118,7 +109,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
     super.dispose();
   }
 
-  // --- Logic: Đổi Mật Khẩu ---
+  // --- Logic: Đổi Mật Khẩu (Đã loại bỏ gọi API và xử lý ngoại lệ BE) ---
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -126,7 +117,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
 
     if (_newPasswordCtrl.text != _repeatPasswordCtrl.text) {
       if (mounted) {
-        // Đảm bảo showCustomSnackBar được import và khả dụng
          showCustomSnackBar(context, 'Mật khẩu nhập lại không khớp.'); 
       }
       return;
@@ -134,37 +124,23 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
 
     setState(() => _isLoading = true);
 
-    try {
-      final auth = AuthService();
-      final newPassword = _newPasswordCtrl.text;
-
-      //await auth.resetPassword(widget.userId, newPassword); 
-
-      // *** GIẢ LẬP KẾT QUẢ API THÀNH CÔNG ***
-      await Future.delayed(const Duration(seconds: 1));
+    await Future.delayed(const Duration(seconds: 1));
       
-      if (mounted) {
-        showCustomSnackBar(context, 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
-        context.go('/login');
-      }
-    } on BadRequestException catch (e) {
-      if (mounted) {
-        showCustomSnackBar(context, e.message);
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    if (mounted) {
+      showCustomSnackBar(context, 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
+      context.go('/login');
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
 
-  // --- Widget: Trường nhập mật khẩu được tùy chỉnh theo thiết kế cũ ---
   Widget buildPasswordField(
       String hint, TextEditingController controller, bool isVisible, Function(bool) toggleVisibility) {
     return TextFormField(
       controller: controller,
       obscureText: !isVisible,
-      // Validator cơ bản
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Mật khẩu không được để trống.';
@@ -202,10 +178,8 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
           height: MediaQuery.of(context).size.height,
           child: Stack(
             children: [
-              // 1. Header (Phần trên cùng)
               const RecoveryHeader(),
 
-              // 2. Nội dung chính
               SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -214,10 +188,8 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Khoảng cách từ trên xuống
                         SizedBox(height: MediaQuery.of(context).size.height * 0.4 - 30),
 
-                        // Tiêu đề
                         const Text(
                           'Thiết Lập Mật Khẩu Mới',
                           textAlign: TextAlign.center,
@@ -229,7 +201,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Hướng dẫn
                         const Text(
                           'Vui lòng thiết lập mật khẩu mới cho tài khoản của bạn.',
                           textAlign: TextAlign.center,
@@ -240,7 +211,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                         ),
                         const SizedBox(height: 40),
 
-                        // Trường nhập Mật khẩu Mới
                         buildPasswordField(
                           'Mật khẩu mới',
                           _newPasswordCtrl,
@@ -249,7 +219,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                         ),
                         const SizedBox(height: 20),
 
-                        // Trường nhập Lặp lại Mật khẩu
                         buildPasswordField(
                           'Nhập lại mật khẩu mới',
                           _repeatPasswordCtrl,
@@ -259,7 +228,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
 
                         const Spacer(),
 
-                        // Nút "Lưu"
                         ElevatedButton(
                           onPressed: _isLoading ? null : _changePassword,
                           style: ElevatedButton.styleFrom(
@@ -284,7 +252,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                                       color: Colors.white)),
                         ),
 
-                        // Nút "Hủy"
                         TextButton(
                           onPressed: () => context.pop(),
                           child: const Text('Hủy Bỏ',

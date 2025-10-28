@@ -13,19 +13,21 @@ class OrderManagement extends StatefulWidget {
 }
 
 class _OrderManagementState extends State<OrderManagement> {
-  // Đã cập nhật icon sang FeatherIcons cho phong cách hiện đại
   List<Map<String, dynamic>> orderItems = [
     {'title': 'Current Orders', 'icon': FeatherIcons.package},
     {'title': 'Order History', 'icon': FeatherIcons.archive},
     {'title': 'Tracking Order', 'icon': FeatherIcons.truck},
   ];
 
+  void _handleNavigation(String routeName) {
+    print('Navigate to route: $routeName');
+  }
+
   @override
   Widget build(BuildContext context) {
     bool isExistUser = widget.userId.isNotEmpty;
 
     if (!isExistUser) {
-      // Thiết kế thông báo chưa đăng nhập hiện đại hơn
       return Padding(
         padding: const EdgeInsets.all(32.0),
         child: Column(
@@ -55,10 +57,9 @@ class _OrderManagementState extends State<OrderManagement> {
               ),
             ),
             const SizedBox(height: 20),
-            // Thêm nút hành động (nếu bạn có logic chuyển hướng đăng nhập)
             ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, 'login');
+                _handleNavigation('login');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -80,7 +81,6 @@ class _OrderManagementState extends State<OrderManagement> {
       );
     }
 
-    // Giao diện cho người dùng đã đăng nhập
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
       child: Container(
@@ -103,8 +103,7 @@ class _OrderManagementState extends State<OrderManagement> {
               isFirst: index == 0,
               isLast: index == orderItems.length - 1,
               onTap: () {
-                // Giữ nguyên logic cũ
-                Navigator.pushNamed(context, 'order-view');
+                _handleNavigation('order-view');
               },
             );
           }),
@@ -117,8 +116,8 @@ class _OrderManagementState extends State<OrderManagement> {
 class ModernOrderListTile extends StatelessWidget {
   const ModernOrderListTile({
     super.key,
-    required this.icon, // Đã chuyển thành named required
-    required this.title, // Đã chuyển thành named required
+    required this.icon,
+    required this.title,
     required this.onTap,
     this.isFirst = false,
     this.isLast = false,
@@ -144,7 +143,6 @@ class ModernOrderListTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                // Icon hiện đại, màu xanh dương, nền bo tròn
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
@@ -158,7 +156,6 @@ class ModernOrderListTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                // Title
                 Expanded(
                   child: Text(
                     title,
@@ -169,7 +166,6 @@ class ModernOrderListTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Icon mũi tên
                 Icon(
                   CupertinoIcons.chevron_forward,
                   color: Colors.grey.shade400,
@@ -177,7 +173,6 @@ class ModernOrderListTile extends StatelessWidget {
                 ),
               ],
             ),
-            // Divider tùy chỉnh chỉ hiển thị giữa các item
             if (!isLast)
               Padding(
                 padding: const EdgeInsets.only(top: 16.0, left: 56.0),

@@ -1,8 +1,5 @@
-import 'dart:convert';
-import 'package:recomart/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
@@ -29,6 +26,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   void initState() {
     super.initState();
+    _isLogin();
   }
 
   @override
@@ -51,18 +49,10 @@ class _LoginViewState extends State<LoginView> {
   Future<void> _isLogin() async {
     final prefs = await SharedPreferences.getInstance();
     final accessToken = prefs.getString('accessToken');
-    final userJson = prefs.getString('user');
-    if (accessToken != null && userJson != null) {
+    
+    if (accessToken != null) {
       if (mounted) {
-        final user = jsonDecode(userJson) as Map<String, dynamic>;
-        final userRole = user['role']?.toString().toUpperCase();
-        if (userRole == 'ADMIN') {
-          Navigator.pushReplacementNamed(context, 'admin');
-          context.go('/admin'); 
-        } else {
-          Navigator.pushReplacementNamed(context, 'home');
-          context.go('/home'); 
-        }
+        context.go('/home');
       }
     }
   }
@@ -72,31 +62,33 @@ class _LoginViewState extends State<LoginView> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty) {
-      _focusAndShowError(_emailFocus, 'Please enter your email');
+      _focusAndShowError(_emailFocus, 'Vui lòng nhập email');
       return;
     }
     if (password.isEmpty) {
-      _focusAndShowError(_passwordFocus, 'Please enter your password');
+      _focusAndShowError(_passwordFocus, 'Vui lòng nhập mật khẩu');
       return;
     }
     if (password.length < 6) {
-      _focusAndShowError(_passwordFocus, 'Password must be at least 6 characters');
+      _focusAndShowError(_passwordFocus, 'Mật khẩu phải có ít nhất 6 ký tự');
       return;
     }
 
     setState(() => _loading = true);
     
     try {
-    
       await Future.delayed(const Duration(seconds: 2)); 
       
       if (mounted) {
-        context.go('/home');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('accessToken', 'dummy_token_fe_only');
+        
+        context.go('/home'); 
       }
 
     } catch (e) {
       if (mounted) {
-        _focusAndShowError(_emailFocus, 'Login failed. Check credentials.');
+        _focusAndShowError(_emailFocus, 'Đăng nhập thất bại (Mô phỏng).');
       }
     } finally {
       setState(() => _loading = false);
@@ -246,6 +238,7 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
                 ),
+                // Nội dung chính
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -300,7 +293,6 @@ class _LoginViewState extends State<LoginView> {
                         
                         const SizedBox(height: 10),
                         
-                        // Nút Sign In
                         buildSignInButton(),
                         
                         const SizedBox(height: 40),

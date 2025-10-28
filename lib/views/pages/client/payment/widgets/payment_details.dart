@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
+
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/views/pages/client/payment/widgets/point_summary.dart';
-import 'package:flutter/material.dart';
+
 
 class PaymentDetails extends StatefulWidget {
   const PaymentDetails({
@@ -15,7 +17,7 @@ class PaymentDetails extends StatefulWidget {
     required this.onChangeValue,
     required this.shippingMethod,
     this.currentPoint = 0,
-    this.handleCreateOrder,
+    this.handleCreateOrder, 
     this.onUpdateTotalPrice,
     this.voucherDiscountMoney = 0,
   });
@@ -24,19 +26,21 @@ class PaymentDetails extends StatefulWidget {
   final String name;
   final String address;
   final String email;
+
   final Function({
     required String name,
     required String email,
     required String address,
     required String paymentMethod,
-  }) onChangeValue;
-
+  }) onChangeValue; 
+  
   final double voucherDiscountMoney;
-
   final String shippingMethod;
   final double currentPoint;
+
   final Function? handleCreateOrder;
   final Function(double updatedTotalPrice)? onUpdateTotalPrice;
+
 
   @override
   State<PaymentDetails> createState() => _PaymentDetailsState();
@@ -54,7 +58,6 @@ class _PaymentDetailsState extends State<PaymentDetails> {
 
   String _selectedPaymentMethod = 'BANK_TRANSFER';
 
-  double? _lastNotifiedTotalPrice;
 
   @override
   void initState() {
@@ -109,18 +112,21 @@ class _PaymentDetailsState extends State<PaymentDetails> {
                 pointsToUse * 1000)
             .floorToDouble() -
         widget.voucherDiscountMoney;
+  }
 
-    if (_lastNotifiedTotalPrice != totalPrice) {
-      _lastNotifiedTotalPrice = totalPrice;
-      if (widget.onUpdateTotalPrice != null) {
-        widget.onUpdateTotalPrice!(totalPrice);
-      }
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressControler.dispose();
+    _emailController.dispose();
+    _nameFocus.dispose();
+    _addressFocus.dispose();
+    _emailFocus.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Tính toán các giá trị hiển thị, không gọi callback ở đây nữa
     double maxDiscountFromPoints = widget.totalAmount * 0.5;
 
     double pointsToUse = widget.currentPoint * 1000 <= maxDiscountFromPoints
@@ -147,7 +153,6 @@ class _PaymentDetailsState extends State<PaymentDetails> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ... phần UI giữ nguyên, không thay đổi
           const Text(
             'Payment Details',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -161,6 +166,7 @@ class _PaymentDetailsState extends State<PaymentDetails> {
             ),
           ),
           const SizedBox(height: 16),
+          // Phần UI: Input Fields
           const Text('Phone'),
           const SizedBox(height: 4),
           MyTextField(
@@ -214,7 +220,7 @@ class _PaymentDetailsState extends State<PaymentDetails> {
                 setState(() {
                   _selectedPaymentMethod = value!;
                 });
-                _notify();
+                _notify(); 
               },
               decoration: InputDecoration(
                 prefixIcon: const Icon(
@@ -232,7 +238,7 @@ class _PaymentDetailsState extends State<PaymentDetails> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(
+                  borderSide: const BorderSide(
                     color: AppColors.primary,
                     width: 1,
                   ),
@@ -280,7 +286,7 @@ class _PaymentDetailsState extends State<PaymentDetails> {
               height: 40,
               child: ElevatedButton(
                 onPressed: () {
-                  widget.handleCreateOrder?.call();
+                  widget.handleCreateOrder?.call(); 
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,

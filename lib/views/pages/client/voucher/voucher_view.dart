@@ -1,8 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:flutter/material.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:feather_icons/feather_icons.dart';
 
@@ -29,22 +29,27 @@ class _VoucherViewState extends State<VoucherView> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100, // Nền xám nhẹ cho cảm giác hiện đại hơn
+      backgroundColor: Colors.grey.shade100, 
       appBar: CustomAppBarMobile(
-        title: 'Voucher Hub', // Đổi tên cho hiện đại hơn
+        title: 'Voucher Hub', 
         isBack: true,
       ),
       body: Column(
         children: [
-          // Tab Switcher - Thiết kế Capsule/Pill hiện đại
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1), // Nền xanh dương nhạt
-              borderRadius: BorderRadius.circular(30), // Bo tròn thành capsule
+              color: AppColors.primary.withOpacity(0.1), 
+              borderRadius: BorderRadius.circular(30), 
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -80,13 +85,13 @@ class _VoucherViewState extends State<VoucherView> {
       child: ElevatedButton(
         onPressed: () => _goToPage(page),
         style: ElevatedButton.styleFrom(
-          elevation: isSelected ? 5 : 0, // Thêm elevation khi được chọn
+          elevation: isSelected ? 5 : 0, 
           backgroundColor: isSelected
-              ? AppColors.primary // Xanh dương đậm khi chọn
-              : Colors.transparent, // Trong suốt khi không chọn
+              ? AppColors.primary 
+              : Colors.transparent, 
           shadowColor: AppColors.primary.withOpacity(0.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(25), // Bo tròn lớn
+            borderRadius: BorderRadius.circular(25), 
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
@@ -113,29 +118,33 @@ class _VoucherViewState extends State<VoucherView> {
   }
 }
 
-// ---
-
 class VoucherWidget extends StatelessWidget {
   const VoucherWidget({
     super.key,
   });
+
+  void _handleApply(BuildContext context) {
+      print('Apply voucher clicked');
+      final appliedDiscount = 75000.0;
+      
+      Navigator.pop(context, appliedDiscount); 
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: 10,
       itemBuilder: (context, index) {
-        // Màu phụ để tạo điểm nhấn công nghệ
         final Color accentColor = AppColors.secondary; 
         
         return Container(
           margin: const EdgeInsets.only(bottom: 15),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16), // Bo góc lớn
+            borderRadius: BorderRadius.circular(16), 
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1), // Shadow mềm mại
+                color: Colors.black.withOpacity(0.1), 
                 blurRadius: 10,
                 offset: const Offset(0, 5),
               ),
@@ -143,12 +152,12 @@ class VoucherWidget extends StatelessWidget {
           ),
           child: Row(
             children: [
-              // Phần trái: Giá trị và điểm nhấn
+              // Phần trái: Giá trị và điểm nhấn (FE logic)
               Container(
                 width: 100,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primary, // Nền xanh dương
+                  color: AppColors.primary, 
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(16),
                     bottomLeft: Radius.circular(16),
@@ -160,7 +169,7 @@ class VoucherWidget extends StatelessWidget {
                     const Icon(FeatherIcons.star, color: Colors.white, size: 28),
                     const SizedBox(height: 4),
                     Text(
-                      formatMoney(50000),
+                      formatMoney(50000 + index * 10000), // Giá trị hiển thị FE
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.white,
@@ -171,7 +180,7 @@ class VoucherWidget extends StatelessWidget {
                   ],
                 ),
               ),
-              // Phần phải: Chi tiết Voucher
+              // Phần phải: Chi tiết Voucher (FE logic)
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -182,12 +191,12 @@ class VoucherWidget extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'BLACKFRIDAY50',
+                            'VOUCHER_FE_${index + 1}',
                             style: TextStyle(
                               color: AppColors.primary,
                               fontSize: 18,
-                              fontWeight: FontWeight.w900, // Rất đậm
-                              letterSpacing: 1.0, // Thêm khoảng cách chữ công nghệ
+                              fontWeight: FontWeight.w900, 
+                              letterSpacing: 1.0, 
                             ),
                           ),
                           Container(
@@ -197,7 +206,7 @@ class VoucherWidget extends StatelessWidget {
                               borderRadius: BorderRadius.circular(15),
                               border: Border.all(color: AppColors.green, width: 1),
                             ),
-                            child: Text(
+                            child: const Text(
                               'Active',
                               style: TextStyle(
                                 color: AppColors.green,
@@ -210,7 +219,7 @@ class VoucherWidget extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Minimum order ${formatMoney(500000)}', // Ví dụ thêm
+                        'Minimum order ${formatMoney(500000)}',
                         style: const TextStyle(
                           color: Colors.black54,
                           fontSize: 12,
@@ -220,8 +229,8 @@ class VoucherWidget extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            'Expires: 08:00 AM - 09:00 AM',
+                          const Text(
+                            'Expires: Today',
                             style: TextStyle(
                               color: Colors.black45,
                               fontSize: 12,
@@ -230,9 +239,9 @@ class VoucherWidget extends StatelessWidget {
                           ),
                           // Nút Apply
                           ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () => _handleApply(context),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: accentColor, // Dùng màu phụ để nổi bật
+                              backgroundColor: accentColor, 
                               elevation: 3,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
@@ -240,7 +249,7 @@ class VoucherWidget extends StatelessWidget {
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             ),
                             child: const Text(
-                              'Apply',
+                              'Apply ',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 14,
@@ -262,15 +271,13 @@ class VoucherWidget extends StatelessWidget {
   }
 }
 
-// ---
-
 class EnterVoucherCode extends StatelessWidget {
   EnterVoucherCode({super.key});
 
   final TextEditingController controller = TextEditingController();
 
   void handleApplyCode(BuildContext context) {
-    final discountAmount = 50000.0; // ví dụ giảm 50.000 VNĐ
+    final discountAmount = 50000.0; 
 
     showDialog(
       context: context,
@@ -279,13 +286,13 @@ class EnterVoucherCode extends StatelessWidget {
         return AlertDialog(
           backgroundColor: Colors.white,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), // Bo góc lớn hơn
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), 
           contentPadding: const EdgeInsets.all(24),
           elevation: 10,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(FeatherIcons.checkCircle, // Icon hiện đại
+              Icon(FeatherIcons.checkCircle, 
                   color: AppColors.green, size: 60),
               const SizedBox(height: 16),
               const Text(
@@ -311,7 +318,7 @@ class EnterVoucherCode extends StatelessWidget {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        Navigator.pop(context); // Just close the dialog
+                        Navigator.pop(context);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.primary,
@@ -328,9 +335,8 @@ class EnterVoucherCode extends StatelessWidget {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context); // Close the dialog
-                        Navigator.pop(context,
-                            discountAmount); // Return to previous screen
+                        Navigator.pop(context);
+                        Navigator.pop(context, discountAmount); 
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -359,7 +365,7 @@ class EnterVoucherCode extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16), // Bo góc lớn
+        borderRadius: BorderRadius.circular(16), 
         boxShadow: [
           BoxShadow(
             color: AppColors.primary.withOpacity(0.1),
@@ -372,7 +378,7 @@ class EnterVoucherCode extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
+          const Text(
             'Enter your promotional code:',
             style: TextStyle(
               fontSize: 16,
@@ -383,13 +389,13 @@ class EnterVoucherCode extends StatelessWidget {
           const SizedBox(height: 12),
           MyTextField(
             hintText: 'e.g., TECHSALE2024',
-            prefixIcon: FeatherIcons.code, // Icon hiện đại
+            prefixIcon: FeatherIcons.code, 
             controller: controller,
             obscureText: false,
           ),
           const SizedBox(height: 8),
           const Text(
-            'You descreased your total by 50%', // Giữ nguyên logic cũ
+            'You descreased your total by 50% (FE Stub)', 
             style: TextStyle(
               color: Colors.red,
               fontSize: 13,

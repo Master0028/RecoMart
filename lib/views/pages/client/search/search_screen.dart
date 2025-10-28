@@ -1,11 +1,27 @@
+import 'package:flutter/material.dart';
+
 import 'package:recomart/components/custom/skeleton.dart';
-import 'package:recomart/models/product.model.dart';
-import 'package:recomart/services/product.service.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
 import 'package:recomart/views/pages/client/search/widget/search_field.dart';
-import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
+class ProductImage { 
+  final String url;
+  ProductImage({required this.url});
+}
+
+final Map<String, dynamic> FE_PRODUCT_STUB = {
+  'id': 'stub_id',
+  'categoryId': 'stub_cat',
+  'variantName': 'FE Product',
+  'price': 1000000.0,
+  'variantDescription': 'FE Description',
+  'averageRating': 4.5,
+  'images': [ProductImage(url: 'https://picsum.photos/id/500/300/300')],
+};
+
 
 class SearchScreen extends StatefulWidget {
   final List<String> recentSearches;
@@ -20,8 +36,7 @@ class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
   late List<String> _recentSearches;
 
-  List<ProductModel> _searchResults = [];
-  ProductService productService = ProductService();
+  List<dynamic> _searchResults = []; 
   bool _isLoading = false;
 
   String searchQuery = "";
@@ -47,9 +62,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
 
     try {
-      final result = await productService.searchProductVariants(name: query);
+      await Future.delayed(const Duration(milliseconds: 700));
+
+      final List<dynamic> resultData = []; 
+      
       setState(() {
-        _searchResults = result['data'] as List<ProductModel>;
+        _searchResults = resultData;
       });
 
       if (query.isNotEmpty) {
@@ -58,7 +76,7 @@ class _SearchScreenState extends State<SearchScreen> {
         if (_recentSearches.length > 5) _recentSearches.removeLast();
       }
     } catch (e) {
-      print("Search error: $e");
+      print("Search error (Stub): $e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -79,7 +97,7 @@ class _SearchScreenState extends State<SearchScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Wrap(
-        spacing: 12.0, // Tăng khoảng cách
+        spacing: 12.0, 
         runSpacing: 12.0,
         children: _recentSearches.map((search) {
           return InkWell(
@@ -107,7 +125,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.history, size: 18, color: Color(0xFF757575)), // Giả định AppColors.disabledText
+                  const Icon(Icons.history, size: 18, color: Color(0xFF757575)), 
                   const SizedBox(width: 8),
                   Text(
                     search,
@@ -148,7 +166,7 @@ class _SearchScreenState extends State<SearchScreen> {
                 controller: _searchController,
                 autofocus: true,
                 onSubmitted: _updateSearch,
-                onChanged: (value) => setState(() => searchQuery = value),
+                onChanged: (value) => setState(() => searchQuery = value), 
               ),
             ),
             
@@ -169,7 +187,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               style: TextStyle(
                                   fontSize: 18, 
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF212121), // Giả định AppColors.darkText
+                                  color: Color(0xFF212121),
                               ),
                             ),
                             TextButton(
@@ -178,7 +196,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                 "Xóa tất cả",
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Color(0xFF1976D2), // Giả định AppColors.primary
+                                  color: Color(0xFF1976D2), 
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -204,19 +222,19 @@ class _SearchScreenState extends State<SearchScreen> {
                                   child: Text(
                                     'Kết quả cho "$searchQuery"',
                                     style: const TextStyle(
-                                      fontSize: 16, // Tăng kích thước
+                                      fontSize: 16, 
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF212121), // Giả định AppColors.darkText
+                                      color: Color(0xFF212121),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                                 Text(
-                                  "${_searchResults.length} sản phẩm",
+                                  "${_searchResults.length} sản phẩm", 
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1976D2), // Giả định AppColors.primary
+                                    color: Color(0xFF1976D2),
                                   ),
                                 ),
                               ],
@@ -229,11 +247,12 @@ class _SearchScreenState extends State<SearchScreen> {
                               horizontal: 16,
                             ),
                             child: ProductListForSearch(
-                                products: _searchResults, isLoading: _isLoading),
+                                products: _searchResults, 
+                                isLoading: _isLoading),
                           ),
                         ],
                       ),
-                    const SizedBox(height: 30), // Thêm khoảng cách cuối cùng
+                    const SizedBox(height: 30), 
                   ],
                 ),
               ),
@@ -246,7 +265,7 @@ class _SearchScreenState extends State<SearchScreen> {
 }
 
 class ProductListForSearch extends StatefulWidget {
-  final List<ProductModel> products;
+  final List<dynamic> products; 
   final bool isLoading;
 
   const ProductListForSearch({
@@ -263,7 +282,7 @@ class _ProductListForSearchState extends State<ProductListForSearch> {
   @override
   Widget build(BuildContext context) {
     return GridView.builder(
-      itemCount: widget.isLoading ? 10 : widget.products.length,
+      itemCount: widget.isLoading ? 10 : widget.products.length, 
       physics: const NeverScrollableScrollPhysics(),
       shrinkWrap: true,
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -275,23 +294,159 @@ class _ProductListForSearchState extends State<ProductListForSearch> {
       ),
       itemBuilder: (context, index) {
         final variant = !widget.isLoading && index < widget.products.length
-            ? widget.products[index]
-            : null;
+            ? widget.products[index] 
+            : FE_PRODUCT_STUB;
 
-        return widget.isLoading
-            ? const Skeleton()
-            : ProductView(
-                id: variant?.id ?? '',
-                categoryId: variant?.categoryId ?? '',
-                variantName: variant?.variantName ?? '',
-                // Giả định images được xử lý đúng trong ProductView
-                images: (variant?.images as List<ProductImage>), 
-                price: (variant?.price as double),
-                variantDescription: variant?.variantDescription ??
-                    'No description available',
-                averageRating: variant?.averageRating.toString() ?? '0.0',
-              );
+        if (widget.isLoading) {
+             return const Skeleton();
+        }
+        
+        if (widget.products.isEmpty) {
+            return const Center(child: Text("No results found.")); 
+        }
+
+        return ProductView( 
+            id: variant['id'] ?? 'FE_ID',
+            categoryId: variant['categoryId'] ?? 'FE_CAT',
+            variantName: variant['variantName'] ?? 'FE Product',
+            images: (variant['images'] as List<ProductImage>), 
+            price: (variant['price'] as double) ?? 0.0,
+            variantDescription: variant['variantDescription'] ??
+                'No description available.',
+            averageRating: variant['averageRating']?.toString() ?? '0.0',
+          );
       },
+    );
+  }
+}
+
+class ProductView extends StatelessWidget {
+  final String variantName;
+  final List<ProductImage> images;
+  final double price;
+  final String variantDescription;
+  final String averageRating;
+  final String id;
+  final String categoryId;
+
+  const ProductView({
+    super.key,
+    required this.id,
+    required this.variantName,
+    required this.images,
+    required this.price,
+    required this.variantDescription,
+    required this.averageRating,
+    required this.categoryId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+          print('Navigate to product detail ID: $id');
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF1976D2).withOpacity(0.1)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF1976D2).withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: double.infinity,
+              height: 150,
+              padding: const EdgeInsets.all(8),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                child: CachedNetworkImage(
+                  imageUrl: images.isNotEmpty ? images[0].url : 'default_image_url',
+                  placeholder: (context, url) => const SkeletonImage(
+                    imageHeight: 140,
+                  ),
+                  errorWidget: (context, url, error) =>
+                      Image.asset('assets/images/image_default_error.png'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          variantName,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          variantDescription,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.black54,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$price VNĐ',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF1976D2),
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star,
+                                size: 16, color: Colors.amber),
+                            const SizedBox(width: 4),
+                            Text(
+                              averageRating,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black87,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    )
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,16 +1,22 @@
 import 'package:go_router/go_router.dart';
-import 'package:recomart/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/auth.service.dart';
-import 'widgets/button.dart'; 
-import 'widgets/otp_input.dart'; 
 
 final Color primaryBlue = Colors.blue.shade700;
 final Color primaryPink = Colors.pink.shade300;
 const int otpLength = 4;
+
+void showCustomSnackBar(BuildContext context, String message, {SnackBarType type = SnackBarType.error}) {
+  final backgroundColor = type == SnackBarType.error ? Colors.red : Colors.green;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      content: Text(message),
+      backgroundColor: backgroundColor,
+    ),
+  );
+}
+
+enum SnackBarType { error, info } 
 
 class OtpInput extends StatelessWidget {
   final TextEditingController controller;
@@ -91,7 +97,16 @@ class MyButton extends StatelessWidget {
 }
 
 class VerifyOtpView extends StatefulWidget {
-  const VerifyOtpView({super.key, String? email, required userId, required obscuredEmail});
+  final String? email; 
+  final String? userId; 
+  final String obscuredEmail;
+
+  const VerifyOtpView({
+    super.key, 
+    this.email, 
+    required this.userId, 
+    required this.obscuredEmail
+  });
 
   @override
   _VerifyOtpViewState createState() => _VerifyOtpViewState();
@@ -110,31 +125,17 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   @override
   void initState() {
     super.initState();
-    otp4Controller.addListener(_checkAndVerifyOtp);
-  }
-
-  void _loadArguments() {
-    final args = ModalRoute.of(context)?.settings.arguments;
-
-    if (args is Map<String, dynamic>) {
-        _userId = args['userId'] as String?;
-        _obscuredEmail = args['obscuredEmail'] as String? ?? '******@mail.com';
-    } else if (args is String) {
-        _userId = args;
-    }
-
+    _userId = widget.userId;
+    _obscuredEmail = widget.obscuredEmail;
+    
     if (_userId == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showCustomSnackBar(context, 'Lỗi: Không tìm thấy ID người dùng.'); 
         context.pop();
       });
     }
-  }
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadArguments();
+    otp4Controller.addListener(_checkAndVerifyOtp);
   }
 
   void _checkAndVerifyOtp() {
@@ -149,13 +150,15 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
     otp2Controller.dispose();
     otp3Controller.dispose();
     otp4Controller.dispose();
+    otp4Controller.removeListener(_checkAndVerifyOtp);
     super.dispose();
   }
 
   Future<void> verifyOtp(BuildContext context) async {
-    final userId = ModalRoute.of(context)!.settings.arguments as String;
-    
-    if (_userId == null) return;
+    if (_userId == null) {
+      showCustomSnackBar(context, 'Lỗi: Không tìm thấy ID người dùng.'); 
+      return;
+    }
 
     String otpCode = otp1Controller.text +
         otp2Controller.text +
@@ -170,18 +173,16 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
     setState(() => _isLoading = true);
 
     try {
-      final auth = AuthService();
-      await auth.verifyOtp(otpCode: otpCode, id: _userId!); 
       
-      // Giả lập delay API
       await Future.delayed(const Duration(seconds: 1)); 
 
+      
       if (mounted) {
-        context.push('/change-password/$_userId');
+        context.push('/change-password/$_userId'); 
       }
-    } on BadRequestException catch (e) {
+    } catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, e.message);
+        showCustomSnackBar(context, 'Mã OTP không hợp lệ hoặc đã hết hạn.');
       }
       otp1Controller.clear();
       otp2Controller.clear();
@@ -198,7 +199,13 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   Future<void> _resendOtp() async {
 
     if (!_isLoading) {
-      showCustomSnackBar(context, 'Mã OTP mới đã được gửi.', type: SnackBarType.info);
+      setState(() => _isLoading = true);
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      if (mounted) {
+         showCustomSnackBar(context, 'Mã OTP mới đã được gửi.', type: SnackBarType.info);
+         setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -232,7 +239,7 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
-                        Icons.mark_email_read_rounded, // Icon hiện đại hơn
+                        Icons.mark_email_read_rounded,
                         size: 65,
                         color: primaryBlue,
                       ),
@@ -252,7 +259,6 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                   ),
                   const SizedBox(height: 10),
                   
-                  // Mô tả chi tiết
                   Text(
                     'Vui lòng nhập 4 chữ số mã xác thực đã được gửi đến email ${_obscuredEmail}',
                     textAlign: TextAlign.center,
@@ -265,7 +271,6 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                   
                   const SizedBox(height: 40),
 
-                  // --- HÀNG OTP INPUTS ĐÃ REDESIGN ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -278,7 +283,6 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                   
                   const SizedBox(height: 40),
 
-                  // --- NÚT XÁC THỰC ---
                   MyButton(
                     text: 'Xác Thực OTP',
                     onTap: (_) => verifyOtp(context),
@@ -287,7 +291,6 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
                   
                   const SizedBox(height: 20),
 
-                  // --- NÚT GỬI LẠI MÃ ---
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

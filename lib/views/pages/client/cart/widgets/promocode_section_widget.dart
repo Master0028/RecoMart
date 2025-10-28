@@ -1,13 +1,12 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/cart.model.dart';
-import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 
 class PromocodeSectionWidget extends StatefulWidget {
   const PromocodeSectionWidget({super.key, required this.cartItems});
-  final List<ProductForCartModel> cartItems;
+  final List<dynamic> cartItems;
 
   @override
   State<PromocodeSectionWidget> createState() => _PromocodeSectionWidgetState();
@@ -25,12 +24,8 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
   bool _isVoucherApplied = false;
 
   double get subtotal {
-    double total = widget.cartItems.fold(
-      0,
-      (sum, item) =>
-          sum +
-          (item.unitPrice - item.unitPrice * item.discount) * item.quantity,
-    );
+    
+    double total = 10000000;
     total -= voucherDiscountMoney;
     if (total < 0) total = 0;
     return total;
@@ -42,7 +37,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
         SnackBar(
           content: Row(
             children: [
-              Icon(FeatherIcons.checkCircle, color: AppColors.white),
+              const Icon(FeatherIcons.checkCircle, color: AppColors.white),
               const SizedBox(width: 8),
               Text(
                 'Voucher applied: ${formatMoney(discount)}',
@@ -61,6 +56,27 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
       );
     }
   }
+  
+  void _handleVoucherSelect() async {      
+      final result = 100000.0;
+
+      if (result != null) {
+          double newDiscount = result as double;
+          setState(() {
+              voucherDiscountMoney = newDiscount;
+              _isVoucherApplied = newDiscount > 0;
+          });
+          _showVoucherAppliedNotification(newDiscount);
+      }
+  }
+  
+  void _handleCheckout() {
+      context.push('/payment');
+      print('Checkout action triggered');
+      print('Shipping Method: $_selectedShippingMethod');
+      print('Voucher Discount: $voucherDiscountMoney');
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -77,19 +93,8 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Promocode/Voucher Section
             InkWell(
-              onTap: () async {
-                final result = await context.push('/voucher');
-                if (result != null) {
-                  double newDiscount = result as double;
-                  setState(() {
-                    voucherDiscountMoney = newDiscount;
-                    _isVoucherApplied = newDiscount > 0;
-                  });
-                  _showVoucherAppliedNotification(newDiscount);
-                }
-              },
+              onTap: _handleVoucherSelect,
               borderRadius: BorderRadius.circular(16),
               child: Padding(
                 padding: const EdgeInsets.all(8),
@@ -103,8 +108,8 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                           color: AppColors.primary,
                           size: 20,
                         ),
-                        const SizedBox(width: 10),
-                        const Text(
+                        SizedBox(width: 10),
+                        Text(
                           'Voucher / Coupon',
                           style: TextStyle(
                             fontSize: 16,
@@ -204,11 +209,11 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        icon: Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
+                        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
                         elevation: 1,
                         dropdownColor: Colors.white,
                         value: _selectedShippingMethod,
-                        style: TextStyle(color: Colors.black, fontSize: 14),
+                        style: const TextStyle(color: Colors.black, fontSize: 14),
                         items: _shippingMethods.map((String value) {
                           return DropdownMenuItem<String>(
                             value: value,
@@ -237,7 +242,6 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               endIndent: 16,
             ),
             
-            // Total Pay & Checkout Button
             Padding(
               padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
               child: Row(
@@ -270,21 +274,13 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                     child: SizedBox(
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          context.push(
-                            '/payment', 
-                            extra: {
-                              'shippingMethod': _selectedShippingMethod,
-                              'voucherDiscountMoney': voucherDiscountMoney,
-                            },
-                          );
-                        },
+                        onPressed: _handleCheckout,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.primary,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16.0),
                           ),
-                          elevation: 10, // Shadow mạnh hơn
+                          elevation: 10, 
                           shadowColor: AppColors.primary.withOpacity(0.5),
                         ),
                         child: const Text(

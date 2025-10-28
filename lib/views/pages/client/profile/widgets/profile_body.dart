@@ -1,13 +1,16 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/views/pages/client/profile/widgets/my_account.dart';
 import 'package:recomart/views/pages/client/profile/widgets/order_management.dart';
 import 'package:recomart/views/pages/client/profile/widgets/payment_management.dart';
 import 'package:recomart/views/pages/client/profile/widgets/support.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:feather_icons/feather_icons.dart';
+
+const String FE_USER_NAME = 'Frontend User';
+const int FE_LOYALTY_POINT = 1250;
+const String FE_AVATAR_URL = 'https://picsum.photos/id/1012/100/100';
+const String FE_USER_ID = 'FE_USER_ID_123';
 
 class ProfileBody extends StatefulWidget {
   const ProfileBody({super.key});
@@ -29,10 +32,6 @@ class _ProfileBodyState extends State<ProfileBody> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      Provider.of<UserProvider>(context, listen: false).loadUserData();
-    });
   }
 
   Widget _buildContent(String userId) {
@@ -40,7 +39,7 @@ class _ProfileBodyState extends State<ProfileBody> {
       case 0:
         return const MyAccountView();
       case 1:
-        return OrderManagement(userId: userId);
+        return OrderManagement(userId: userId); 
       case 2:
         return const PaymentManagement();
       case 3:
@@ -52,18 +51,17 @@ class _ProfileBodyState extends State<ProfileBody> {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.userModel;
-    final name = user?.fullName ?? 'Anonymous User';
-    final point = user?.loyaltyPoints ?? 0;
-    final avatar = user?.avatar.url;
-    final userId = user?.id ?? '';
+
+    const name = FE_USER_NAME;
+    const point = FE_LOYALTY_POINT;
+    const avatar = FE_AVATAR_URL;
+    const userId = FE_USER_ID;
 
     const Color headerColor = Color(0xFF003D80);
 
     return Column(
       children: [
-        // === HEADER ===
+        // === HEADER === (FE Logic)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
@@ -96,7 +94,7 @@ class _ProfileBodyState extends State<ProfileBody> {
                       radius: 50,
                       backgroundColor: Colors.grey.shade200,
                       child: ClipOval(
-                        child: avatar != null && avatar.isNotEmpty
+                        child: avatar.isNotEmpty
                             ? CachedNetworkImage(
                                 imageUrl: avatar,
                                 fit: BoxFit.cover,
@@ -148,7 +146,6 @@ class _ProfileBodyState extends State<ProfileBody> {
 
         const SizedBox(height: 20),
 
-        // === TABS ===
         SizedBox(
           height: 50,
           child: ListView.separated(
@@ -197,7 +194,6 @@ class _ProfileBodyState extends State<ProfileBody> {
 
         const SizedBox(height: 20),
 
-        // === NỘI DUNG CHÍNH (Scrollable + Expanded) ===
         Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 16),

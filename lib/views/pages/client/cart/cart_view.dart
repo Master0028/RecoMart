@@ -1,11 +1,9 @@
-import 'package:go_router/go_router.dart';
+import 'package:flutter/material.dart';
+
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/cart.model.dart';
-import 'package:recomart/models/product.model.dart';
-import 'package:recomart/provider/cart_provider.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/utils/widget/footer.dart';
@@ -13,16 +11,34 @@ import 'package:recomart/views/pages/client/cart/widgets/cart_item_widget.dart';
 import 'package:recomart/views/pages/client/cart/widgets/promocode_section_widget.dart';
 import 'package:recomart/views/pages/client/cart/widgets/remove_cart_widget.dart';
 import 'package:recomart/views/pages/client/login/widgets/button.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:provider/provider.dart';
-import 'package:feather_icons/feather_icons.dart'; // Thêm icon hiện đại
+import 'package:feather_icons/feather_icons.dart'; 
 
 enum ShippingMethod {
   pickupAtStore,
   expressDelivery,
 }
+
+final List<dynamic> FE_CART_ITEMS = [
+  {
+    'productVariantId': '1', 
+    'productVariantName': 'Laptop X1 Carbon', 
+    'unitPrice': 25000000.0, 
+    'discount': 0.1, 
+    'quantity': 1, 
+    'images': {'url': 'placeholder_url_1'}
+  },
+  {
+    'productVariantId': '2', 
+    'productVariantName': 'Mouse Logitech', 
+    'unitPrice': 800000.0, 
+    'discount': 0.0, 
+    'quantity': 2, 
+    'images': {'url': 'placeholder_url_2'}
+  },
+];
+const int FE_CART_ITEM_COUNT = 2;
+
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -33,7 +49,6 @@ class CartView extends StatefulWidget {
 
 class _CartViewState extends State<CartView> {
   ShippingMethod _selectedMethod = ShippingMethod.expressDelivery;
-  List<ProductModel> products = [];
   int? _itemToRemove;
   final int _quantityToRemove = 1;
 
@@ -42,33 +57,51 @@ class _CartViewState extends State<CartView> {
       _itemToRemove = null;
     });
   }
+  
+  void _handleRemoveItem(String productVariantId) {
+      showCustomSnackBar(
+          context,
+          'Delete product $productVariantId from cart successfully (FE Action)',
+          type: SnackBarType.success);
+  }
 
-  // Thay đổi thiết kế Header Row trên Desktop
   Widget _buildHeaderRow() {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.05), // Nền xanh nhạt
+            color: AppColors.primary.withOpacity(0.05), 
             borderRadius: BorderRadius.circular(12),
           ),
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 900),
-            child: Row(
+            constraints: BoxConstraints(maxWidth: 900),
+            child: const Row(
               children: [
                 Expanded(
                   flex: 2,
-                  child: Text('PRODUCT', style: _headerTextStyle()),
+                  child: Text('PRODUCT', style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.primary, 
+                      fontWeight: FontWeight.bold,
+                    )),
                 ),
                 Expanded(
                   flex: 1,
-                  child: Text('QUANTITY', style: _headerTextStyle()),
+                  child: Text('QUANTITY', style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.primary, 
+                      fontWeight: FontWeight.bold,
+                    )),
                 ),
                 Expanded(
                   flex: 1,
                   child: Text('TOTAL',
-                      textAlign: TextAlign.end, style: _headerTextStyle()),
+                      textAlign: TextAlign.end, style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.primary, 
+                      fontWeight: FontWeight.bold,
+                    )),
                 ),
               ],
             ),
@@ -78,16 +111,7 @@ class _CartViewState extends State<CartView> {
       ],
     );
   }
-
-  TextStyle _headerTextStyle() {
-    return TextStyle(
-      fontSize: 14,
-      color: AppColors.primary, // Chữ màu xanh dương
-      fontWeight: FontWeight.bold,
-    );
-  }
-
-  // Thiết kế lại phần Shipping Options
+  
   Widget _buildShippingOptions() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -106,9 +130,9 @@ class _CartViewState extends State<CartView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             '🚚 Choose Delivery Mode',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
               color: Colors.black87,
@@ -187,24 +211,14 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  // Thiết kế lại phần Summary
-  Widget _buildSummary(List<ProductForCartModel> cartItems) {
-    double calculateSubTotal() {
-      double subTotal = 0;
-      for (var item in cartItems) {
-        subTotal += item.unitPrice * item.quantity;
-      }
-      return subTotal;
-    }
-
-    // Giá trị giả định cho tổng cuối cùng (sử dụng giá trị cũ)
+  Widget _buildSummary(List<dynamic> cartItems) {
+    // Giá trị FE giả định để hiển thị
     const double finalTotal = 5000000;
-    final subTotal = calculateSubTotal();
-    const shippingFee = 0.0;
-    const discountAmount = 0.0;
-
-    return Consumer<CartProvider>(builder: (context, cartProvider, _) {
-      return Container(
+    const double subTotal = 4500000; 
+    const double shippingFee = 49000; 
+    const double discountAmount = 100000; 
+    
+    return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -286,13 +300,7 @@ class _CartViewState extends State<CartView> {
               height: 50,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  context.push(
-                    '/payment', // Tên tuyến đường (path)
-                    extra: {
-                      'cartItems': cartItems,
-                      'shippingMethod': _selectedMethod.name,
-                    },
-                  );
+                  print('Checkout triggered with method: ${_selectedMethod.name}');
                 },
                 icon: const Icon(FeatherIcons.checkCircle, color: Colors.white, size: 20),
                 label: const Text(
@@ -316,7 +324,6 @@ class _CartViewState extends State<CartView> {
           ],
         ),
       );
-    });
   }
 
   Widget _buildRowWithLabel(
@@ -354,29 +361,29 @@ class _CartViewState extends State<CartView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CartProvider>(context, listen: false).getCartByUserId();
-    });
+    // Khởi tạo FE rỗng
   }
 
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
     
-    return Consumer<CartProvider>(
-      builder: (context, cartProvider, _) {
-        final cartItems = cartProvider.cartItems;
-        final isError = cartProvider.errorMessage;
-        return Stack(
+    // Dữ liệu FE trực tiếp
+    final List<dynamic> cartItems = FE_CART_ITEMS;
+    const bool isCartLoading = false;
+    const String isError = ''; 
+    
+    return Stack(
           children: <Widget>[
             Scaffold(
-              backgroundColor: isMobile ? Colors.grey.shade100 : Colors.white, // Nền xám nhạt cho mobile
+              backgroundColor: isMobile ? Colors.grey.shade100 : Colors.white, 
               appBar: CustomAppBarMobile(
-                title: 'My Cart (${cartItems.length})',
+                title: 'My Cart (${FE_CART_ITEM_COUNT})',
                 isBack: true,
               ),
-              body: cartProvider.isLoading
-                  ? ListView.builder(
+              body: isCartLoading
+                  // ignore: dead_code
+                  ? ListView.builder( 
                       itemCount: 5,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       itemBuilder: (context, index) {
@@ -386,7 +393,7 @@ class _CartViewState extends State<CartView> {
                         );
                       })
                   : cartItems.isEmpty
-                      ? Center(
+                      ? Center( 
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -414,22 +421,17 @@ class _CartViewState extends State<CartView> {
                                 child: MyButton(
                                   text: 'Start Shopping',
                                   onTap: (_) {
-                                    context.push(
-                                      '/product',
-                                      extra: {
-                                        'showBackButton': true,
-                                      },
-                                    );
+                                    print('Start Shopping clicked');
                                   },
                                 ),
                               )
                             ],
                           ),
                         )
-                      : ListView(
+                      : ListView( 
                           padding: isMobile ? const EdgeInsets.only(bottom: 100) : null,
                           children: [
-                            if (!Responsive.isMobile(context)) // Desktop View
+                            if (!Responsive.isMobile(context)) 
                               Container(
                                 color: Colors.white,
                                 padding: const EdgeInsets.symmetric(
@@ -452,7 +454,7 @@ class _CartViewState extends State<CartView> {
                                               itemBuilder: (context, index) {
                                                 final itemCart = cartItems[index];
                                                 return Slidable(
-                                                  key: ValueKey(itemCart.productVariantId),
+                                                  key: ValueKey(itemCart['productVariantId']),
                                                   closeOnScroll: true,
                                                   endActionPane: ActionPane(
                                                     motion: const ScrollMotion(),
@@ -460,14 +462,10 @@ class _CartViewState extends State<CartView> {
                                                       CustomSlidableAction(
                                                         borderRadius: BorderRadius.circular(16),
                                                         onPressed: (_) {
-                                                          cartProvider.handleDeleteToCart(itemCart.productVariantId);
-                                                          showCustomSnackBar(
-                                                              context,
-                                                              'Delete product from cart successfully',
-                                                              type: SnackBarType.success);
+                                                          _handleRemoveItem(itemCart['productVariantId']);
                                                         },
                                                         backgroundColor: Colors.transparent,
-                                                        child: Column(
+                                                        child: const Column(
                                                           mainAxisAlignment: MainAxisAlignment.center,
                                                           children: [
                                                             Icon(FeatherIcons.trash2, color: AppColors.red, size: 28),
@@ -497,7 +495,7 @@ class _CartViewState extends State<CartView> {
                                                     ),
                                                     child: Center(
                                                       child: CartItemWidget(
-                                                        itemCart: itemCart,
+                                                        itemCart: itemCart, 
                                                         onQuantityChanged: (quantity) {
                                                           setState(() {});
                                                         },
@@ -529,7 +527,7 @@ class _CartViewState extends State<CartView> {
                                   ],
                                 ),
                               ),
-                            if (Responsive.isMobile(context)) // Mobile View
+                            if (Responsive.isMobile(context)) 
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                                 child: Column(
@@ -543,7 +541,7 @@ class _CartViewState extends State<CartView> {
                                         itemBuilder: (context, index) {
                                           final itemCart = cartItems[index];
                                           return Slidable(
-                                            key: ValueKey(itemCart.productVariantId),
+                                            key: ValueKey(itemCart['productVariantId']),
                                             closeOnScroll: true,
                                             endActionPane: ActionPane(
                                               motion: const ScrollMotion(),
@@ -551,14 +549,10 @@ class _CartViewState extends State<CartView> {
                                                 CustomSlidableAction(
                                                   borderRadius: BorderRadius.circular(16),
                                                   onPressed: (_) {
-                                                    cartProvider.handleDeleteToCart(itemCart.productVariantId);
-                                                    showCustomSnackBar(
-                                                        context,
-                                                        'Delete product from cart successfully',
-                                                        type: SnackBarType.success);
+                                                    _handleRemoveItem(itemCart['productVariantId']);
                                                   },
                                                   backgroundColor: Colors.transparent,
-                                                  child: Column(
+                                                  child: const Column(
                                                     mainAxisAlignment: MainAxisAlignment.center,
                                                     children: [
                                                       Icon(FeatherIcons.trash2, color: AppColors.red, size: 28),
@@ -608,7 +602,7 @@ class _CartViewState extends State<CartView> {
                                 ),
                               ),
                             if (isError.isNotEmpty && cartItems.isEmpty)
-                              SizedBox(
+                              SizedBox( 
                                 height: MediaQuery.of(context).size.height - 200,
                                 child: Center(
                                   child: Column(
@@ -640,7 +634,7 @@ class _CartViewState extends State<CartView> {
                           ],
                         ),
               bottomNavigationBar: Responsive.isMobile(context) && cartItems.isNotEmpty
-                  ? Container(
+                  ? Container( 
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -660,19 +654,19 @@ class _CartViewState extends State<CartView> {
                     )
                   : null,
             ),
-            if (_itemToRemove != null) ...[
+            if (_itemToRemove != null) ...[ 
               Positioned.fill(child: Container(color: Colors.black54)),
               RemoveCartWidget(
                 cartItems: cartItems,
                 itemToRemove: _itemToRemove,
                 cancelRemoveItem: _cancelRemoveItem,
                 quantityToRemove: _quantityToRemove,
-                removeItem: () {},
+                removeItem: () {
+                    print('Confirmed removal of item $_itemToRemove');
+                },
               ),
             ],
           ],
-        );
-      },
     );
   }
 }

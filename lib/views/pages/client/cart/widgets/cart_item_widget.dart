@@ -1,24 +1,40 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
+
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/cart.model.dart';
-import 'package:recomart/provider/cart_provider.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/views/pages/client/cart/widgets/quantity_widget.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
+class ProductForCartModelFE {
+  final String productVariantName;
+  final double unitPrice;
+  final double discount;
+  final int quantity;
+  final String productVariantId;
+  final dynamic images;
+
+  ProductForCartModelFE({
+    required this.productVariantName,
+    required this.unitPrice,
+    required this.discount,
+    required this.quantity,
+    required this.productVariantId,
+    required this.images,
+  });
+}
 
 class CartItemWidget extends StatefulWidget {
   final bool isRemove;
-  final ProductForCartModel itemCart;
+  final dynamic itemCart; 
   final ValueChanged<int>? onQuantityChanged;
   final int? maxQuantity;
 
   const CartItemWidget({
     super.key,
-    required this.itemCart,
+    required this.itemCart, 
     this.onQuantityChanged,
     this.isRemove = false,
     this.maxQuantity,
@@ -31,9 +47,17 @@ class CartItemWidget extends StatefulWidget {
 class _CartItemWidgetState extends State<CartItemWidget> {
   bool isProcessing = false;
 
-  @override
+  void _handleRemoveItem() {
+    showCustomSnackBar(
+      context,
+      'Delete product from cart successfully (FE Action)',
+      type: SnackBarType.success,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+
     return Stack(
       children: [
         Container(
@@ -50,18 +74,18 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                   flex: 2,
                   child: Row(
                     children: [
+                      // Hiển thị ảnh
                       Container(
                         width: 80,
                         height: 80,
-                        decoration: BoxDecoration(
-                          borderRadius:
-                              const BorderRadius.all(Radius.circular(10)),
-                        ),
+                        decoration: const BoxDecoration(
+                            borderRadius:
+                                BorderRadius.all(Radius.circular(10))),
                         child: CachedNetworkImage(
-                          imageUrl: widget.itemCart.images.url,
+                          imageUrl: widget.itemCart.images?.url ?? 'default_url',
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          height: 350, // hoặc chiều cao bạn muốn
+                          height: 350, 
                           placeholder: (context, url) => const SkeletonImage(
                             imageHeight: 80,
                           ),
@@ -72,6 +96,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      // Tên và giá
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -79,7 +104,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                             SizedBox(
                               width: 200,
                               child: Text(
-                                widget.itemCart.productVariantName,
+                                widget.itemCart.productVariantName ?? 'Product Name',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -90,10 +115,9 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                               ),
                             ),
                             Text(
+                              // Logic tính giá FE
                               formatMoney(
-                                widget.itemCart.unitPrice -
-                                    (widget.itemCart.unitPrice *
-                                        widget.itemCart.discount),
+                                widget.itemCart.unitPrice * (1 - widget.itemCart.discount),
                               ),
                               style: const TextStyle(
                                 fontSize: 14,
@@ -117,9 +141,9 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                         : MainAxisAlignment.start,
                     children: [
                       QuantitySelector(
-                        productId: widget.itemCart.productVariantId,
-                        initialQuantity: widget.itemCart.quantity,
-                        onQuantityChanged: widget.onQuantityChanged ?? (val) {},
+                        productId: widget.itemCart.productVariantId ?? '0',
+                        initialQuantity: widget.itemCart.quantity ?? 1,
+                        onQuantityChanged: widget.onQuantityChanged ?? (val) {}, 
                         maxQuantity: widget.maxQuantity,
                         isProcessing: isProcessing,
                         onChangeProgressing: (value) {
@@ -152,17 +176,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                 // REMOVE
                 if (!Responsive.isMobile(context))
                   IconButton(
-                    onPressed: () {
-                      final cartProvider =
-                          Provider.of<CartProvider>(context, listen: false);
-                      cartProvider
-                          .handleDeleteToCart(widget.itemCart.productVariantId);
-                      showCustomSnackBar(
-                        context,
-                        'Delete product from cart successfully',
-                        type: SnackBarType.success,
-                      );
-                    },
+                    onPressed: _handleRemoveItem, 
                     icon: const Icon(
                       Icons.delete,
                       color: Colors.red,
@@ -174,7 +188,6 @@ class _CartItemWidgetState extends State<CartItemWidget> {
           ),
         ),
 
-        // Overlay loading
         if (isProcessing)
           Positioned.fill(
             child: AbsorbPointer(

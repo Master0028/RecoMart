@@ -1,39 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class SearchCameraPage extends StatelessWidget {
   const SearchCameraPage({super.key});
 
   Future<void> _onGalleryPressed(BuildContext context) async {
     
-    final status = await Permission.photos.request();
-
-    if (status.isGranted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã có quyền truy cập Thư viện. Mở Image Picker...')),
-      );
-      print('Quyền truy cập thư viện ảnh đã được cấp.');
-    } else if (status.isDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quyền truy cập Thư viện bị từ chối. Vui lòng cấp quyền trong Cài đặt.')),
-      );
-      print('Quyền truy cập thư viện ảnh bị từ chối.');
-    } else if (status.isPermanentlyDenied) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Quyền bị từ chối vĩnh viễn. Mở Cài đặt để cấp quyền.'),
-          action: SnackBarAction(
-            label: 'Cài đặt',
-            onPressed: openAppSettings,
-          ),
-        ),
-      );
-      print('Quyền truy cập thư viện ảnh bị từ chối vĩnh viễn.');
-    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('FE: Mở Image Picker để chọn ảnh từ Thư viện.')),
+    );
+    debugPrint('FE: Kích hoạt chức năng chọn ảnh từ Gallery.');
   }
 
   void _onCameraPressed() {
-    print('Mở Camera...');
+    debugPrint('FE: Mở Camera.');
   }
 
   @override
@@ -48,12 +27,13 @@ class SearchCameraPage extends StatelessWidget {
           color: Colors.white,
           child: const Center(
             child: Text(
-              'Khu vực xem trước Camera (hoặc nội dung chính)',
+              'Khu vực xem trước Camera (hoặc nội dung chính) - FE',
               style: TextStyle(color: Colors.grey),
             ),
           ),
         ),
       ),
+      
       bottomNavigationBar: Container(
         height: size.height * 0.15,
         padding: const EdgeInsets.symmetric(vertical: 20.0),

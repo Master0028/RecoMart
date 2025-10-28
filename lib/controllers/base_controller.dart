@@ -5,7 +5,6 @@ mixin BaseController {
   void handleError(error) {
     var message = error.message;
     if (error is BadRequestException) {
-      //show dialog
       DialogHelper.showDialog(description: message);
     } else if (error is FetchDataException) {
       DialogHelper.showDialog(description: message);

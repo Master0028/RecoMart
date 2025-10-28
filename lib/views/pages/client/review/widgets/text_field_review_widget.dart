@@ -23,8 +23,8 @@ class TextFieldReviewWidget extends StatelessWidget {
           width: Responsive.isMobile(context)
               ? MediaQuery.sizeOf(context).width * 0.9
               : MediaQuery.sizeOf(context).width * 0.7,
-          padding: EdgeInsets.all(8.0),
-          child: TextField(
+          padding: const EdgeInsets.all(8.0),
+          child: const TextField(
             maxLines: 5,
             decoration:
                 InputDecoration.collapsed(hintText: "Write your review here"),

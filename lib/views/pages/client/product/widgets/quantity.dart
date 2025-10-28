@@ -6,8 +6,9 @@ class Quantity extends StatefulWidget {
       required this.onIncrease,
       required this.onDecrease,
       required this.quantity});
-  final Function onIncrease;
-  final Function onDecrease;
+  
+  final VoidCallback onIncrease;
+  final VoidCallback onDecrease;
   final int quantity;
 
   @override
@@ -20,16 +21,14 @@ class _QuantityState extends State<Quantity> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 10,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
-          spacing: 15,
           children: [
             Container(
               width: 35,
               height: 35,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black,
               ),
@@ -44,22 +43,24 @@ class _QuantityState extends State<Quantity> {
                 ),
               ),
             ),
+            const SizedBox(width: 15),
             SizedBox(
               width: 25,
               child: Center(
                 child: Text(
                   widget.quantity.toString(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 20,
                     color: Colors.black,
                   ),
                 ),
               ),
             ),
+            const SizedBox(width: 15),
             Container(
               width: 35,
               height: 35,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.black,
               ),

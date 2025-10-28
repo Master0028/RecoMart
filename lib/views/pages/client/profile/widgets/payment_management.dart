@@ -103,7 +103,6 @@ class _PaymentManagementState extends State<PaymentManagement> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          // Thêm shadow nhẹ tạo độ nổi khối
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withOpacity(0.05),
@@ -121,6 +120,7 @@ class _PaymentManagementState extends State<PaymentManagement> {
               isFirst: index == 0,
               isLast: index == paymentMethodItems.length - 1,
               onTap: () {
+                print('Tapped on ${item['title']}');
               },
             );
           }),

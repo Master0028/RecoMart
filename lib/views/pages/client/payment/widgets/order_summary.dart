@@ -1,10 +1,41 @@
-import 'package:recomart/components/custom/skeleton.dart';
 import 'package:flutter/material.dart';
-import 'package:recomart/models/cart.model.dart';
-import 'package:recomart/views/pages/client/payment/widgets/product_order.dart';
+
+class _ProductOrderedPlaceholder extends StatelessWidget {
+  final dynamic item;
+  const _ProductOrderedPlaceholder({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Row(
+        children: [
+          Icon(Icons.shopping_bag_outlined, color: Colors.blueGrey),
+          SizedBox(width: 12),
+          Text('Product Item (FE Placeholder)', style: TextStyle(fontSize: 14)),
+        ],
+      ),
+    );
+  }
+}
+
+class _SkeletonHorizontalProductPlaceholder extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      itemCount: 2,
+      shrinkWrap: true,
+      itemBuilder: (context, index) => Container(
+        height: 80,
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: Colors.grey[200],
+      ),
+    );
+  }
+}
 
 class OrderSummary extends StatelessWidget {
-  final List<ProductForCartModel> cartItems;
+  final List<dynamic> cartItems;
 
   const OrderSummary(
       {super.key, required this.cartItems, this.isLoading = false});
@@ -13,7 +44,8 @@ class OrderSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double height = cartItems.isEmpty ? 1 * 120 : cartItems.length * 160;
+    double height = cartItems.isEmpty ? 1 * 120 : cartItems.length * 80;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -31,26 +63,26 @@ class OrderSummary extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         ConstrainedBox(
-          constraints: BoxConstraints(
+          constraints: const BoxConstraints(
             maxHeight: 320,
           ),
           child: Container(
             width: 500,
-            height: height,
+            height: height.clamp(120, 320),
             decoration: BoxDecoration(
               border: Border.all(color: Colors.black54, width: 0.5),
               borderRadius: BorderRadius.circular(8),
             ),
             child: isLoading
                 ? Center(
-                    child: SkeletonHorizontalProduct(),
+                    child: _SkeletonHorizontalProductPlaceholder(), 
                   )
                 : ListView.separated(
                     separatorBuilder: (context, index) => const Divider(),
                     shrinkWrap: true,
-                    itemCount: cartItems.length,
+                    itemCount: cartItems.length, 
                     itemBuilder: (context, index) {
-                      return ProductOrdered(item: cartItems[index]);
+                      return _ProductOrderedPlaceholder(item: cartItems[index]);
                     },
                   ),
           ),

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:recomart/config/color.dart';
+import 'package:recomart/config/color.dart'; 
 import 'package:recomart/config/font.dart';
-import 'package:lottie/lottie.dart';
 
 class EmptyCartView extends StatefulWidget {
   const EmptyCartView({super.key});
@@ -100,6 +99,7 @@ class _EmptyCartViewState extends State<EmptyCartView>
               child: ElevatedButton.icon(
                 onPressed: () {
                   context.pop();
+                  Navigator.of(context).pop(); 
                 },
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 label: const Text(

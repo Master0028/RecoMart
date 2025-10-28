@@ -1,18 +1,15 @@
-import 'package:recomart/config/color.dart';
-import 'package:recomart/models/order.model.dart';
-import 'package:recomart/views/pages/client/order/widget/order_item.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/config/color.dart'; 
 
 class TimelineList extends StatelessWidget {
-  final List<OrderModel> orders;
+  final List<dynamic> orders; 
   final String state;
   
   const TimelineList({super.key, required this.orders, required this.state});
 
   @override
   Widget build(BuildContext context) {
-    final filteredOrders =
-        orders.where((order) => order.status == state).toList();
+    final List<dynamic> filteredOrders = []; 
 
     if (filteredOrders.isEmpty) {
       return const Center(
@@ -46,7 +43,7 @@ class TimelineList extends StatelessWidget {
                           : AppColors.red),
                   size: 24,
                 ),
-                if (index != filteredOrders.length - 1) // Không hiển thị đường kẻ ở mục cuối cùng
+                if (index != filteredOrders.length - 1)
                   Container(
                     width: 2,
                     height: 50,
@@ -56,7 +53,18 @@ class TimelineList extends StatelessWidget {
             ),
             const SizedBox(width: 10),
             Expanded(
-              child: OrderItem(order: filteredOrders[index], state: state),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Text(
+                  "Placeholder for OrderItem - State: $state, Index: $index",
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
             ),
           ],
         );

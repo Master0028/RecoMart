@@ -1,8 +1,7 @@
-import 'package:recomart/helpers/formatMoney.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
-import 'package:recomart/models/product.model.dart';
 
 class ItemReviewedWidget extends StatelessWidget {
   const ItemReviewedWidget({
@@ -10,15 +9,19 @@ class ItemReviewedWidget extends StatelessWidget {
     required this.product,
   });
 
-  final ProductModel product;
+  final dynamic product; 
 
   @override
   Widget build(BuildContext context) {
+        final imageUrl = product['images']?[0]?['url'] ?? 'assets/images/image_default_error.png';
+    final name = product['variantName'] ?? 'Product Name';
+    final description = product['variantDescription'] ?? 'Product description';
+    final priceValue = product['price'] ?? 0.0;
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
-      spacing: 20,
       children: [
         Container(
           width: 100,
@@ -28,41 +31,47 @@ class ItemReviewedWidget extends StatelessWidget {
               Radius.circular(10),
             ),
             image: DecorationImage(
-              image: Image.asset(product.images[0].url).image,
+              image: imageUrl.startsWith('assets') 
+                ? Image.asset(imageUrl).image
+                : Image.asset('assets/images/image_default_error.png').image, 
               fit: BoxFit.cover,
             ),
           ),
         ),
-        Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              product.variantName,
-              style: const TextStyle(
-                fontSize: FontSizes.large,
-                fontWeight: FontWeight.bold,
-                color: AppColors.black,
+        const SizedBox(width: 20),
+        
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                name,
+                style: const TextStyle(
+                  fontSize: FontSizes.large,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.black,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(
-              product.variantDescription,
-              style:
-                  TextStyle(fontSize: FontSizes.large, color: AppColors.black),
-              overflow: TextOverflow.ellipsis,
-            maxLines: 3,
-            ),
-            Text(
-              formatMoney(product.price),
-              style: const TextStyle(
-                fontSize: FontSizes.large,
-                color: AppColors.black,
+              Text(
+                description,
+                style:
+                    TextStyle(fontSize: FontSizes.large, color: AppColors.black),
+                overflow: TextOverflow.ellipsis,
+              maxLines: 3,
               ),
-              overflow: TextOverflow.ellipsis,
-            )
-          ],
+              Text(
+                formatMoney(priceValue),
+                style: const TextStyle(
+                  fontSize: FontSizes.large,
+                  color: AppColors.black,
+                ),
+                overflow: TextOverflow.ellipsis,
+              )
+            ],
+          ),
         )
       ],
     );

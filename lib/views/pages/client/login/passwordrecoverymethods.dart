@@ -6,7 +6,7 @@ const Color cancelButtonColor = Color(0xFFEEEEEE);
 const Color cancelTextColor = Color(0xFF616161);
 
 class RecoveryMethodScreen extends StatefulWidget {
-  const RecoveryMethodScreen({super.key, String? userEmail});
+  const RecoveryMethodScreen({super.key});
 
   @override
   State<RecoveryMethodScreen> createState() => _RecoveryMethodScreenState();

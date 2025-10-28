@@ -1,14 +1,34 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/review.model.dart';
-import 'package:recomart/provider/user_provider.dart';
-import 'package:recomart/services/review.service.dart';
-import 'package:recomart/services/socket_io_client.dart';
-import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
-import 'package:provider/provider.dart';
+
+final List<dynamic> FE_REVIEWS_DATA = [
+  {
+    'content': 'Great product, highly recommend! (FE Review 1)',
+    'rating': 5.0,
+    'user': {'name': 'FE User 1'},
+    'createdAt': DateTime.now().subtract(const Duration(days: 1)).toString(),
+  },
+  {
+    'content': 'Decent value for the price. (FE Review 2)',
+    'rating': 4.0,
+    'user': {'name': 'FE User 2'},
+    'createdAt': DateTime.now().subtract(const Duration(hours: 5)).toString(),
+  },
+  {
+    'content': 'It was okay, nothing special. (FE Review 3)',
+    'rating': 3.0,
+    'user': {'name': 'FE User 3'},
+    'createdAt': DateTime.now().subtract(const Duration(days: 3)).toString(),
+  },
+];
+
+String formatDate(String date) {
+    return '2 days ago';
+}
 
 class ProductReviewSection extends StatefulWidget {
   const ProductReviewSection({
@@ -28,8 +48,8 @@ class ProductReviewSection extends StatefulWidget {
   final double averageRating;
   final int reviewCount;
   final List<String> images;
-  final SocketService socketService;
-  final List<ReviewModel> reviews;
+  final dynamic socketService;
+  final List<dynamic> reviews;
   final bool isLoading;
 
   @override
@@ -38,7 +58,6 @@ class ProductReviewSection extends StatefulWidget {
 
 class _ProductReviewSectionState extends State<ProductReviewSection> {
   final TextEditingController _commentController = TextEditingController();
-  final ReviewService reviewService = ReviewService();
   int currentPage = 1;
   int totalPage = 1;
   int limit = 10;
@@ -46,17 +65,10 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
 
   void _addReviewRating(int rating, String content) {
     try {
-      widget.socketService.sendReviewRating(
-        productVariantId: widget.productId,
-        review: content,
-        rating: rating,
-        // Removed onSuccess callback as requested
-        onError: (err) {
-          showCustomSnackBar(
-            context,
-            'Failed to add comment',
-          );
-        },
+      showCustomSnackBar(
+        context,
+        'Review sent successfully! (FE Action)',
+        type: SnackBarType.success,
       );
 
       setState(() {
@@ -70,31 +82,26 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      userProvider.loadUserData();
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final totalPage =
-        widget.reviews.length > 10 ? (widget.reviews.length / 10).ceil() : 1;
+    final allReviews = FE_REVIEWS_DATA; 
+    
+    final totalPage = allReviews.length > 10 ? (allReviews.length / 10).ceil() : 1;
 
     final reviewPagination =
-        widget.reviews.skip((currentPage - 1) * limit).take(limit).toList();
+        allReviews.skip((currentPage - 1) * limit).take(limit).toList();
 
     final reviewsToShow =
         _showAll ? reviewPagination : reviewPagination.take(2).toList();
 
-    //Get user data
-    final userProvider = Provider.of<UserProvider>(context);
-    final userId = userProvider.userModel?.id ?? '';
+    const String userId = 'FE_LOGGED_IN_USER'; 
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Reviews ',
           style: TextStyle(
             fontSize: 16,
@@ -112,7 +119,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
               children: [
                 Text(
                   widget.averageRating.toStringAsFixed(1),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 64,
                     fontWeight: FontWeight.bold,
                   ),
@@ -132,43 +139,32 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '${widget.reviewCount} review${widget.reviewCount == 1 ? '' : 's'}',
+                  '${widget.reviewCount} review${widget.reviewCount == 1 ? '' : 's'} (FE Count)',
                   style: TextStyle(color: Colors.grey[700]),
                 ),
               ],
             ),
             Column(
-              spacing: 4,
               children: [
                 RatingReviewBar(
                   rating: 5,
-                  count: reviewPagination
-                      .where((review) => review.rating == 5.0)
-                      .length,
+                  count: reviewPagination.where((review) => review['rating'] == 5.0).length,
                 ),
                 RatingReviewBar(
                   rating: 4,
-                  count: reviewPagination
-                      .where((review) => review.rating == 4.0)
-                      .length,
+                  count: reviewPagination.where((review) => review['rating'] == 4.0).length,
                 ),
                 RatingReviewBar(
                   rating: 3,
-                  count: reviewPagination
-                      .where((review) => review.rating == 3.0)
-                      .length,
+                  count: reviewPagination.where((review) => review['rating'] == 3.0).length,
                 ),
                 RatingReviewBar(
                   rating: 2,
-                  count: reviewPagination
-                      .where((review) => review.rating == 2.0)
-                      .length,
+                  count: reviewPagination.where((review) => review['rating'] == 2.0).length,
                 ),
                 RatingReviewBar(
                   rating: 1,
-                  count: reviewPagination
-                      .where((review) => review.rating == 1.0)
-                      .length,
+                  count: reviewPagination.where((review) => review['rating'] == 1.0).length,
                 ),
               ],
             )
@@ -176,21 +172,20 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
         ),
         const SizedBox(height: 10),
 
-        // Danh sách đánh giá
         widget.isLoading
-            ? ListView.separated(
+            ? ListView.separated( 
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 10,
+                itemCount: 3,
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 10),
-                itemBuilder: (context, index) => SkeletonHorizontalProduct(),
+                itemBuilder: (context, index) => const SkeletonHorizontalProduct(),
               )
             : ListView.separated(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: reviewsToShow.length,
-                separatorBuilder: (_, __) => SizedBox(height: 10),
+                separatorBuilder: (_, __) => const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final review = reviewsToShow[index];
                   return Container(
@@ -207,14 +202,14 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              review.user?.name ?? 'Anonymous',
+                              review['user']?['name'] ?? 'Anonymous',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 14,
                               ),
                             ),
                             Text(
-                              formatDate(review.createdAt.toString()),
+                              formatDate(review['createdAt'].toString()),
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -227,9 +222,9 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                         Row(
                           children: List.generate(5, (i) {
                             return Icon(
-                              i < (review.rating ?? 0.0)
+                              i < (review['rating'] ?? 0.0)
                                   ? Icons.star
-                                  : i < ((review.rating ?? 0.0) + 0.5)
+                                  : i < ((review['rating'] ?? 0.0) + 0.5)
                                       ? Icons.star_half
                                       : Icons.star_border,
                               size: 18,
@@ -240,7 +235,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                         const SizedBox(height: 8),
                         // Nội dung
                         Text(
-                          review.content,
+                          review['content'] ?? 'Review content missing',
                           style: const TextStyle(fontSize: 13),
                         ),
                       ],
@@ -248,6 +243,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                   );
                 },
               ),
+        
         if (_showAll)
           Column(
             children: [
@@ -267,7 +263,6 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
 
         Row(
           mainAxisSize: MainAxisSize.min,
-          spacing: 10,
           children: [
             if (reviewPagination.length > 2)
               Expanded(
@@ -280,7 +275,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                       });
                     },
                     style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: AppColors.primary),
+                      side: const BorderSide(color: AppColors.primary),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -290,7 +285,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                       _showAll
                           ? 'Collapse'
                           : 'View ${widget.reviewCount} reviews',
-                      style: TextStyle(color: AppColors.primary),
+                      style: const TextStyle(color: AppColors.primary),
                     ),
                   ),
                 ),
@@ -312,7 +307,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      side: BorderSide(
+                      side: const BorderSide(
                         color: AppColors.primary,
                       ),
                       backgroundColor: AppColors.primary,
@@ -320,7 +315,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Write a review',
                       style: TextStyle(color: Colors.white),
                     ),
@@ -353,14 +348,14 @@ class RatingReviewBar extends StatelessWidget {
           width: 10,
           child: Text(
             rating.toString(),
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 14,
-              color: const Color.fromARGB(255, 179, 179, 179),
+              color: Color.fromARGB(255, 179, 179, 179),
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
-        Icon(
+        const Icon(
           Icons.star,
           size: 18,
           color: AppColors.yellow,
@@ -401,7 +396,7 @@ void _openReviewDialog(
         insetAnimationDuration: const Duration(milliseconds: 1000),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 660),
+          constraints: const BoxConstraints(maxWidth: 660),
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -414,26 +409,26 @@ void _openReviewDialog(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
+                      const Text(
                         'Review Product',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       Image.network(
-                        images[0],
+                        images.isNotEmpty ? images[0] : 'placeholder_image_url',
                         height: 100,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         productName,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 14),
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: List.generate(5, (index) {
@@ -454,7 +449,7 @@ void _openReviewDialog(
                                   });
                                 },
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
                                 [
                                   'Terrible',
@@ -463,26 +458,26 @@ void _openReviewDialog(
                                   'Good',
                                   'Excelent'
                                 ][index],
-                                style: TextStyle(fontSize: 12),
+                                style: const TextStyle(fontSize: 12),
                               ),
                             ],
                           );
                         }),
                       ),
-                      SizedBox(height: 24),
+                      const SizedBox(height: 24),
                       if (showForm) ...[
                         TextField(
                           controller: commentController,
                           maxLines: 3,
                           decoration: InputDecoration(
                             hintText: 'Write your review here',
-                            border: OutlineInputBorder(),
-                            enabledBorder: OutlineInputBorder(
+                            border: const OutlineInputBorder(),
+                            enabledBorder: const OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.grey,
                               ),
                             ),
-                            focusedBorder: OutlineInputBorder(
+                            focusedBorder: const OutlineInputBorder(
                               borderSide: BorderSide(
                                 color: AppColors.primary,
                               ),
@@ -494,21 +489,18 @@ void _openReviewDialog(
                           ),
                         ),
                         if (errorMessage.isNotEmpty)
-                          SizedBox(
-                            width: double.infinity,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Text(
-                                errorMessage,
-                                style: TextStyle(
-                                  color: Colors.red,
-                                  fontSize: 12,
-                                ),
-                                textAlign: TextAlign.start,
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text(
+                              errorMessage,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
                               ),
+                              textAlign: TextAlign.start,
                             ),
                           ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         Row(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -523,7 +515,7 @@ void _openReviewDialog(
                               checkColor: Colors.white,
                               activeColor: AppColors.primary,
                             ),
-                            Expanded(
+                            const Expanded(
                               child: Text(
                                 'I will recommend this product to my friends',
                                 style: TextStyle(fontSize: 14),
@@ -531,10 +523,10 @@ void _openReviewDialog(
                             ),
                           ],
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                         ElevatedButton(
                           style: ElevatedButton.styleFrom(
-                            minimumSize: Size(double.infinity, 48),
+                            minimumSize: const Size(double.infinity, 48),
                             backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
@@ -552,7 +544,7 @@ void _openReviewDialog(
                               commentController.text,
                             );
                           },
-                          child: Text(
+                          child: const Text(
                             'Gửi đánh giá',
                             style: TextStyle(
                               fontSize: 16,
@@ -560,7 +552,7 @@ void _openReviewDialog(
                             ),
                           ),
                         ),
-                        SizedBox(height: 16),
+                        const SizedBox(height: 16),
                       ]
                     ],
                   ),
@@ -571,34 +563,5 @@ void _openReviewDialog(
         ),
       );
     },
-  );
-}
-
-Widget _buildRatingStars() {
-  final labels = ['Terrible', 'Poor', 'Average', 'Good', 'Excelent'];
-
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: List.generate(5, (index) {
-      return Column(
-        children: [
-          IconButton(
-            icon: Icon(
-              Icons.star_border,
-              color: Colors.orange,
-              size: 32,
-            ),
-            onPressed: () {
-              // TODO: chọn số sao
-            },
-          ),
-          SizedBox(height: 4),
-          Text(
-            labels[index],
-            style: TextStyle(fontSize: 12),
-          ),
-        ],
-      );
-    }),
   );
 }

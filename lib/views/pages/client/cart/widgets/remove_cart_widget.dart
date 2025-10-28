@@ -1,66 +1,69 @@
-import 'package:recomart/config/color.dart';
-import 'package:recomart/models/cart.model.dart';
 import 'package:flutter/material.dart';
+
+import 'package:recomart/config/color.dart';
 
 class RemoveCartWidget extends StatefulWidget {
   const RemoveCartWidget({
     super.key,
     required this.cartItems,
     required this.itemToRemove,
-    required this.cancelRemoveItem,
+    required this.cancelRemoveItem, 
     required this.quantityToRemove,
     required this.removeItem,
   });
 
-  final List<ProductForCartModel> cartItems;
+  final List<dynamic> cartItems; 
   final int? itemToRemove;
+  
   final VoidCallback cancelRemoveItem;
-  final int quantityToRemove;
   final VoidCallback removeItem;
+
+  final int quantityToRemove;
 
   @override
   State<RemoveCartWidget> createState() => _RemoveCartWidgetState();
 }
 
 class _RemoveCartWidgetState extends State<RemoveCartWidget> {
-  // Biến để điều khiển vị trí trượt (cho animation)
-  double _bottomOffset = -200.0; // Khởi tạo ngoài màn hình (ẩn)
-
-  @override
+  double _bottomOffset = -200.0; 
   void initState() {
     super.initState();
-    // Bắt đầu animation trượt lên sau khi widget được xây dựng
     WidgetsBinding.instance.addPostFrameCallback((_) {
       setState(() {
-        _bottomOffset = 0.0; // Trượt vào vị trí 0
+        _bottomOffset = 0.0; 
       });
     });
   }
 
-  // Hàm tạo hiệu ứng trượt xuống (biến mất)
   void _startDismissAnimation() {
     setState(() {
       _bottomOffset = -200.0;
     });
-    // Gọi hàm cancel/remove sau khi animation kết thúc (khoảng 300ms)
     Future.delayed(const Duration(milliseconds: 300), widget.cancelRemoveItem);
   }
+  
+  void _startRemoveAnimation() {
+      setState(() {
+        _bottomOffset = -200.0;
+      });
+      Future.delayed(const Duration(milliseconds: 300), widget.removeItem);
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    // SỬA LỖI: Thay thế .variantName bằng .name (hoặc tên trường chính xác của bạn)
     final productName = widget.itemToRemove != null && widget.itemToRemove! < widget.cartItems.length
-        ? widget.cartItems[widget.itemToRemove!].name // <-- ĐÃ SỬA LỖI
+        ? widget.cartItems[widget.itemToRemove!].name 
         : 'Product';
 
     return AnimatedPositioned(
-      duration: const Duration(milliseconds: 300), // Thời gian animation
-      curve: Curves.easeInOutCubic, // Hiệu ứng mượt mà, công nghệ
+      duration: const Duration(milliseconds: 300), 
+      curve: Curves.easeInOutCubic, 
       bottom: _bottomOffset,
       left: 0.0,
       right: 0.0,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), // Tăng padding dưới
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 32), 
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: const BorderRadius.only(
@@ -89,18 +92,16 @@ class _RemoveCartWidgetState extends State<RemoveCartWidget> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            // Hàng nút bấm
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                // Nút Cancel (màu xanh dương chủ đạo)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(right: 8.0),
                     child: SizedBox(
                       height: 50,
-                      child: OutlinedButton( // Dùng OutlinedButton cho nút phụ
-                        onPressed: _startDismissAnimation, // Gọi hàm trượt xuống
+                      child: OutlinedButton( 
+                        onPressed: _startDismissAnimation,
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: BorderSide(color: AppColors.primary, width: 2),
@@ -120,18 +121,13 @@ class _RemoveCartWidgetState extends State<RemoveCartWidget> {
                     ),
                   ),
                 ),
-                // Nút Remove (màu đỏ nổi bật)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(left: 8.0),
                     child: SizedBox(
                       height: 50,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Gọi hàm trượt xuống trước khi xóa
-                          _startDismissAnimation();
-                          widget.removeItem(); // Logic xóa sản phẩm
-                        },
+                        onPressed: _startRemoveAnimation,
                         icon: const Icon(Icons.delete_outline, color: Colors.white),
                         label: const Text(
                           'Remove',
@@ -142,11 +138,11 @@ class _RemoveCartWidgetState extends State<RemoveCartWidget> {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red.shade700, // Đỏ đậm hơn
+                          backgroundColor: Colors.red.shade700, 
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          elevation: 8, // Tăng shadow
+                          elevation: 8, 
                           shadowColor: Colors.red.shade900.withOpacity(0.5),
                         ),
                       ),

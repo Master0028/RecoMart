@@ -4,20 +4,18 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/provider/product_provider.dart';
+// import 'package:recomart/components/custom/snackbar.dart';
+// import 'package:recomart/provider/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/models/product.model.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
 import 'package:recomart/utils/responsive.dart';
-import 'package:provider/provider.dart';
 
 class ProductListViewWidget extends StatefulWidget {
   const ProductListViewWidget({
-    super.key, 
-    //required List<ProductModel> products, // Mockup Dataset Test
+    super.key,
   });
 
   @override
@@ -26,38 +24,52 @@ class ProductListViewWidget extends StatefulWidget {
 
 class _ProductListViewWidgetState extends State<ProductListViewWidget> {
   bool _isLoading = true;
+  String errorMessage = '';
+  List<ProductModel> mockProducts = [];
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_){
-    _fetchProducts();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _simulateFetchProducts();
     });
   }
 
-  String errorMessage = '';
-
-  Future<void> _fetchProducts() async {
+  Future<void> _simulateFetchProducts() async {
     setState(() {
       _isLoading = true;
       errorMessage = '';
     });
 
-    try {
-      await Provider.of<ProductProvider>(context, listen: false).fetchProducts(
-        page: 1,
-        limit: 12,
-        resetFilter: true,
-      );
-    } catch (e) {
-      errorMessage = 'Please check your internet connection';
-      showCustomSnackBar(context, 'Please check your internet connection');
-      debugPrint('Lỗi fetch products: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    await Future.delayed(const Duration(seconds: 1));
+
+    mockProducts = List.generate(
+      12,
+      (index) => ProductModel(
+        id: 'id_$index',
+        productId: 'prod_id_$index',
+        categoryId: 'cat_id_$index',
+        variantName: 'Sản Phẩm ${index + 1}',
+        variantColor: 'Red',
+        price: 100000.0 + index * 5000,
+        discount: 0.1, 
+        quantity: 100, 
+        variantDescription: 'Mô tả ngắn của sản phẩm ${index + 1}',
+        averageRating: 4.5,
+        reviewCount: 50,
+        isActive: true,
+        images: [
+          ProductImage(
+            url: 'https://picsum.photos/id/${100 + index}/300/300',
+            publicId: 'pub_id_$index',
+          )
+        ],
+      ),
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   @override
@@ -67,15 +79,13 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<ProductProvider>(context);
-    final products = provider.products;
-    final totalPage = provider.totalPage;
-    final currentPage = provider.page;
+    final List<ProductModel> products = _isLoading ? [] : mockProducts;
+    const int totalPage = 5; // Giá trị cố định cho FE
+    const int currentPage = 1; // Giá trị cố định cho FE
 
-    if (errorMessage.isNotEmpty && provider.products.isEmpty) {
+    if (errorMessage.isNotEmpty && products.isEmpty) {
       final mediaQuery = MediaQuery.of(context);
-      final remainingHeight =
-          mediaQuery.size.height - 350; // hoặc tính lại nếu cần
+      final remainingHeight = mediaQuery.size.height - 350;
 
       return SizedBox(
         height: remainingHeight,
@@ -85,8 +95,8 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
             children: [
               Image.asset(
                 'assets/images/No_Internet.png',
-                width: 250, // Chiều rộng bạn muốn
-                height: 250, // Chiều cao bạn muốn
+                width: 250,
+                height: 250,
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: 16),
@@ -125,7 +135,7 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
             final variant =
                 !_isLoading && index < products.length ? products[index] : null;
             return _isLoading
-                ? Skeleton()
+                ? const Skeleton()
                 : ProductView(
                     id: variant?.id ?? '',
                     categoryId: variant?.categoryId ?? '',
@@ -134,21 +144,20 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
                     price: (variant?.price as double),
                     variantDescription: variant?.variantDescription ??
                         'No description available',
-                    averageRating: variant?.averageRating.toString() ?? '0.0',
+                    averageRating: variant?.averageRating?.toString() ?? '0.0',
                   );
           },
         ),
-        SizedBox(
+        const SizedBox(
           height: 20,
         ),
         PaginationWidget(
           currentPage: currentPage,
           totalPages: totalPage,
           onPageChanged: (page) {
-            provider.fetchProducts(page: page, limit: 12, resetFilter: true);
           },
         ),
-        SizedBox(
+        const SizedBox(
           height: 20,
         ),
       ],
@@ -179,8 +188,7 @@ class ProductView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () =>
-          context.push(
+      onTap: () => context.push(
         '/product-details/$id',
         extra: {
           'categoryId': categoryId,
@@ -203,15 +211,20 @@ class ProductView extends StatelessWidget {
                 height: 180,
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  child: CachedNetworkImage(
-                    imageUrl: images[0].url,
-                    placeholder: (context, url) => const SkeletonImage(
-                      imageHeight: 160,
-                    ),
-                    errorWidget: (context, url, error) =>
-                        Image.asset('assets/images/image_default_error.png'),
-                    fit: BoxFit.cover,
-                  ),
+                  child: images.isNotEmpty
+                      ? CachedNetworkImage(
+                          imageUrl: images[0].url,
+                          placeholder: (context, url) => const SkeletonImage(
+                            imageHeight: 160,
+                          ),
+                          errorWidget: (context, url, error) => Image.asset(
+                              'assets/images/image_default_error.png'),
+                          fit: BoxFit.cover,
+                        )
+                      : Image.asset(
+                          'assets/images/image_default_error.png',
+                          fit: BoxFit.cover,
+                        ),
                 ),
               ),
             ),
@@ -219,17 +232,17 @@ class ProductView extends StatelessWidget {
               padding: const EdgeInsets.all(8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                spacing: 8,
                 children: [
                   Text(
                     variantName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 8),
                   Text(
                     variantDescription,
                     style: TextStyle(
@@ -239,6 +252,7 @@ class ProductView extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     maxLines: 2,
                   ),
+                  const SizedBox(height: 8),
                   Text(
                     formatMoney(price.toDouble()),
                     style: TextStyle(
@@ -247,6 +261,7 @@ class ProductView extends StatelessWidget {
                       fontSize: FontSizes.medium,
                     ),
                   ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       const Icon(Icons.star, size: 15, color: Colors.amber),
@@ -292,9 +307,9 @@ class _FilterHomeProductState extends State<FilterHomeProduct> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 20,
       children: [
         Row(),
+        const SizedBox(height: 20),
         Text(
           'Product',
           style: TextStyle(
@@ -302,10 +317,11 @@ class _FilterHomeProductState extends State<FilterHomeProduct> {
                   16, 18, (MediaQuery.of(context).size.width - 300) / 300),
               fontWeight: FontWeight.bold),
         ),
+        const SizedBox(height: 20),
         SizedBox(
           height: 40,
           child: ListView.separated(
-            separatorBuilder: (context, index) => SizedBox(width: 10),
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             scrollDirection: Axis.horizontal,
             itemCount: filtersList.length,
             itemBuilder: (context, index) {
@@ -313,25 +329,12 @@ class _FilterHomeProductState extends State<FilterHomeProduct> {
                 onTap: () {
                   setState(() {
                     isSelectedList = filtersList[index];
-                    final productProvider =
-                        Provider.of<ProductProvider>(context, listen: false);
-
-                    if (filtersList[index] == 'Best Seller') {
-                      productProvider.getProductsBestSelling();
-                    } else if (filtersList[index] == 'Newest') {
-                      productProvider.getProductsNewest();
-                    } else {
-                      final valueFilter = switch (filtersList[index]) {
-                        'Low to High' => 'Price: Low to High',
-                        'High to Low' => 'Price: High to Low',
-                        _ => 'All',
-                      };
-                      productProvider.handleSortChange(valueFilter);
-                    }
+                    debugPrint('Lọc theo: ${filtersList[index]}');
                   });
                 },
                 child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 2),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 2),
                   decoration: BoxDecoration(
                     color: isSelectedList == filtersList[index]
                         ? AppColors.orangePastel

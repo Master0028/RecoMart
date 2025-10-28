@@ -1,4 +1,3 @@
-import 'package:recomart/config/color.dart';
 import 'package:flutter/material.dart';
 
 class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -6,8 +5,9 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color blueDark = AppColors.primary;
-    final Color blueLight = AppColors.primary.withOpacity(0.8);
+    const Color primaryColor = Color(0xFF007AFF);
+    final Color blueDark = primaryColor;
+    final Color blueLight = primaryColor.withOpacity(0.8);
 
     return Container(
       decoration: BoxDecoration(
@@ -16,6 +16,7 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        // Logic Shadow UI
         boxShadow: [
           BoxShadow(
             color: blueDark.withOpacity(0.5),
@@ -29,13 +30,13 @@ class ChatAppBar extends StatelessWidget implements PreferredSizeWidget {
         title: const Text(
           'Messages',
           style: TextStyle(
-            color: Colors.white, // Chữ trắng tinh khiết
-            fontWeight: FontWeight.bold, // Chữ đậm hơn
-            fontSize: 20, // Kích thước font hợp lý
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.transparent, 
         elevation: 0,
       ),
     );

@@ -1,11 +1,12 @@
+import 'package:flutter/material.dart';
+
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
-import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
 import 'package:feather_icons/feather_icons.dart';
 
 class SearchProductScreen extends StatefulWidget {
-  final Function(String) onSearch;
+  final Function(String) onSearch; 
   final String initialQuery;
 
   const SearchProductScreen({
@@ -29,7 +30,8 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
 
   void _performSearch() {
     if (_searchController.text.isNotEmpty) {
-      widget.onSearch(_searchController.text);
+      print('Search performed for: ${_searchController.text} (FE Action)');
+      setState(() {}); 
     }
   }
 
@@ -37,10 +39,9 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBarHomeCustom(),
+      appBar: const AppBarHomeCustom(),
       body: Column(
         children: [
-          // Khu vực Search Bar Hiện Đại
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
@@ -70,29 +71,28 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                               color: Colors.grey,
                               onPressed: () {
                                 _searchController.clear();
-                                setState(() {}); // Cập nhật UI để ẩn nút clear
+                                setState(() {});
                               },
                             )
                           : null,
                       filled: true,
-                      fillColor: Colors.grey.shade100, // Nền xám nhạt cho input
+                      fillColor: Colors.grey.shade100, 
                       contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 20.0),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12), // Bo góc lớn hơn
-                        borderSide: BorderSide.none, // Bỏ border
+                        borderRadius: BorderRadius.circular(12), 
+                        borderSide: BorderSide.none, 
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.primary, width: 2), // Viền xanh dương khi focus
+                        borderSide: BorderSide(color: AppColors.primary, width: 2), 
                       ),
                     ),
                     onChanged: (value) {
-                      setState(() {}); // Cập nhật UI để hiển thị nút clear
+                      setState(() {});
                     },
                   ),
                 ),
                 const SizedBox(width: 10),
-                // Nút Search (Màu Xanh dương chủ đạo)
                 SizedBox(
                   height: 50,
                   child: ElevatedButton(
@@ -103,7 +103,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 15),
-                      elevation: 5, // Tạo độ nổi khối
+                      elevation: 5, 
                       shadowColor: AppColors.primary.withOpacity(0.4),
                     ),
                     child: const Icon(FeatherIcons.search, color: Colors.white),
@@ -113,13 +113,11 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
             ),
           ),
           
-          // Khu vực Kết quả Tìm kiếm
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  // Thanh hiển thị kết quả
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     child: Row(
@@ -127,7 +125,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            "Results for \"${_searchController.text}\"",
+                            "Results for \"${_searchController.text}\"", 
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -137,7 +135,6 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        // Thẻ số lượng tìm thấy (Tag style)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
@@ -145,7 +142,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            "1000 items found", // Giả định đây là dữ liệu tĩnh
+                            "1000 items found (FE Stub)", 
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -158,11 +155,9 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                   ),
                   const SizedBox(height: 10),
 
-                  // Danh sách sản phẩm (ProductListViewWidget)
                   const Expanded(
                     child: SingleChildScrollView(
                       child: ProductListViewWidget(),
-                      //child: ProductListViewWidget(products: [],), // Mockup Dataset test
                     ),
                   ),
                 ],

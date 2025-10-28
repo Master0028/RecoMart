@@ -1,17 +1,32 @@
-import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/views/pages/client/login/widgets/button.dart';
 import 'package:flutter/material.dart';
-import 'package:recomart/models/order.model.dart';
-import 'package:recomart/config/color.dart';
+import 'package:recomart/config/color.dart'; 
+
+String formatMoney(num amount) => "\$${amount.toStringAsFixed(2)}";
+String formatDate(String dateString) => "2024-01-01";
+
+class MyButton extends StatelessWidget {
+  final String text;
+  final Function(BuildContext) onTap;
+
+  const MyButton({super.key, required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: () => onTap(context),
+      child: Text(text),
+    );
+  }
+}
 
 class OrderDetailDialog extends StatelessWidget {
-  final OrderModel order;
+  final Map<String, dynamic> order;
 
   const OrderDetailDialog({super.key, required this.order});
 
   @override
   Widget build(BuildContext context) {
-    final items = order.items ?? [];
+    final List<dynamic> items = order['items'] ?? [];
 
     return SizedBox(
       width: 600,
@@ -30,7 +45,8 @@ class OrderDetailDialog extends StatelessWidget {
                 ? const Text("No products in this order.")
                 : Column(
                     children: items.map((item) {
-                      final imageUrl = item.images?.url ?? '';
+                      final imageUrl = item['images']?['url'] ?? ''; 
+
                       return Card(
                         color: AppColors.white,
                         margin: const EdgeInsets.only(bottom: 12),
@@ -63,23 +79,21 @@ class OrderDetailDialog extends StatelessWidget {
 
                               const SizedBox(height: 12),
 
-                              // Tên sản phẩm và số lượng
                               Text(
-                                item.productVariantName ?? "Unnamed Product",
+                                item['productVariantName'] ?? "Unnamed Product",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              Text("Quantity: ${item.quantity}"),
+                              Text("Quantity: ${item['quantity'] ?? 'N/A'}"),
 
                               const SizedBox(height: 8),
 
-                              // Giá sản phẩm
                               Text(
-                                item.unit_price != null
-                                    ? formatMoney(item.unit_price ?? 0)
+                                item['unit_price'] != null
+                                    ? formatMoney(item['unit_price'] ?? 0)
                                     : "N/A",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w500,
@@ -99,16 +113,16 @@ class OrderDetailDialog extends StatelessWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            _infoRow("Order ID:", order.id ?? "N/A"),
-            _infoRow("Status:", order.status ?? "N/A"),
-            _infoRow("Customer:", order.userName ?? "Unknown"),
-            _infoRow("Email:", order.email ?? "N/A"),
+            _infoRow("Order ID:", order['id'] ?? "N/A"),
+            _infoRow("Status:", order['status'] ?? "N/A"),
+            _infoRow("Customer:", order['userName'] ?? "Unknown"),
+            _infoRow("Email:", order['email'] ?? "N/A"),
             _infoRow(
-                "Created At:", formatDate(order.createdAt.toString()) ?? "N/A"),
+                "Created At:", formatDate(order['createdAt'].toString()) ?? "N/A"),
             _infoRow(
                 "Total:",
-                order.totalAmount != null
-                    ? formatMoney(order.totalAmount ?? 0)
+                order['totalAmount'] != null
+                    ? formatMoney(order['totalAmount'] ?? 0)
                     : "N/A"),
             const SizedBox(height: 20),
             Align(

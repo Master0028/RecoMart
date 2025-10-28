@@ -1,10 +1,6 @@
-import 'package:recomart/config/color.dart';
-import 'package:recomart/models/order.model.dart';
-import 'package:recomart/services/order.service.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/config/color.dart'; 
 import 'package:recomart/utils/responsive.dart';
-import 'package:recomart/views/pages/client/order/widget/order_item.dart';
-import 'package:recomart/views/pages/client/order/widget/timeline_list.dart';
 
 class OrderView extends StatefulWidget {
   const OrderView({super.key});
@@ -17,37 +13,21 @@ class _OrderViewState extends State<OrderView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  OrderService orderService = OrderService();
+  List<dynamic> orders = []; 
+  bool isLoading = false; 
 
-  List<OrderModel> orders = [];
-  bool isLoading = true; // Thêm trạng thái loading
-
-  Future<void> fetchOrders() async {
+  void initializeView() {
     setState(() {
-      isLoading = true;
+      isLoading = false;
+      orders = []; 
     });
-    try {
-      // Giả lập độ trễ mạng
-      await Future.delayed(const Duration(milliseconds: 500)); 
-      final response = await orderService.getOrdersById();
-      setState(() {
-        orders = response;
-      });
-    } catch (e) {
-      // Handle error (có thể hiển thị Snackbar hoặc thông báo lỗi)
-      print('Error fetching orders: $e'); 
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
   }
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    fetchOrders();
+    initializeView(); 
   }
 
   @override
@@ -56,7 +36,6 @@ class _OrderViewState extends State<OrderView>
     super.dispose();
   }
 
-  // Widget hiển thị khi không có đơn hàng hoặc đang tải
   Widget _buildEmptyState(String message) {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
@@ -66,7 +45,7 @@ class _OrderViewState extends State<OrderView>
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.inbox_outlined, // Icon hiện đại hơn
+            Icons.inbox_outlined, 
             size: 80,
             color: AppColors.primary.withOpacity(0.5),
           ),
@@ -84,13 +63,12 @@ class _OrderViewState extends State<OrderView>
     );
   }
 
-  Widget buildOrderView(List<OrderModel> orders, String state) {
+  Widget buildOrderView(List<dynamic> orders, String state) {
     if (isLoading) {
       return _buildEmptyState('Loading orders...');
     }
     
-    final filteredOrders =
-        orders.where((order) => order.status == state).toList();
+    final List<dynamic> filteredOrders = []; 
 
     if (filteredOrders.isEmpty) {
       String message = "No orders in this status.";
@@ -100,34 +78,32 @@ class _OrderViewState extends State<OrderView>
       return _buildEmptyState(message);
     }
 
-    // Giao diện Mobile (List View)
     if (Responsive.isMobile(context)) {
       return ListView.separated(
         padding: const EdgeInsets.all(16),
         itemCount: filteredOrders.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16), // Tăng khoảng cách
+        separatorBuilder: (context, index) => const SizedBox(height: 16), 
         itemBuilder: (context, index) {
-          // Giả định OrderItem được thiết kế hiện đại (bo góc, shadow nhẹ)
-          return OrderItem(order: filteredOrders[index], state: state); 
+          // THAY THẾ OrderItem() bằng Container
+          return Container(height: 100, color: Colors.blue[100], child: Center(child: Text("Mobile Item: $state #${index+1}"))); 
         },
       );
     }
 
-    // Giao diện Desktop/Tablet (Constrained Card View)
     return Center(
       child: Container(
-        color: Colors.grey[100], // Nền xám nhạt hiện đại
+        color: Colors.grey[100], 
         padding: const EdgeInsets.all(32),
         child: ConstrainedBox(
           constraints:
-              const BoxConstraints(maxWidth: 900), // Giới hạn chiều rộng lớn hơn
+              const BoxConstraints(maxWidth: 900), 
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20), // Bo góc lớn hơn
+              borderRadius: BorderRadius.circular(20), 
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.1), // Bóng xanh dương nhẹ
+                  color: AppColors.primary.withOpacity(0.1), 
                   blurRadius: 20,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
@@ -135,8 +111,7 @@ class _OrderViewState extends State<OrderView>
               ],
             ),
             padding: const EdgeInsets.all(24),
-            // Sử dụng TimelineList cho Desktop/Tablet
-            child: TimelineList(orders: filteredOrders, state: state), 
+            child: Center(child: Text("Desktop View: $state List", style: TextStyle(fontSize: 18))),
           ),
         ),
       ),
@@ -152,7 +127,7 @@ class _OrderViewState extends State<OrderView>
         appBar: Responsive.isMobile(context)
             ? AppBar(
                 backgroundColor: AppColors.primary,
-                elevation: 0, // Loại bỏ elevation cho phong cách phẳng
+                elevation: 0, 
                 centerTitle: true,
                 leading: IconButton(
                   icon: const Icon(
@@ -168,14 +143,13 @@ class _OrderViewState extends State<OrderView>
                   style: TextStyle(
                     fontSize: 18,
                     color: Colors.white,
-                    fontWeight: FontWeight.bold, // Tăng độ đậm
+                    fontWeight: FontWeight.bold, 
                   ),
                 ),
                 bottom: TabBar(
                   controller: _tabController,
-                  // Cải thiện TabBar style
-                  indicatorColor: Colors.white, // Màu xanh dương/trắng cho indicator
-                  indicatorWeight: 4, // Độ dày indicator
+                  indicatorColor: Colors.white, 
+                  indicatorWeight: 4, 
                   labelColor: Colors.white,
                   unselectedLabelColor: Colors.white.withOpacity(0.7),
                   labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
@@ -189,12 +163,12 @@ class _OrderViewState extends State<OrderView>
               )
             : null,
         body: Container(
-          color: Responsive.isMobile(context) ? Colors.white : Colors.grey[100], // Nền xám nhạt cho desktop
+          color: Responsive.isMobile(context) ? Colors.white : Colors.grey[100], 
           height: MediaQuery.of(context).size.height,
           child: TabBarView(
             controller: _tabController,
             children: [
-              buildOrderView(orders, 'PENDING'),
+              buildOrderView(orders, 'PENDING'), 
               buildOrderView(orders, 'SHIPPING'),
               buildOrderView(orders, 'CANCELLED'),
             ],

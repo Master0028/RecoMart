@@ -48,8 +48,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/recovery',
       builder: (context, state) {
-        final email = state.extra as String?;
-        return RecoveryMethodScreen(userEmail: email);
+        return const RecoveryMethodScreen();
       },
     ),
     GoRoute(

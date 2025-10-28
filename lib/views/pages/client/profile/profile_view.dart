@@ -1,4 +1,4 @@
-import 'package:recomart/utils/responsive.dart';
+import 'package:recomart/utils/responsive.dart' as utils;
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/profile/widgets/profile_body.dart';
 import 'package:flutter/material.dart';
@@ -10,8 +10,8 @@ class ProfileView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: !Responsive.isMobile(context) ? AppBarHomeCustom() : null,
-      body: ProfileBody(),
+      appBar: !utils.Responsive.isMobile(context) ? const AppBarHomeCustom() : null,
+      body: const ProfileBody(),
     );
   }
 }

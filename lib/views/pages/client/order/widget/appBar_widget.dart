@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 
 class AppBarOrderCustom extends StatelessWidget implements PreferredSizeWidget {
   const AppBarOrderCustom({super.key});
+
   @override
   Size get preferredSize => const Size.fromHeight(100);
+
   @override
   Widget build(BuildContext context) {
     return AppBar(
@@ -17,7 +19,8 @@ class AppBarOrderCustom extends StatelessWidget implements PreferredSizeWidget {
               fontWeight: FontWeight.bold)),
       centerTitle: true,
       iconTheme: const IconThemeData(color: Colors.black),
-      bottom: TabBar(
+      
+      bottom: const TabBar(
         indicatorColor: AppColors.primary,
         labelColor: AppColors.primary,
         tabs: [

@@ -1,7 +1,3 @@
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/routes/app_routes.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/auth.service.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math; 
@@ -20,7 +16,6 @@ class SignUpScreen extends StatefulWidget {
 }
 
 class _SignUpScreenState extends State<SignUpScreen> {
-  // --- LOGIC: Controllers và FocusNodes từ code cũ ---
   final _userNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -31,13 +26,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
-  final _phoneFocus = FocusNode(); // Thêm focus cho Phone
+  final _phoneFocus = FocusNode();
   
   bool _loading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  // --- LOGIC: Khởi tạo và Dọn dẹp ---
   @override
   void dispose() {
     _userNameController.dispose();
@@ -55,33 +49,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  // --- LOGIC: Hàm hiển thị lỗi (Giả định Custom SnackBar đã có) ---
   void _focusAndShowError(FocusNode node, String message) {
     FocusScope.of(context).requestFocus(node);
-    // Sử dụng Custom SnackBar nếu có
-    showCustomSnackBar(context, message, type: SnackBarType.error);
-    // Fallback Snackbar tiêu chuẩn
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(message), 
       backgroundColor: Colors.red,
+      duration: const Duration(seconds: 3),
     ));
   }
   
-  // --- LOGIC: Hàm Đăng ký Chính ---
   Future<void> signUp() async {
     final name = _userNameController.text.trim();
     final email = _emailController.text.trim();
-    final address = _addressController.text.trim();
     final pass = _passwordController.text.trim();
     final confirm = _confirmedPasswordController.text.trim();
 
-    // 1. Validation Name
     if (name.isEmpty) {
       _focusAndShowError(_nameFocus, 'Please enter your full name');
       return;
     }
 
-    // 2. Validation Email
     if (email.isEmpty) {
       _focusAndShowError(_emailFocus, 'Please enter your email');
       return;
@@ -91,7 +78,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
     
-    // 3. Validation Password
     if (pass.isEmpty) {
       _focusAndShowError(_passwordFocus, 'Please enter your password');
       return;
@@ -101,7 +87,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
 
-    // 4. Validation Confirm Password
     if (confirm.isEmpty) {
       _focusAndShowError(_confirmFocus, 'Please confirm your password');
       return;
@@ -115,38 +100,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
     setState(() => _loading = true);
 
     try {
-      final auth = AuthService();
-      await auth.signup(name: name, email: email, address: 'Default Address', password: pass);
       
-      // Giả lập độ trễ mạng
       await Future.delayed(const Duration(seconds: 2));
       
       if (mounted) {
-        showCustomSnackBar(context, 'Sign up successfully', type: SnackBarType.success);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Sign up successfully. Redirecting to Login...'), 
           backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
         ));
         
-        // Chuyển sang màn hình Login sau khi đăng ký thành công
         context.go('/login');
       }
     } 
-    
-    on BadRequestException catch (e) {
-      showCustomSnackBar(context, e.message, type: SnackBarType.error);
-    } 
     catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, 'Unexpected error: $e', type: SnackBarType.error);
-        _focusAndShowError(_emailFocus, 'Sign up failed. Please try again.');
+        _focusAndShowError(_emailFocus, 'Sign up failed. Please try again. (Simulated Error)');
       }
     } finally {
       setState(() => _loading = false);
     }
   }
 
-  // --- UI: Các Widget con ---
   Widget buildHeader() {
     return const Text(
       'Create\nAccount',
@@ -182,7 +157,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // Input Field chung cho Name, Email, Phone
   Widget buildInputField({
     required String hintText,
     required IconData icon,
@@ -204,7 +178,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         filled: true,
         fillColor: inputFillColor,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(largeRadius), // Áp dụng bo góc lớn
+          borderRadius: BorderRadius.circular(largeRadius),
           borderSide: BorderSide.none,
         ),
         contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
@@ -261,7 +235,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: primaryBlue,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(largeRadius), // Bo góc lớn
+          borderRadius: BorderRadius.circular(largeRadius),
         ),
         elevation: 2,
       ),
@@ -325,7 +299,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
 
-  // --- UI: Xây dựng giao diện chính ---
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -334,13 +307,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
       canPop: false,
       onPopInvoked: (didPop) {
         if (!didPop) {
-          // Vẫn dùng context.pop() ở đây để xử lý PopScope (thường là GoRouter)
           context.pop();
         }
       },
       child: Scaffold(
         backgroundColor: Colors.white,
-        // Dùng LayoutBuilder để xử lý overflow khi bàn phím hiện
         body: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
@@ -349,7 +320,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: IntrinsicHeight(
                   child: Stack(
                     children: [
-                      // Hình khối trang trí 1
                       Positioned(
                         top: -size.height * 0.15, 
                         left: -size.width * 0.5,
@@ -415,22 +385,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               ),
                               const SizedBox(height: 20),
 
-                              // Password
                               buildPasswordField(),
                               const SizedBox(height: 20),
                               
-                              // Confirm Password
                               buildConfirmPasswordField(),
                               const SizedBox(height: 40),
                               
-                              // Nút Sign Up (Done)
                               buildDoneButton(),
                               const SizedBox(height: 20),
 
                               buildCancelButton(context),
                               const SizedBox(height: 20),
                                                             
-                              // Đã có tài khoản? (Sign In link)
                               buildSignInButton(context),
                               
                               const SizedBox(height: 40),

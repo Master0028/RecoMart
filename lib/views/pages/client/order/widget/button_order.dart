@@ -4,20 +4,20 @@ import 'package:flutter/material.dart';
 class ButtonOrder extends StatelessWidget {
   final String title;
   final Function() onPressed;
-  final bool isOutlined;
+  final bool isOutlined; 
 
   const ButtonOrder({
     super.key,
     required this.title,
     required this.onPressed,
-    this.isOutlined = false, // Mặc định là filled
+    this.isOutlined = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final ButtonStyle style = isOutlined
         ? OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primary,
+            foregroundColor: AppColors.primary, 
             side: BorderSide(color: AppColors.primary, width: 1),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             shape: RoundedRectangleBorder(

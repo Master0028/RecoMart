@@ -31,7 +31,7 @@ class _SearchWidgetState extends State<SearchWidget> {
   String _currentQuery = '';
 
   void _openSearchScreen({String? query}) {
-    _removeOverlay(); 
+    _removeOverlay();
 
     if (Responsive.isDesktop(context)) {
       final finalQuery = query ?? _searchController.text;
@@ -40,14 +40,13 @@ class _SearchWidgetState extends State<SearchWidget> {
           context,
           MaterialPageRoute(
             builder: (context) => SearchProductScreen(
-              onSearch: (newQuery) {
-              },
+              onSearch: (newQuery) {},
               initialQuery: finalQuery,
             ),
           ),
         );
       } else {
-        _showOverlay(); 
+        _showOverlay();
       }
     } else {
       Navigator.push(
@@ -61,7 +60,7 @@ class _SearchWidgetState extends State<SearchWidget> {
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
-    
+
     _overlayEntry = OverlayEntry(
       builder: (context) => GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -105,8 +104,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                                   child: Text(
                                     "Xóa tất cả",
                                     style: TextStyle(
-                                      // Giả định AppColors.primary tồn tại
-                                      color: AppColors.primary, 
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ),
@@ -128,7 +126,8 @@ class _SearchWidgetState extends State<SearchWidget> {
                               _openSearchScreen(query: search);
                             },
                             trailing: IconButton(
-                              icon: const Icon(Icons.close, color: Colors.grey),
+                              icon:
+                                  const Icon(Icons.close, color: Colors.grey),
                               onPressed: () => _removeRecentSearch(search),
                             ),
                           );
@@ -168,7 +167,7 @@ class _SearchWidgetState extends State<SearchWidget> {
       _recentSearches.clear();
     });
     _removeOverlay();
-    _showOverlay(); 
+    _showOverlay();
   }
 
   void _removeRecentSearch(String search) {
@@ -180,7 +179,7 @@ class _SearchWidgetState extends State<SearchWidget> {
   }
 
   void _onSearchFieldChanged(dynamic inputValue) {
-    final String value = inputValue.toString(); 
+    final String value = inputValue.toString();
 
     setState(() {
       _currentQuery = value;
@@ -204,7 +203,6 @@ class _SearchWidgetState extends State<SearchWidget> {
         mainAxisAlignment: Responsive.isDesktop(context)
             ? MainAxisAlignment.start
             : MainAxisAlignment.spaceBetween,
-        // Đã thay thế Row(spacing: 10) bằng SizedBox
         children: [
           SizedBox(
             width: Responsive.isDesktop(context)
@@ -212,17 +210,15 @@ class _SearchWidgetState extends State<SearchWidget> {
                 : MediaQuery.of(context).size.width * 0.7,
             child: SearchField(
               controller: _searchController,
-              onChanged: _onSearchFieldChanged, 
-              
+              onChanged: _onSearchFieldChanged,
+
               onTap: () => {
-                if (!Responsive.isDesktop(context)) 
-                  {_openSearchScreen()} 
-                // Trên Desktop, mở overlay
-                else 
-                  {_showOverlay()} 
+                if (!Responsive.isDesktop(context))
+                  {_openSearchScreen()}
+                else
+                  {_showOverlay()}
               },
               onSubmitted: (query) {
-                // Xử lý khi nhấn Enter
                 _removeOverlay();
                 _openSearchScreen(query: query);
               },
@@ -233,7 +229,7 @@ class _SearchWidgetState extends State<SearchWidget> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color: AppColors.primary, 
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(10),
             ),
             child: IconButton(

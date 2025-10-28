@@ -1,8 +1,8 @@
-import 'package:recomart/config/color.dart';
-import 'package:recomart/utils/responsive.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:feather_icons/feather_icons.dart'; // Dùng icon hiện đại
+import 'package:feather_icons/feather_icons.dart'; 
+
+import 'package:recomart/config/color.dart'; 
+import 'package:recomart/utils/responsive.dart';
 
 class ChatBody extends StatefulWidget {
   const ChatBody({super.key});
@@ -15,38 +15,9 @@ class _ChatBodyState extends State<ChatBody> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // Mock data Users (giả lập danh sách chat)
-  final List<Map<String, dynamic>> users = [
-    {
-      'name': 'Shane Martinez (Staff)',
-      'message': 'We have received your request...',
-      'time': '5 min',
-      'avatar': 'https://placehold.co/400x400/003d80/ffffff?text=SM',
-      'unread': true,
-    },
-    {
-      'name': 'Technical Support',
-      'message': 'Please try restarting your device.',
-      'time': '15 min',
-      'avatar': 'https://placehold.co/400x400/17A2B8/ffffff?text=TS',
-      'unread': false,
-    },
-    {
-      'name': 'Sales Team',
-      'message': 'The new laptop model is available now.',
-      'time': '1 hour',
-      'avatar': 'https://placehold.co/400x400/28A745/ffffff?text=ST',
-      'unread': false,
-    },
-  ];
+  final List<Map<String, dynamic>> users = []; 
 
-  // Mock data Messages (giả lập nội dung chat)
-  List<Map<String, dynamic>> messages = [
-    {'text': 'Hello, I have a question about my recent order.', 'isMe': true},
-    {'text': 'Welcome! How may I assist you today?', 'isMe': false},
-    {'text': 'I need tracking information for order #90210.', 'isMe': true},
-    {'text': 'Please hold while I check the details for you.', 'isMe': false},
-  ];
+  List<Map<String, dynamic>> messages = []; 
 
   @override
   void dispose() {
@@ -55,27 +26,7 @@ class _ChatBodyState extends State<ChatBody> {
     super.dispose();
   }
 
-  void _sendMessage() {
-    final text = _messageController.text.trim();
-    if (text.isNotEmpty) {
-      setState(() {
-        // Thêm tin nhắn mới vào danh sách
-        messages.add({'text': text, 'isMe': true});
-        // Giả lập phản hồi từ đối phương sau 1 giây
-        Future.delayed(const Duration(milliseconds: 500), () {
-          setState(() {
-            messages.add({'text': 'Thank you for your message, our staff will reply shortly.', 'isMe': false});
-          });
-          _scrollToBottom();
-        });
-      });
-      _messageController.clear();
-      _scrollToBottom();
-    }
-  }
-
   void _scrollToBottom() {
-    // Đảm bảo tin nhắn mới nhất hiển thị ở cuối
     if (_scrollController.hasClients) {
       _scrollController.animateTo(
         _scrollController.position.maxScrollExtent,
@@ -85,26 +36,43 @@ class _ChatBodyState extends State<ChatBody> {
     }
   }
 
-  // --- Widgets con tùy chỉnh cho thiết kế hiện đại ---
+  void _sendMessage() {
+    final text = _messageController.text.trim();
+    if (text.isNotEmpty) {
+      setState(() {
+        messages.add({'text': text, 'isMe': true});
+                messages.add({'text': 'This is a mock reply.', 'isMe': false}); 
+      });
+      _messageController.clear();
+      _scrollToBottom();
+    }
+  }
+
 
   Widget _buildChatListItem(Map<String, dynamic> user) {
-    bool isUnread = user['unread']! as bool;
+    bool isUnread = user['unread'] ?? false;
+    
+    final name = user['name'] ?? 'No Chat Selected';
+    final message = user['message'] ?? 'Start a new conversation.';
+    final time = user['time'] ?? 'Now';
+    final avatarUrl = user['avatar'] ?? 'https://placehold.co/400x400/CCCCCC/000000?text=NC';
+    
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 2, horizontal: 8),
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
       decoration: BoxDecoration(
-        color: isUnread ? AppColors.primary.withOpacity(0.05) : Colors.white, // Nền xanh nhạt cho tin nhắn chưa đọc
+        color: isUnread ? AppColors.primary.withOpacity(0.05) : Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
         contentPadding: EdgeInsets.zero,
         leading: CircleAvatar(
           radius: 24,
-          backgroundImage: NetworkImage(user['avatar']! as String),
+          backgroundImage: NetworkImage(avatarUrl), 
           backgroundColor: isUnread ? AppColors.primary : Colors.grey.shade300,
         ),
         title: Text(
-          user['name']! as String,
+          name,
           style: TextStyle(
             fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
             fontSize: 15,
@@ -112,7 +80,7 @@ class _ChatBodyState extends State<ChatBody> {
           ),
         ),
         subtitle: Text(
-          user['message']! as String,
+          message,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
@@ -124,18 +92,18 @@ class _ChatBodyState extends State<ChatBody> {
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(user['time']! as String,
+            Text(time,
                 style: const TextStyle(fontSize: 12, color: Colors.grey)),
             if (isUnread)
               Container(
                 margin: const EdgeInsets.only(top: 4),
                 padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.primary, // Màu xanh dương nổi bật
+                decoration: const BoxDecoration(
+                  color: AppColors.primary, 
                   shape: BoxShape.circle,
                 ),
                 child: const Center(
-                  child: Text('1',
+                  child: Text('!',
                       style: TextStyle(
                           fontSize: 10,
                           color: Colors.white,
@@ -145,14 +113,14 @@ class _ChatBodyState extends State<ChatBody> {
           ],
         ),
         onTap: () {
-          // Xử lý khi chọn chat
+          print('Chat selected: $name');
         },
       ),
     );
   }
 
   Widget _buildMessageBubble(Map<String, dynamic> msg) {
-    bool isMe = msg['isMe']! as bool;
+    bool isMe = msg['isMe'] ?? false;
     final borderRadius = BorderRadius.only(
       topLeft: const Radius.circular(20),
       topRight: const Radius.circular(20),
@@ -181,7 +149,7 @@ class _ChatBodyState extends State<ChatBody> {
               : [],
         ),
         child: Text(
-          msg['text']! as String,
+          msg['text'] ?? 'Empty Message',
           style: TextStyle(
               color: isMe ? Colors.white : Colors.black87, fontSize: 15),
         ),
@@ -194,11 +162,18 @@ class _ChatBodyState extends State<ChatBody> {
     return LayoutBuilder(
       builder: (context, constraints) {
         bool isMobile = Responsive.isMobile(context);
+        
+        final String selectedChatName = 'Shane Martinez';
+        final String selectedChatAvatar = 'https://placehold.co/400x400/003d80/ffffff?text=FE';
+        
+        final List<Map<String, dynamic>> displayUsers = users.isEmpty ? 
+          [{'name': selectedChatName, 'avatar': selectedChatAvatar, 'unread': false}] : users;
+
+
         return Container(
           color: Colors.white,
           child: Row(
             children: [
-              // Chat List Pane (Desktop/Tablet)
               if (!isMobile)
                 Flexible(
                   flex: 2,
@@ -207,7 +182,7 @@ class _ChatBodyState extends State<ChatBody> {
                       color: Colors.white,
                       border: Border(
                         right: BorderSide(
-                          color: Colors.grey.shade200, // Viền nhẹ hơn
+                          color: Colors.grey.shade200,
                           width: 1,
                         ),
                       ),
@@ -228,9 +203,9 @@ class _ChatBodyState extends State<ChatBody> {
                         ),
                         Expanded(
                           child: ListView.builder(
-                            itemCount: users.length,
+                            itemCount: displayUsers.length, 
                             itemBuilder: (context, index) {
-                              return _buildChatListItem(users[index]);
+                              return _buildChatListItem(displayUsers[index]);
                             },
                           ),
                         ),
@@ -243,7 +218,6 @@ class _ChatBodyState extends State<ChatBody> {
                 flex: 5,
                 child: Column(
                   children: [
-                    // Header Conversation (Desktop/Tablet)
                     if (!isMobile)
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -260,26 +234,24 @@ class _ChatBodyState extends State<ChatBody> {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundImage: NetworkImage(users[0]['avatar']! as String),
+                              backgroundImage: NetworkImage(selectedChatAvatar),
                               backgroundColor: AppColors.primary,
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              users[0]['name']! as String,
+                              selectedChatName,
                               style: const TextStyle(
                                   fontWeight: FontWeight.bold, fontSize: 16),
                             ),
                           ],
                         ),
                       ),
-                    // Timeline Date (Modern)
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       child: Text('Today',
                           style: TextStyle(
                               color: Colors.grey, fontWeight: FontWeight.w500)),
                     ),
-                    // Message List
                     Expanded(
                       child: ListView.builder(
                         controller: _scrollController,
@@ -290,7 +262,6 @@ class _ChatBodyState extends State<ChatBody> {
                         },
                       ),
                     ),
-                    // Input Bar (Modern, có thể nhập và gửi)
                     Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 12),
@@ -312,22 +283,21 @@ class _ChatBodyState extends State<ChatBody> {
                       ),
                       child: Row(
                         children: [
-                          // Nút Attachment/File
                           IconButton(
-                            onPressed: () {},
+                            onPressed: () {print('Attachment clicked');},
                             icon: Icon(FeatherIcons.paperclip, color: AppColors.primary),
                           ),
                           Expanded(
                             child: TextField(
                               controller: _messageController,
-                              onSubmitted: (_) => _sendMessage(), // Nhấn Enter/Done để gửi
+                              onSubmitted: (_) => _sendMessage(), 
                               decoration: InputDecoration(
                                 hintText: 'Message...',
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(25), // Bo góc tròn hơn
+                                  borderRadius: BorderRadius.circular(25), 
                                   borderSide: BorderSide.none,
                                 ),
-                                fillColor: const Color(0xFFF0F2F5), // Màu nền nhẹ
+                                fillColor: const Color(0xFFF0F2F5), 
                                 filled: true,
                                 contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 10),
@@ -335,7 +305,6 @@ class _ChatBodyState extends State<ChatBody> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          // Nút Gửi (Send Button)
                           GestureDetector(
                             onTap: _sendMessage,
                             child: Container(

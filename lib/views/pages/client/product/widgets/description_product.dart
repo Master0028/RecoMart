@@ -10,16 +10,14 @@ class DescriptionProduct extends StatefulWidget {
 }
 
 class _DescriptionProductState extends State<DescriptionProduct> {
-  int? expandedIndex;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
-      spacing: 10,
       children: [
-        Text(
+        const Text(
           'Description',
           style: TextStyle(
             fontSize: 16,
@@ -27,6 +25,7 @@ class _DescriptionProductState extends State<DescriptionProduct> {
             fontWeight: FontWeight.bold,
           ),
         ),
+        const SizedBox(height: 10),
         Text(
           widget.description,
           style: TextStyle(

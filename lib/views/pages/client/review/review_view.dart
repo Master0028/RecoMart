@@ -1,47 +1,48 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/views/pages/client/review/widgets/item_reviewed_widget.dart';
 import 'package:recomart/views/pages/client/review/widgets/text_field_review_widget.dart';
-import 'package:flutter/material.dart';
-import 'package:recomart/models/product.model.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/config/font.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:feather_icons/feather_icons.dart';
 
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    var product = ProductModel(
-      id: "1",
-      productId: "prod_123",
-      variantName: "Macbook Pro 2021",
-      variantColor: "Silver",
-      variantDescription: "RAM: 16GB, Storage: 512GB SSD",
-      price: 13000000,
-      discount: 0.1,
-      quantity: 100,
-      averageRating: 4.5,
-      reviewCount: 150,
-      images: [
-        ProductImage(url: "assets/images/laptop.png", publicId: "public_id_123")
-      ],
-      isActive: true,
-    );
-    return MaterialApp(
-      title: 'Review App',
-      home: ReviewView(product: product),
-    );
-  }
+class ProductImageFE {
+  final String url;
+  ProductImageFE({required this.url});
 }
 
+final Map<String, dynamic> FE_PRODUCT_STUB = {
+  'variantName': "FE Product Name",
+  'variantDescription': "FE Description",
+  'price': 13000000.0,
+  'discount': 0.1,
+  'images': [ProductImageFE(url: "assets/images/laptop.png")]
+};
+
 class ReviewView extends StatelessWidget {
-  final ProductModel product;
+  final dynamic product; 
   const ReviewView({super.key, required this.product});
+
+  void _handleSubmitReview() {
+    print("Submit Review Clicked (FE Action)");
+  }
+  
+  void _handleUploadPhoto() {
+    print("Upload Photo Clicked (FE Action)");
+  }
+  
+  void _handleCancel() {
+    print("Cancel Clicked (FE Action)");
+  }
+  
+  void _handleRatingUpdate(double rating) {
+      print("Rating updated to: $rating (FE Action)");
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    // Sử dụng Padding cố định cho mobile, và căn giữa cho desktop
     double horizontalPadding = Responsive.isMobile(context) ? 16.0 : MediaQuery.sizeOf(context).width * 0.1;
 
     return Scaffold(
@@ -52,38 +53,35 @@ class ReviewView extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.stretch, // Dùng stretch để căn chỉnh tốt hơn
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
               
-              // 1. Sản phẩm đang được đánh giá (Item Reviewed)
               Center(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  child: ItemReviewedWidget(product: product),
+                  child: ItemReviewedWidget(product: product), 
                 ),
               ),
 
               const SizedBox(height: 30),
               
-              // 2. Tiêu đề chính
-              Center(
+              const Center(
                 child: Text("How was your experience?",
                     style: TextStyle(
-                        fontSize: FontSizes.large * 1.1,
+                        fontSize: 20.0,
                         color: AppColors.black,
                         fontWeight: FontWeight.w800)),
               ),
 
               const SizedBox(height: 40),
 
-              // 3. Đánh giá sao (Rating Bar) - Thiết kế công nghệ
               Center(
                 child: Column(
                   children: [
-                    Text("Your overall rating",
+                    const Text("Your overall rating",
                         style: TextStyle(
-                          fontSize: FontSizes.medium,
+                          fontSize: 14.0, 
                           color: AppColors.grey,
                         )),
                     const SizedBox(height: 15),
@@ -94,15 +92,13 @@ class ReviewView extends StatelessWidget {
                       direction: Axis.horizontal,
                       allowHalfRating: true,
                       itemCount: 5,
-                      itemSize: 40, // Sao lớn hơn
+                      itemSize: 40,
                       itemPadding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      itemBuilder: (context, _) => Icon(
-                        FeatherIcons.star, // Icon ngôi sao hiện đại hơn
-                        color: AppColors.primary, // Màu xanh dương chủ đạo
+                      itemBuilder: (context, _) => const Icon(
+                        FeatherIcons.star, 
+                        color: AppColors.primary,
                       ),
-                      onRatingUpdate: (rating) {
-                        // Logic update rating
-                      },
+                      onRatingUpdate: _handleRatingUpdate,
                     ),
                   ],
                 ),
@@ -110,20 +106,18 @@ class ReviewView extends StatelessWidget {
               
               const SizedBox(height: 40),
               
-              // 4. Viết đánh giá chi tiết
-              Text(
+              const Text(
                 "Write detailed review",
                 textAlign: TextAlign.left,
                 style: TextStyle(
-                    fontSize: FontSizes.medium,
+                    fontSize: 16.0,
                     color: AppColors.black,
                     fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 10),
-              TextFieldReviewWidget(), // Giả định widget này đã có style hiện đại
+              TextFieldReviewWidget(),
               const SizedBox(height: 20),
 
-              // 5. Nút Upload Photo - Thiết kế Outlined (viền xanh)
               Padding(
                 padding: EdgeInsets.symmetric(
                     horizontal: Responsive.isMobile(context) ? 0 : MediaQuery.sizeOf(context).width * 0.1),
@@ -132,15 +126,13 @@ class ReviewView extends StatelessWidget {
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      side: BorderSide(color: AppColors.primary, width: 2), // Viền xanh dương
+                      side: const BorderSide(color: AppColors.primary, width: 2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12), // Bo góc hiện đại
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () {
-                      // Logic upload photo
-                    },
-                    icon: Icon(FeatherIcons.camera, color: AppColors.primary), // Icon camera hiện đại
+                    onPressed: _handleUploadPhoto, // Logic FE
+                    icon: const Icon(FeatherIcons.camera, color: AppColors.primary),
                     label: const Text(
                       "Upload Photo (Optional)",
                       style: TextStyle(fontWeight: FontWeight.bold),
@@ -150,34 +142,27 @@ class ReviewView extends StatelessWidget {
               ),
               const SizedBox(height: 40),
 
-              // 6. Nút Cancel và Submit
               Padding(
                 padding: EdgeInsets.symmetric(
                     horizontal: Responsive.isMobile(context) ? 0 : MediaQuery.sizeOf(context).width * 0.1),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Nút Cancel
                     Expanded(
                       child: CustomButton(
                           title: "Cancel",
-                          onPressed: () {
-                            // Logic cancel
-                          },
+                          onPressed: _handleCancel,
                           backgroundColor: Colors.transparent,
-                          textColor: AppColors.primary, // Chữ xanh
+                          textColor: AppColors.primary,
                           isOutline: true,
                           borderColor: AppColors.primary.withOpacity(0.5),
                         ),
                     ),
                     const SizedBox(width: 16),
-                    // Nút Submit
                     Expanded(
                       child: CustomButton(
                           title: "Submit Review",
-                          onPressed: () {
-                            // Logic submit
-                          },
+                          onPressed: _handleSubmitReview,
                           backgroundColor: AppColors.primary,
                           textColor: AppColors.white,
                           isShadowed: true,
@@ -195,7 +180,6 @@ class ReviewView extends StatelessWidget {
   }
 }
 
-// CustomButton được thiết kế lại với tùy chọn outline và shadow
 class CustomButton extends StatelessWidget {
   final String title;
   final VoidCallback onPressed;
@@ -218,6 +202,8 @@ class CustomButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const double fontSizeMedium = 16.0; 
+    
     return Container(
       height: 50,
       decoration: isShadowed
@@ -225,7 +211,7 @@ class CustomButton extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withOpacity(0.4), // Shadow xanh dương
+                  color: AppColors.primary.withOpacity(0.4), 
                   blurRadius: 10,
                   offset: const Offset(0, 5),
                 ),
@@ -238,7 +224,7 @@ class CustomButton extends StatelessWidget {
           backgroundColor: backgroundColor,
           foregroundColor: textColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12), // Bo góc lớn hơn, hiện đại hơn
+            borderRadius: BorderRadius.circular(12),
             side: isOutline
                 ? BorderSide(
                     color: borderColor ?? AppColors.primary,
@@ -246,14 +232,14 @@ class CustomButton extends StatelessWidget {
                   )
                 : BorderSide.none,
           ),
-          elevation: isShadowed ? 0 : 2, // Chỉ hiện elevation mặc định khi không có custom shadow
+          elevation: isShadowed ? 0 : 2,
         ),
         child: Text(
           title,
           style: TextStyle(
             color: textColor,
             fontWeight: FontWeight.bold,
-            fontSize: FontSizes.medium,
+            fontSize: fontSizeMedium,
           ),
         ),
       ),

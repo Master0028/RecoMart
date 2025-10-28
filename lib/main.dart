@@ -10,7 +10,6 @@ import 'package:recomart/provider/product_provider.dart';
 import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/provider/coupon_provider.dart';
 import 'package:recomart/routes/app_routes.dart';
-import 'package:recomart/test/mockdatatest.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +35,6 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      // Thay thế initialRoute, routes, và onGenerateRoute
       routerConfig: appRouter, 
 
       debugShowCheckedModeBanner: false,

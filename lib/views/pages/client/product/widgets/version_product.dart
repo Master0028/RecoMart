@@ -1,18 +1,19 @@
+import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/helpers/formatMoney.dart';
-import 'package:recomart/models/product.model.dart';
-import 'package:flutter/material.dart';
 
 class VersionProduct extends StatelessWidget {
   const VersionProduct({
     super.key,
     required this.relatedProductsVariant,
-    required this.handleSelectVariant,
+    required this.handleSelectVariant, 
     required this.isSelected,
   });
-  final List<ProductModel> relatedProductsVariant;
+  
+  final List<dynamic> relatedProductsVariant;
   final Function handleSelectVariant;
   final String isSelected;
+  
   @override
   Widget build(BuildContext context) {
     return Wrap(
@@ -22,17 +23,17 @@ class VersionProduct extends StatelessWidget {
         relatedProductsVariant.length,
         (index) => InkWell(
           onTap: () => {
-            handleSelectVariant(relatedProductsVariant[index].id),
+            handleSelectVariant(relatedProductsVariant[index]['id']), 
           },
           child: Container(
             width: 140,
             height: 70,
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.orangePastel,
+              color: AppColors.orangePastel, 
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
-                color: isSelected == relatedProductsVariant[index].id
+                color: isSelected == relatedProductsVariant[index]['id']
                     ? AppColors.orange
                     : AppColors.white,
                 width: 1,
@@ -43,8 +44,8 @@ class VersionProduct extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  relatedProductsVariant[index].variantName,
-                  style: TextStyle(
+                  relatedProductsVariant[index]['variantName'] ?? 'Variant Name',
+                  style: const TextStyle(
                     fontSize: 10,
                     color: AppColors.black,
                   ),
@@ -54,9 +55,9 @@ class VersionProduct extends StatelessWidget {
                 ),
                 Text(
                   formatMoney(
-                    relatedProductsVariant[index].price,
+                    relatedProductsVariant[index]['price'] ?? 0.0,
                   ),
-                  style: TextStyle(
+                  style: const TextStyle(
                       fontSize: 10,
                       color: Colors.black,
                       fontWeight: FontWeight.bold),

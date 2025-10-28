@@ -1,14 +1,76 @@
-import 'package:recomart/provider/user_provider.dart';
-import 'package:recomart/utils/responsive.dart';
-import 'package:recomart/views/header/header_view.dart';
-import 'package:recomart/views/pages/client/home/widgets/avatar_widget.dart';
-import 'package:recomart/views/pages/client/home/widgets/location_widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:provider/provider.dart';
 
 const Color _primaryColor = Colors.blue; 
 const Color _secondaryColor = Colors.orange;
+
+class Responsive {
+  static bool isDesktop(BuildContext context) {
+    return MediaQuery.of(context).size.width >= 1000;
+  }
+}
+
+class _MockLocationWidget extends StatelessWidget {
+  const _MockLocationWidget();
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        children: [
+          Icon(Icons.location_on, color: _primaryColor, size: 20),
+          SizedBox(width: 4),
+          Text(
+            'Phường A, Quận B, TP HCM',
+            style: TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MockHeaderView extends StatelessWidget {
+  const _MockHeaderView();
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.all(8.0),
+      child: Text('Desktop Nav: Search | Cart | Noti', style: TextStyle(color: Colors.black54)),
+    );
+  }
+}
+
+class _MockAvatarWidget extends StatelessWidget {
+  final String userName;
+  final String? userId;
+
+  const _MockAvatarWidget({required this.userName, this.userId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: _primaryColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircleAvatar(
+            radius: 15,
+            backgroundColor: _secondaryColor,
+            child: Text('G', style: TextStyle(color: Colors.white, fontSize: 14)),
+          ),
+          const SizedBox(width: 8),
+          Text(userName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+}
+
 
 class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
   const AppBarHomeCustom({super.key});
@@ -18,14 +80,13 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userProvider = Provider.of<UserProvider>(context);
+    const String defaultUserName = 'Guest'; 
 
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       titleSpacing: 0,
       scrolledUnderElevation: 0,
-      // Điều chỉnh chiều cao cho màn hình Desktop
       toolbarHeight: Responsive.isDesktop(context) ? 90 : preferredSize.height,
       title: Row(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -35,12 +96,9 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
                   padding: const EdgeInsets.only(left: 32),
                   child: Row(
                     children: [
-                      SvgPicture.asset(
-                        'assets/logo/logo.png',
-                        width: 50,
-                        height: 50,
-                        colorFilter: const ColorFilter.mode(_primaryColor, BlendMode.srcIn),
-                      ),
+                      SvgPicture.asset('assets/logo/logo.png'),
+                      const Icon(Icons.shopping_bag_outlined, color: _primaryColor, size: 30), 
+                      const SizedBox(width: 5),
                       const Text.rich(
                         TextSpan(
                           style: TextStyle(
@@ -62,13 +120,14 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
                     ],
                   ),
                 )
-              : const LocationWidget(),
+              : const _MockLocationWidget(), // LocationWidget cũ
+          
           Responsive.isDesktop(context)
               ? const Expanded(
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      HeaderView(),
+                      _MockHeaderView(), // HeaderView cũ
                     ],
                   ),
                 )
@@ -76,13 +135,14 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
         ],
       ),
       actions: [
+        // Logic FE: Hiển thị Avatar
         Padding(
           padding: Responsive.isDesktop(context)
               ? const EdgeInsets.only(right: 32)
               : EdgeInsets.zero,
-          child: AvatarWidget(
-            userName: userProvider.userModel?.fullName ?? 'Guest', 
-            userId: userProvider.userModel?.id,
+          child: const _MockAvatarWidget(
+            userName: defaultUserName, // Dùng giá trị tĩnh thay vì userProvider
+            userId: null,
           ),
         ),
       ],

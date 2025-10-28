@@ -3,8 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/auth.service.dart';
 import 'widgets/button.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
@@ -121,11 +119,11 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     }
 
     setState(() => _loading = true);
+    
     try {
-      final auth = AuthService();
-      final otpData = await auth.forgotPassword(email);
-      final userId = otpData['id'] as String;
-      //final obscuredEmail = _obscureEmail(email);
+      final userId = 'mockUserId123'; 
+
+      await Future.delayed(const Duration(seconds: 2));
 
       if (mounted) {
         showCustomSnackBar(context, 'A verification code has been sent to your email!',
@@ -142,11 +140,13 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
           }
         );
       });
-    } on BadRequestException catch (e) {
+    } 
+    catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, e.message);
+        showCustomSnackBar(context, 'An error occurred during send code (MOCK).');
       }
-    } finally {
+    }
+    finally {
       setState(() => _loading = false);
     }
   }
@@ -280,20 +280,24 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
     setState(() => _isVerifying = true);
 
     try {
-      final auth = AuthService();
 
-      await Future.delayed(const Duration(milliseconds: 500));
+      await Future.delayed(const Duration(seconds: 1)); 
 
-      if (mounted) {
-        showCustomSnackBar(context, 'Verification successful!',
-            type: SnackBarType.success);
-        context.push('/setup-newpass', extra: {'userId': widget.userId}); 
+      if (code == '123456') {
+        if (mounted) {
+          showCustomSnackBar(context, 'Verification successful!',
+              type: SnackBarType.success);
+          context.push('/setup-newpass', extra: {'userId': widget.userId}); 
+        }
+      } else { // Giả lập code sai
+        throw Exception('MOCK: Invalid verification code. Please try again.');
       }
-    } on BadRequestException catch (e) {
+    } 
+    catch (e) {
       _codeController.clear(); 
       FocusScope.of(context).requestFocus(_codeFocusNode);
       if (mounted) {
-        showCustomSnackBar(context, e.message);
+        showCustomSnackBar(context, e.toString().contains('MOCK') ? e.toString().split(': ').last : 'An error occurred during verification (MOCK).');
       }
     } finally {
       if (mounted) {
@@ -307,18 +311,18 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
     _codeController.clear();
 
     try {
-      final auth = AuthService();
-      await auth.forgotPassword(widget.email);
-      
+      await Future.delayed(const Duration(seconds: 1));
+
       if (mounted) {
-        showCustomSnackBar(context, 'New code resent successfully!',
+        showCustomSnackBar(context, 'New code resent successfully! (MOCK: Code is 123456)',
             type: SnackBarType.success);
         FocusScope.of(context).requestFocus(_codeFocusNode); 
       }
       
-    } on BadRequestException catch (e) {
+    } 
+    catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, e.message);
+        showCustomSnackBar(context, 'An error occurred during resend (MOCK).');
       }
     } finally {
       if (mounted) {
@@ -410,7 +414,6 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                       ),
                       const SizedBox(height: 10),
 
-                      // Instructions
                       const Text(
                         'Please enter the 6-digit code we sent to',
                         textAlign: TextAlign.center,
@@ -420,7 +423,6 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                         ),
                       ),
                       const SizedBox(height: 5),
-                      // Obscured Email
                       Text(
                         widget.obscuredEmail,
                         textAlign: TextAlign.center,
@@ -432,11 +434,9 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                       ),
                       const SizedBox(height: 40),
 
-                      // OTP Code Dots Input
                       buildCodeDots(),
                       const SizedBox(height: 20),
 
-                      // Display loading when verifying
                       if (_isVerifying)
                         Center(
                           child: CircularProgressIndicator(
@@ -445,11 +445,10 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                           ),
                         )
                       else
-                        const SizedBox(height: 25), // Spacing
+                        const SizedBox(height: 25),
 
                       const Spacer(),
 
-                      // "Resend Code" Button
                       ElevatedButton(
                         onPressed: _isVerifying || _isResending ? null : _resendCode,
                         style: ElevatedButton.styleFrom(
@@ -474,7 +473,6 @@ class _RecoveryEmailCodeScreenState extends State<RecoveryEmailCodeScreen> {
                                     color: Colors.white)),
                       ),
 
-                      // "Cancel" Button
                       TextButton(
                         onPressed: () => context.pop(),
                         child: const Text('Cancel',

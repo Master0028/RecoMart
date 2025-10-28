@@ -8,6 +8,8 @@ class SearchField extends StatelessWidget {
   final Function(String)? onSubmitted;
   final VoidCallback? onTap;
   final bool autofocus;
+  
+  final Function(String)? onChanged; 
 
   const SearchField({
     super.key,
@@ -15,7 +17,8 @@ class SearchField extends StatelessWidget {
     this.hintText = 'What are you looking for?',
     this.onSubmitted,
     this.onTap,
-    this.autofocus = false, required void Function(dynamic value) onChanged,
+    this.autofocus = false, 
+    this.onChanged,
   });
 
   @override
@@ -24,6 +27,7 @@ class SearchField extends StatelessWidget {
       controller: controller,
       autofocus: autofocus,
       onTap: onTap,
+      onChanged: onChanged, 
       cursorColor: Colors.black,
       decoration: InputDecoration(
         fillColor: Colors.white,
@@ -33,7 +37,7 @@ class SearchField extends StatelessWidget {
           horizontal: 20,
         ),
         hintText: hintText,
-        hintStyle: TextStyle(
+        hintStyle: const TextStyle(
           color: Colors.black54,
           fontSize: 14,
         ),
