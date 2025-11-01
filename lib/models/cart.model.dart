@@ -45,7 +45,7 @@ class ProductForCartModel {
   int quantity;
   double unitPrice;
   double discount;
-  ProductImage images;
+  String image;
 
   ProductForCartModel({
     required this.productVariantId,
@@ -53,7 +53,7 @@ class ProductForCartModel {
     required this.quantity,
     required this.unitPrice,
     required this.discount,
-    required this.images,
+    required this.image,
   });
 
   Map<String, dynamic> toMap() {
@@ -63,7 +63,7 @@ class ProductForCartModel {
       'quantity': quantity,
       'unitPrice': unitPrice,
       'discount': discount,
-      'images': images.toMap(),
+      'images': image,
     };
   }
 
@@ -74,7 +74,7 @@ class ProductForCartModel {
       quantity: map['quantity'] as int,
       unitPrice: (map['unit_price'] as num).toDouble(),
       discount: (map['discount'] as num).toDouble(),
-      images: ProductImage.fromMap(map['images'] as Map<String, dynamic>),
+      image: map['image'] as String,
     );
   }
 

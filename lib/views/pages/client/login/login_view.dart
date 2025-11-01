@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0);
@@ -45,15 +46,11 @@ class _LoginViewState extends State<LoginView> {
       backgroundColor: Colors.red,
     ));
   }
-  
+
   Future<void> _isLogin() async {
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('accessToken');
-    
-    if (accessToken != null) {
-      if (mounted) {
-        context.go('/home');
-      }
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      context.go('/home');
     }
   }
 
@@ -69,27 +66,35 @@ class _LoginViewState extends State<LoginView> {
       _focusAndShowError(_passwordFocus, 'Vui lòng nhập mật khẩu');
       return;
     }
-    if (password.length < 6) {
-      _focusAndShowError(_passwordFocus, 'Mật khẩu phải có ít nhất 6 ký tự');
-      return;
-    }
 
     setState(() => _loading = true);
-    
-    try {
-      await Future.delayed(const Duration(seconds: 2)); 
-      
-      if (mounted) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('accessToken', 'dummy_token_fe_only');
-        
-        context.go('/home'); 
-      }
 
-    } catch (e) {
-      if (mounted) {
-        _focusAndShowError(_emailFocus, 'Đăng nhập thất bại (Mô phỏng).');
+    try {
+      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final token = await userCredential.user?.getIdToken();
+
+      // Lưu token để kiểm tra đăng nhập sau
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('accessToken', token ?? '');
+
+      context.go('/home');
+    } on FirebaseAuthException catch (e) {
+      String errorMsg;
+      switch (e.code) {
+        case 'user-not-found':
+          errorMsg = 'Tài khoản không tồn tại.';
+          break;
+        case 'wrong-password':
+          errorMsg = 'Sai mật khẩu.';
+          break;
+        default:
+          errorMsg = e.message ?? 'Đăng nhập thất bại.';
       }
+      _focusAndShowError(_emailFocus, errorMsg);
     } finally {
       setState(() => _loading = false);
     }

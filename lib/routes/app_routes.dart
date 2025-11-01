@@ -95,7 +95,7 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const ProductPageView(),
     ),
     GoRoute(
-      path: '/products/:productId',
+      path: '/product-details/:productId',
       builder: (context, state) {
         final productId = state.pathParameters['productId'] ?? '';
         final categoryId = state.uri.queryParameters['categoryId'] ?? '';

@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../../models/category.model.dart';
+import '../../../../../services/category.service.dart';
 
 class AppColors {
   static const Color primary = Color(0xFF1976D2);
@@ -15,14 +17,6 @@ class CategoryImage {
   final String publicId;
   final String url;
   const CategoryImage({required this.publicId, required this.url});
-}
-
-class CategoryModel {
-  final String id;
-  final String name;
-  final CategoryImage image;
-  final bool isActive;
-  CategoryModel({required this.id, required this.name, required this.image, required this.isActive});
 }
 
 class ProductPromotion {
@@ -124,8 +118,24 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                       ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
                       : [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4))],
                 ),
-                child: SvgPicture.asset(
-                  widget.icon,
+                child: ClipOval(
+                  child: widget.icon.endsWith('.svg')
+                      ? SvgPicture.network(
+                    widget.icon,
+                    fit: BoxFit.cover,
+                    placeholderBuilder: (_) =>
+                    const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                    width: 60,
+                    height: 60,
+                  )
+                      : Image.network(
+                    widget.icon,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.broken_image, color: Colors.grey),
+                    width: 60,
+                    height: 60,
+                  ),
                 ),
               ),
               const SizedBox(height: 6), 
@@ -258,27 +268,19 @@ class _CategoryWidgetState extends State<CategoryWidget> {
   bool isLoading = false; 
   List<CategoryModel> categories = [];
 
-  final List<CategoryModel> defaultCategories = [
-    CategoryModel(id: '1', name: 'PC', image: const CategoryImage(publicId: '', url: 'assets/images/pc.png'), isActive: true),
-    CategoryModel(id: '2', name: 'Monitor', image: const CategoryImage(publicId: '', url: 'assets/images/monitor.png'), isActive: true),
-    CategoryModel(id: '3', name: 'Laptop', image: const CategoryImage(publicId: '', url: 'assets/images/laptop.png'), isActive: true),
-    CategoryModel(id: '4', name: 'Best Seller', image: const CategoryImage(publicId: '', url: 'assets/images/best_seller.png'), isActive: true),
-    CategoryModel(id: '5', name: 'Keyboard', image: const CategoryImage(publicId: '', url: 'assets/images/keyboard.png'), isActive: true),
-    CategoryModel(id: '6', name: 'Mouse', image: const CategoryImage(publicId: '', url: 'assets/images/mouse.png'), isActive: true),
-    CategoryModel(id: '7', name: 'Desktop', image: const CategoryImage(publicId: '', url: 'assets/images/desktop.png'), isActive: true),
-    CategoryModel(id: '8', name: 'Headphone', image: const CategoryImage(publicId: '', url: 'assets/images/headphone.png'), isActive: true),
-  ];
+  // final List<CategoryModel> defaultCategories = [
+  //   CategoryModel(id: '1', name: 'PC', image: const CategoryImage(publicId: '', url: 'assets/images/pc.png'), isActive: true),
+  //   CategoryModel(id: '2', name: 'Monitor', image: const CategoryImage(publicId: '', url: 'assets/images/monitor.png'), isActive: true),
+  //   CategoryModel(id: '3', name: 'Laptop', image: const CategoryImage(publicId: '', url: 'assets/images/laptop.png'), isActive: true),
+  //   CategoryModel(id: '4', name: 'Best Seller', image: const CategoryImage(publicId: '', url: 'assets/images/best_seller.png'), isActive: true),
+  //   CategoryModel(id: '5', name: 'Keyboard', image: const CategoryImage(publicId: '', url: 'assets/images/keyboard.png'), isActive: true),
+  //   CategoryModel(id: '6', name: 'Mouse', image: const CategoryImage(publicId: '', url: 'assets/images/mouse.png'), isActive: true),
+  //   CategoryModel(id: '7', name: 'Desktop', image: const CategoryImage(publicId: '', url: 'assets/images/desktop.png'), isActive: true),
+  //   CategoryModel(id: '8', name: 'Headphone', image: const CategoryImage(publicId: '', url: 'assets/images/headphone.png'), isActive: true),
+  // ];
+  //
 
-  final Map<String, String> categoriesIcon = {
-    'PC': 'assets/icons/Category00003.svg',
-    'Monitor': 'assets/icons/Category00004.svg',
-    'Laptop': 'assets/icons/Category00002.svg',
-    'Best Seller': 'assets/icons/laptop.svg',
-    'Keyboard': 'assets/icons/Category00006.svg',
-    'Mouse': 'assets/icons/Category00007.svg',
-    'Desktop': 'assets/icons/Category00003.svg',
-    'Headphone': 'assets/icons/Category00005.svg',
-  };
+  final CategoryService _categoryService = CategoryService();
 
   final List<ProductPromotion> productsPromotion = [
     ProductPromotion(name: 'Macbook Pro', description: 'Laptop mới nhất với hiệu năng vượt trội.', price: 10000000, discount: 15, imageUrl: 'assets/images/laptop-popular-1.jpg', category: 'Laptop'),
@@ -291,7 +293,27 @@ class _CategoryWidgetState extends State<CategoryWidget> {
   @override
   void initState() {
     super.initState();
-    categories = defaultCategories;
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    try {
+      final data = await _categoryService.getCategories();
+      // 👇 Thêm log ở đây
+      print("✅ Đã tải ${data.length} danh mục");
+      for (var c in data) {
+        print("📦 ${c.name} - ${c.image?.url}");
+      }
+      if (mounted) {
+        setState(() {
+          categories = data;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Lỗi tải categories: $e');
+      setState(() => isLoading = false);
+    }
   }
 
   @override
@@ -381,7 +403,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                     ),
                     itemCount: itemCount,
                     itemBuilder: (context, index) => ListCategoryWidget(
-                      icon: categoriesIcon[categories[index].name] ?? 'assets/icons/Category00008.svg',
+                      icon: categories[index].image!.url,
                       text: categories[index].name,
                     ),
                   ),

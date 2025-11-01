@@ -723,11 +723,9 @@ class _ProductListState extends State<ProductList> {
             return ProductView(
               id: variant['id'],
               categoryId: variant['categoryId'] ?? '',
-              variantName: variant['variantName'],
-              images: variant['images'],
+              name: variant['name'],
+              image: variant['imageUrl'],
               price: variant['price'],
-              variantDescription:
-                  variant['variantDescription'] ?? 'No description available',
               averageRating: variant['averageRating'].toString(),
             );
           },

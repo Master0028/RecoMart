@@ -12,6 +12,7 @@ import 'package:recomart/models/product.model.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
 import 'package:recomart/utils/responsive.dart';
+import '../../../../../services/product.service.dart';
 
 class ProductListViewWidget extends StatefulWidget {
   const ProductListViewWidget({
@@ -26,6 +27,7 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
   bool _isLoading = true;
   String errorMessage = '';
   List<ProductModel> mockProducts = [];
+  final ProductService _productService = ProductService();
 
   @override
   void initState() {
@@ -41,35 +43,23 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
       errorMessage = '';
     });
 
-    await Future.delayed(const Duration(seconds: 1));
+    try {
+      // Lấy dữ liệu từ Firestore
+      final products = await _productService.getProducts();
 
-    mockProducts = List.generate(
-      12,
-      (index) => ProductModel(
-        id: 'id_$index',
-        productId: 'prod_id_$index',
-        categoryId: 'cat_id_$index',
-        variantName: 'Sản Phẩm ${index + 1}',
-        variantColor: 'Red',
-        price: 100000.0 + index * 5000,
-        discount: 0.1, 
-        quantity: 100, 
-        variantDescription: 'Mô tả ngắn của sản phẩm ${index + 1}',
-        averageRating: 4.5,
-        reviewCount: 50,
-        isActive: true,
-        images: [
-          ProductImage(
-            url: 'https://picsum.photos/id/${100 + index}/300/300',
-            publicId: 'pub_id_$index',
-          )
-        ],
-      ),
-    );
+      setState(() {
+        mockProducts = products;
+        _isLoading = false;
+      });
 
-    setState(() {
-      _isLoading = false;
-    });
+      print("Đã tải ${products.length} sản phẩm từ Firebase");
+    } catch (e) {
+      print('Lỗi khi tải sản phẩm: $e');
+      setState(() {
+        errorMessage = 'Không thể tải danh sách sản phẩm. Vui lòng thử lại!';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -139,11 +129,9 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
                 : ProductView(
                     id: variant?.id ?? '',
                     categoryId: variant?.categoryId ?? '',
-                    variantName: variant?.variantName ?? '',
-                    images: (variant?.images as List<ProductImage>),
+                    name: variant?.name ?? '',
+                    image: variant!.imageUrl,
                     price: (variant?.price as double),
-                    variantDescription: variant?.variantDescription ??
-                        'No description available',
                     averageRating: variant?.averageRating?.toString() ?? '0.0',
                   );
           },
@@ -166,10 +154,9 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
 }
 
 class ProductView extends StatelessWidget {
-  final String variantName;
-  final List<ProductImage> images;
+  final String name;
+  final String image;
   final double price;
-  final String variantDescription;
   final String averageRating;
   final String id;
   final String categoryId;
@@ -177,10 +164,9 @@ class ProductView extends StatelessWidget {
   const ProductView({
     super.key,
     required this.id,
-    required this.variantName,
-    required this.images,
+    required this.name,
+    required this.image,
     required this.price,
-    required this.variantDescription,
     required this.averageRating,
     required this.categoryId,
   });
@@ -188,12 +174,18 @@ class ProductView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => context.push(
-        '/product-details/$id',
-        extra: {
-          'categoryId': categoryId,
-        },
-      ),
+
+      onTap: () {
+        print('🛒 Đang mở chi tiết sản phẩm có ID: $id'); // 👉 In ra ID trong log
+
+        context.push(
+          '/product-details/$id',
+          extra: {
+            'categoryId': categoryId,
+          },
+        );
+      },
+
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -211,18 +203,13 @@ class ProductView extends StatelessWidget {
                 height: 180,
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  child: images.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: images[0].url,
+                  child: CachedNetworkImage(
+                          imageUrl: image,
                           placeholder: (context, url) => const SkeletonImage(
                             imageHeight: 160,
                           ),
                           errorWidget: (context, url, error) => Image.asset(
                               'assets/images/image_default_error.png'),
-                          fit: BoxFit.cover,
-                        )
-                      : Image.asset(
-                          'assets/images/image_default_error.png',
                           fit: BoxFit.cover,
                         ),
                 ),
@@ -234,23 +221,13 @@ class ProductView extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    variantName,
+                    name,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    variantDescription,
-                    style: TextStyle(
-                      fontSize: FontSizes.small,
-                      color: Colors.black54,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    maxLines: 2,
                   ),
                   const SizedBox(height: 8),
                   Text(

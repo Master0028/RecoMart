@@ -16,74 +16,74 @@ class CartProvider with ChangeNotifier {
   String errorMessage = '';
   bool isOffline = false;
 
-  Future<void> getCartByUserId() async {
-    isLoading = true;
-    notifyListeners();
-
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('accessToken');
-    cartItems.clear();
-
-    if (token == null) {
-      await _loadLocalCart();
-      isLoading = false;
-      notifyListeners();
-    } else {
-      try {
-        final isCartSynced = prefs.getBool('isCartSynced') ?? false;
-
-        if (!isCartSynced) {
-          final getCartByLocalStorage = prefs.getStringList('cart') ?? [];
-
-          final addToCartFutures =
-              getCartByLocalStorage.map((itemString) async {
-            final itemMap = jsonDecode(itemString) as Map<String, dynamic>;
-            final productVariantId = itemMap['productVariantId'];
-            final quantity = itemMap['quantity'];
-
-            return cartService.addToCart(
-              productId: productVariantId,
-              quantity: quantity,
-            );
-          }).toList();
-          await Future.wait(addToCartFutures);
-          await prefs.setBool('isCartSynced', true);
-        }
-
-        await Future.delayed(Duration(milliseconds: 1000));
-
-        final response = await cartService.getCartByUserId();
-
-        for (var item in response.items) {
-          cartItems.add(
-            ProductForCartModel(
-              productVariantId: item.productVariantId,
-              productVariantName: item.productVariantName,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              discount: item.discount,
-              images: item.images,
-            ),
-          );
-        }
-
-        // Cập nhật lại localStorage từ server
-        final simpleCartItems = cartItems.map((item) {
-          return jsonEncode({
-            'productVariantId': item.productVariantId,
-            'quantity': item.quantity,
-          });
-        }).toList();
-
-        await prefs.setStringList('cart', simpleCartItems);
-      } catch (e) {
-        errorMessage = 'Please check your internet connection';
-      } finally {
-        isLoading = false;
-        notifyListeners();
-      }
-    }
-  }
+  // Future<void> getCartByUserId() async {
+  //   isLoading = true;
+  //   notifyListeners();
+  //
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final token = prefs.getString('accessToken');
+  //   cartItems.clear();
+  //
+  //   if (token == null) {
+  //     await _loadLocalCart();
+  //     isLoading = false;
+  //     notifyListeners();
+  //   } else {
+  //     try {
+  //       final isCartSynced = prefs.getBool('isCartSynced') ?? false;
+  //
+  //       if (!isCartSynced) {
+  //         final getCartByLocalStorage = prefs.getStringList('cart') ?? [];
+  //
+  //         final addToCartFutures =
+  //             getCartByLocalStorage.map((itemString) async {
+  //           final itemMap = jsonDecode(itemString) as Map<String, dynamic>;
+  //           final productVariantId = itemMap['productVariantId'];
+  //           final quantity = itemMap['quantity'];
+  //
+  //           return cartService.addToCart(
+  //             productId: productVariantId,
+  //             quantity: quantity,
+  //           );
+  //         }).toList();
+  //         await Future.wait(addToCartFutures);
+  //         await prefs.setBool('isCartSynced', true);
+  //       }
+  //
+  //       await Future.delayed(Duration(milliseconds: 1000));
+  //
+  //       final response = await cartService.getCartByUserId();
+  //
+  //       for (var item in response.items) {
+  //         cartItems.add(
+  //           ProductForCartModel(
+  //             productVariantId: item.productVariantId,
+  //             productVariantName: item.productVariantName,
+  //             quantity: item.quantity,
+  //             unitPrice: item.unitPrice,
+  //             discount: item.discount,
+  //             images: item.images,
+  //           ),
+  //         );
+  //       }
+  //
+  //       // Cập nhật lại localStorage từ server
+  //       final simpleCartItems = cartItems.map((item) {
+  //         return jsonEncode({
+  //           'productVariantId': item.productVariantId,
+  //           'quantity': item.quantity,
+  //         });
+  //       }).toList();
+  //
+  //       await prefs.setStringList('cart', simpleCartItems);
+  //     } catch (e) {
+  //       errorMessage = 'Please check your internet connection';
+  //     } finally {
+  //       isLoading = false;
+  //       notifyListeners();
+  //     }
+  //   }
+  // }
 
   //Handle add to cart
   Future<void> handleAddToCart(String productId, int quantity) async {
@@ -108,7 +108,7 @@ class CartProvider with ChangeNotifier {
           quantity: quantity,
           unitPrice: 0,
           discount: 0,
-          images: ProductImage(url: '', publicId: ''),
+          image: '',
         ));
       }
     }
@@ -227,77 +227,77 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  void handleDeleteToCart(String productId) async {
-    isLoading = true;
-    notifyListeners();
+  // void handleDeleteToCart(String productId) async {
+  //   isLoading = true;
+  //   notifyListeners();
+  //
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final accessToken = prefs.getString('accessToken');
+  //
+  //   if (accessToken == null) {
+  //     final existingCart = prefs.getStringList('cart') ?? [];
+  //
+  //     List<Map<String, dynamic>> cartItemsLocal = existingCart
+  //         .map((item) => jsonDecode(item) as Map<String, dynamic>)
+  //         .toList();
+  //
+  //     cartItemsLocal
+  //         .removeWhere((item) => item['productVariantId'] == productId);
+  //
+  //     final updatedCart =
+  //         cartItemsLocal.map((item) => jsonEncode(item)).toList();
+  //     await prefs.setStringList('cart', updatedCart);
+  //
+  //     // ✅ Gọi lại hàm vừa tách để cập nhật cartItems
+  //     await _loadLocalCart();
+  //   } else {
+  //     try {
+  //       // ✅ Gọi API xoá sản phẩm khỏi giỏ hàng
+  //       final updatedCart = await cartService.removeCartByProductVarianId(
+  //         productId: productId,
+  //       );
+  //
+  //       // ✅ Cập nhật cartItems state từ response mới
+  //       cartItems = updatedCart.items;
+  //     } catch (e) {
+  //       errorMessage = 'Error removing item from cart: $e';
+  //     } finally {
+  //       isLoading = false;
+  //       notifyListeners();
+  //     }
+  //   }
+  //   isLoading = false;
+  //   notifyListeners();
+  // }
 
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('accessToken');
-
-    if (accessToken == null) {
-      final existingCart = prefs.getStringList('cart') ?? [];
-
-      List<Map<String, dynamic>> cartItemsLocal = existingCart
-          .map((item) => jsonDecode(item) as Map<String, dynamic>)
-          .toList();
-
-      cartItemsLocal
-          .removeWhere((item) => item['productVariantId'] == productId);
-
-      final updatedCart =
-          cartItemsLocal.map((item) => jsonEncode(item)).toList();
-      await prefs.setStringList('cart', updatedCart);
-
-      // ✅ Gọi lại hàm vừa tách để cập nhật cartItems
-      await _loadLocalCart();
-    } else {
-      try {
-        // ✅ Gọi API xoá sản phẩm khỏi giỏ hàng
-        final updatedCart = await cartService.removeCartByProductVarianId(
-          productId: productId,
-        );
-
-        // ✅ Cập nhật cartItems state từ response mới
-        cartItems = updatedCart.items;
-      } catch (e) {
-        errorMessage = 'Error removing item from cart: $e';
-      } finally {
-        isLoading = false;
-        notifyListeners();
-      }
-    }
-    isLoading = false;
-    notifyListeners();
-  }
-
-  Future<void> _loadLocalCart() async {
-    final prefs = await SharedPreferences.getInstance();
-    final cart = prefs.getStringList('cart');
-    cartItems.clear();
-
-    final List<Map<String, dynamic>> productVariantItems = cart
-            ?.map((item) => jsonDecode(item) as Map<String, dynamic>)
-            .toList() ??
-        [];
-    for (var item in productVariantItems) {
-      final productVariantId = item['productVariantId'];
-      final product =
-          await productService.getProductVariantById(productVariantId);
-
-      cartItems.add(
-        ProductForCartModel(
-          productVariantId: productVariantId,
-          productVariantName: product.variantName,
-          quantity: item['quantity'],
-          unitPrice: product.price,
-          discount: product.discount,
-          images: product.images.isNotEmpty
-              ? product.images[0]
-              : ProductImage(url: '', publicId: ''),
-        ),
-      );
-    }
-  }
+  // Future<void> _loadLocalCart() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final cart = prefs.getStringList('cart');
+  //   cartItems.clear();
+  //
+  //   final List<Map<String, dynamic>> productVariantItems = cart
+  //           ?.map((item) => jsonDecode(item) as Map<String, dynamic>)
+  //           .toList() ??
+  //       [];
+  //   for (var item in productVariantItems) {
+  //     final productVariantId = item['productVariantId'];
+  //     final product =
+  //         await productService.getProductVariantById(productVariantId);
+  //
+  //     cartItems.add(
+  //       ProductForCartModel(
+  //         productVariantId: productVariantId,
+  //         productVariantName: product.variantName,
+  //         quantity: item['quantity'],
+  //         unitPrice: product.price,
+  //         discount: product.discount,
+  //         images: product.images.isNotEmpty
+  //             ? product.images[0]
+  //             : ProductImage(url: '', publicId: ''),
+  //       ),
+  //     );
+  //   }
+  // }
 
   double get subTotalPrice {
     return cartItems.fold(

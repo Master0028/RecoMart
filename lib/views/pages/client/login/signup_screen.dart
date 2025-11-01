@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'dart:math' as math; 
+import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0); 
@@ -57,70 +60,42 @@ class _SignUpScreenState extends State<SignUpScreen> {
       duration: const Duration(seconds: 3),
     ));
   }
-  
+
   Future<void> signUp() async {
     final name = _userNameController.text.trim();
     final email = _emailController.text.trim();
     final pass = _passwordController.text.trim();
-    final confirm = _confirmedPasswordController.text.trim();
-
-    if (name.isEmpty) {
-      _focusAndShowError(_nameFocus, 'Please enter your full name');
-      return;
-    }
-
-    if (email.isEmpty) {
-      _focusAndShowError(_emailFocus, 'Please enter your email');
-      return;
-    }
-    if (!RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$').hasMatch(email)) {
-      _focusAndShowError(_emailFocus, 'Please enter a valid email address');
-      return;
-    }
-    
-    if (pass.isEmpty) {
-      _focusAndShowError(_passwordFocus, 'Please enter your password');
-      return;
-    }
-    if (pass.length < 6) {
-      _focusAndShowError(_passwordFocus, 'Password must be at least 6 characters');
-      return;
-    }
-
-    if (confirm.isEmpty) {
-      _focusAndShowError(_confirmFocus, 'Please confirm your password');
-      return;
-    }
-    if (pass != confirm) {
-      _confirmedPasswordController.clear();
-      _focusAndShowError(_confirmFocus, 'Passwords do not match');
-      return;
-    }
-
-    setState(() => _loading = true);
+    final address = _addressController.text.trim();
 
     try {
-      
-      await Future.delayed(const Duration(seconds: 2));
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Sign up successfully. Redirecting to Login...'), 
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 3),
-        ));
-        
-        context.go('/login');
-      }
-    } 
-    catch (e) {
-      if (mounted) {
-        _focusAndShowError(_emailFocus, 'Sign up failed. Please try again. (Simulated Error)');
-      }
+      setState(() => _loading = true);
+
+      final authResult = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: pass,
+      );
+
+      // Lưu thêm thông tin vào Firestore
+      await FirebaseFirestore.instance.collection('users').doc(authResult.user!.uid).set({
+        'name': name,
+        'email': email,
+        'address': address,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Sign up successful! Redirecting...'),
+        backgroundColor: Colors.green,
+      ));
+
+      context.go('/login');
+    } on FirebaseAuthException catch (e) {
+      _focusAndShowError(_emailFocus,"lor" ?? 'Sign up failed');
     } finally {
       setState(() => _loading = false);
     }
   }
+
 
   Widget buildHeader() {
     return const Text(

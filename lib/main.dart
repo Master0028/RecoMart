@@ -1,19 +1,30 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
 import 'package:recomart/models/brand.model.dart';
 import 'package:recomart/models/category.model.dart';
 import 'package:recomart/models/product.model.dart';
 import 'package:recomart/provider/brand_provider.dart';
 import 'package:recomart/provider/category_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:recomart/provider/cart_provider.dart';
 import 'package:recomart/provider/product_provider.dart';
 import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/provider/coupon_provider.dart';
 import 'package:recomart/routes/app_routes.dart';
 
-void main() async {
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+
+Future<void> main() async {
+  // 🔹 Bắt buộc: đảm bảo Flutter đã khởi tạo binding
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 🔹 Khởi tạo Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  // 🔹 Chạy app với MultiProvider
   runApp(
     MultiProvider(
       providers: [
@@ -22,7 +33,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => BrandProvider()),
-        ChangeNotifierProvider(create: (_) => CouponProvider())
+        ChangeNotifierProvider(create: (_) => CouponProvider()),
       ],
       child: const MyApp(),
     ),
@@ -35,8 +46,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      routerConfig: appRouter, 
-
+      routerConfig: appRouter,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(fontFamily: 'Poppins'),
     );

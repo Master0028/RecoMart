@@ -119,37 +119,37 @@ class ProductProvider with ChangeNotifier {
         }
       }
     }
-    try {
-      final data = await productService.searchProductVariants(
-        page: page,
-        limit: limit,
-        brandIds: brandIds.isNotEmpty ? brandIds : null,
-        categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
-        ratings: rating,
-        minPrice: minPrice,
-        maxPrice: maxPrice,
-      );
-      if (data['data'].length == 0) {
-        products = [];
-        totalPage = 0;
-        this.page = 0;
-        this.limit = 0;
-        return;
-      }
-      products = data['data'];
-      totalPage = data['totalPages'];
-      this.page = data['page'];
-      this.limit = data['limit'];
-
-      await _updateHiveCache(products);
-    } on BadRequestException catch (e) {
-      if (_productBox != null && _productBox!.isNotEmpty) {
-        products = _productBox!.values.toList();
-      }
-      errorMessage = e.toString();
-    } finally {
-      notifyListeners();
-    }
+    // try {
+    //   final data = await productService.searchProductVariants(
+    //     page: page,
+    //     limit: limit,
+    //     brandIds: brandIds.isNotEmpty ? brandIds : null,
+    //     categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
+    //     ratings: rating,
+    //     minPrice: minPrice,
+    //     maxPrice: maxPrice,
+    //   );
+    //   if (data['data'].length == 0) {
+    //     products = [];
+    //     totalPage = 0;
+    //     this.page = 0;
+    //     this.limit = 0;
+    //     return;
+    //   }
+    //   products = data['data'];
+    //   totalPage = data['totalPages'];
+    //   this.page = data['page'];
+    //   this.limit = data['limit'];
+    //
+    //   await _updateHiveCache(products);
+    // } on BadRequestException catch (e) {
+    //   if (_productBox != null && _productBox!.isNotEmpty) {
+    //     products = _productBox!.values.toList();
+    //   }
+    //   errorMessage = e.toString();
+    // } finally {
+    //   notifyListeners();
+    // }
   }
 
   Future<void> _updateHiveCache(List<ProductModel> newProducts) async {
@@ -199,23 +199,23 @@ class ProductProvider with ChangeNotifier {
       sortPrice = 'desc';
     }
 
-    final response = await productService.searchProductVariants(
-      sortName: sortName,
-      sortPrice: sortPrice,
-      brandIds: brandIds.isNotEmpty ? brandIds : null,
-      categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
-      ratings: rating,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-      page: 1,
-      limit: limit,
-    );
-
-    products = response['data'];
-    totalPage = response['totalPages'];
-    page = response['page'];
-    limit = response['limit'];
-    notifyListeners();
+    // final response = await productService.searchProductVariants(
+    //   sortName: sortName,
+    //   sortPrice: sortPrice,
+    //   brandIds: brandIds.isNotEmpty ? brandIds : null,
+    //   categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
+    //   ratings: rating,
+    //   minPrice: minPrice,
+    //   maxPrice: maxPrice,
+    //   page: 1,
+    //   limit: limit,
+    // );
+    //
+    // products = response['data'];
+    // totalPage = response['totalPages'];
+    // page = response['page'];
+    // limit = response['limit'];
+    // notifyListeners();
   }
 
   Future<void> fetchFilteredProducts() async {
@@ -248,21 +248,21 @@ class ProductProvider with ChangeNotifier {
       }
     }
 
-    final response = await productService.searchProductVariants(
-      brandIds: brandIds.isNotEmpty ? brandIds : null,
-      categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
-      ratings: ratings,
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-      page: 1,
-      limit: limit,
-    );
-
-    products = response['data'];
-    totalPage = response['totalPages'];
-    page = response['page'];
-    limit = response['limit'];
-    notifyListeners();
+    // final response = await productService.searchProductVariants(
+    //   brandIds: brandIds.isNotEmpty ? brandIds : null,
+    //   categoryIds: categoryIds.isNotEmpty ? categoryIds : null,
+    //   ratings: ratings,
+    //   minPrice: minPrice,
+    //   maxPrice: maxPrice,
+    //   page: 1,
+    //   limit: limit,
+    // );
+    //
+    // products = response['data'];
+    // totalPage = response['totalPages'];
+    // page = response['page'];
+    // limit = response['limit'];
+    // notifyListeners();
   }
 
   Future<void> applyFilters({
@@ -274,15 +274,15 @@ class ProductProvider with ChangeNotifier {
     int page = 1,
     int limit = 12,
   }) async {
-    final response = await productService.searchProductVariants(
-      minPrice: minPrice,
-      maxPrice: maxPrice,
-      brandIds: brandIds,
-      categoryIds: categoryIds,
-      ratings: rating?.value,
-      page: page,
-      limit: limit,
-    );
+    // final response = await productService.searchProductVariants(
+    //   minPrice: minPrice,
+    //   maxPrice: maxPrice,
+    //   brandIds: brandIds,
+    //   categoryIds: categoryIds,
+    //   ratings: rating?.value,
+    //   page: page,
+    //   limit: limit,
+    // );
 
     // Cập nhật danh sách filters để hiển thị ra giao diện
     final Set<String> combined = {
@@ -296,10 +296,10 @@ class ProductProvider with ChangeNotifier {
 
     updateFilters(combined.toList());
 
-    products = response['data'];
-    totalPage = response['totalPages'];
-    page = response['page'];
-    limit = response['limit'];
+    // products = response['data'];
+    // totalPage = response['totalPages'];
+    // page = response['page'];
+    // limit = response['limit'];
     notifyListeners();
   }
 
