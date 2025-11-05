@@ -1,48 +1,20 @@
 import 'dart:io' show File;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-
-import '../../../../../helpers/formatMoney.dart';
-import 'product_variant_form.dart';
-
-class ProductImage {
-  final String? url;
-  final String? publicId;
-
-  ProductImage({this.url, this.publicId});
-
-  Map<String, dynamic> toMap() {
-    return <String, dynamic>{
-      'url': url,
-      'public_id': publicId,
-    };
-  }
-
-  factory ProductImage.fromMap(Map<String, dynamic> map) {
-    return ProductImage(
-      url: map['url'] as String?,
-      publicId: map['public_id'] as String?,
-    );
-  }
-}
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:provider/provider.dart';
+import '../../../../../models/product.model.dart';
+import '../../../../../provider/product_provider.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class DropdownEntry {
   final String id;
   final String name;
   DropdownEntry({required this.id, required this.name});
 }
-
-final List<DropdownEntry> FE_CATEGORIES = [
-  DropdownEntry(id: 'cat_id_1', name: 'Category A'),
-  DropdownEntry(id: 'cat_id_2', name: 'Category B'),
-];
-
-final List<DropdownEntry> FE_BRANDS = [
-  DropdownEntry(id: 'brand_id_1', name: 'Brand X'),
-  DropdownEntry(id: 'brand_id_2', name: 'Brand Y'),
-];
 
 class ProductForm extends StatefulWidget {
   final void Function(Map<String, dynamic>) onSubmit;
@@ -64,230 +36,191 @@ class ProductForm extends StatefulWidget {
 
 class _ProductFormState extends State<ProductForm> {
   late TextEditingController nameController;
-  File? imageFile;
+  late TextEditingController descriptionController;
+  late TextEditingController priceController;
+  late TextEditingController discountController;
+  late TextEditingController stockController;
+  late TextEditingController avgRatingController;
+  late TextEditingController reviewCountController;
+
+  String? imageUrl;
   Uint8List? imageBytes;
-  ProductImage? productImage;
+  File? imageFile;
+
   String? selectedCategoryId;
   String? selectedBrandId;
-  bool isDisabled = false;
-  List<Map<String, dynamic>> variants = [];
+  bool isActive = true;
   bool isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  List<DropdownEntry> categories = [];
+  List<DropdownEntry> brands = [];
 
   @override
   void initState() {
     super.initState();
     final data = widget.initialProduct;
 
-    nameController = TextEditingController(text: data?['product_name']?.toString() ?? '');
-    selectedCategoryId = data?['category']?.toString();
-    selectedBrandId = data?['brand']?.toString();
-    isDisabled = data?['disabled']?.toString().toLowerCase() == 'true';
+    nameController = TextEditingController(text: data?['name'] ?? '');
+    descriptionController = TextEditingController(text: data?['description'] ?? '');
+    priceController = TextEditingController(text: data?['price']?.toString() ?? '');
+    discountController = TextEditingController(text: data?['discount']?.toString() ?? '');
+    stockController = TextEditingController(text: data?['stock']?.toString() ?? '');
+    avgRatingController = TextEditingController(text: data?['averageRating']?.toString() ?? '');
+    reviewCountController = TextEditingController(text: data?['reviewCount']?.toString() ?? '');
 
-    if (data?['product_image'] != null) {
-      productImage = ProductImage.fromMap(data!['product_image'] as Map<String, dynamic>);
-    }
+    imageUrl = data?['imageUrl'];
+    selectedCategoryId = data?['categoryId'];
+    selectedBrandId = data?['brandId'];
+    isActive = data?['isActive'] ?? true;
 
-    if (data?['variants'] != null && data!['variants'] is List) {
-      variants = List<Map<String, dynamic>>.from(data['variants']);
-    } else {
-      variants = [];
-    }
+    _loadDropdownData();
   }
 
-  Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-
-    if (pickedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No image selected.')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
-
+  /// 🔹 Lấy danh sách Category và Brand từ Firestore
+  Future<void> _loadDropdownData() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500)); 
-
-      const String FE_IMAGE_URL = 'https://placehold.co/600x400.png'; 
-      const String FE_PUBLIC_ID = 'fe_public_id';
-      
-      final bytes = await pickedFile.readAsBytes();
+      final categorySnapshot = await FirebaseFirestore.instance.collection('categories').get();
+      final brandSnapshot = await FirebaseFirestore.instance.collection('brands').get();
 
       setState(() {
-        imageBytes = bytes;
-        imageFile = null;
-        productImage = ProductImage(
-          url: FE_IMAGE_URL,
-          publicId: FE_PUBLIC_ID,
-        );
-        isLoading = false;
+        categories = categorySnapshot.docs
+            .map((doc) => DropdownEntry(id: doc.id, name: doc['name']))
+            .toList();
+        brands = brandSnapshot.docs
+            .map((doc) => DropdownEntry(id: doc.id, name: doc['name']))
+            .toList();
       });
-      
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Image picking failed.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint("⚠️ Lỗi load category/brand: $e");
     }
   }
 
-  Future<void> _handleAddProduct() async {
-    setState(() {
-      isLoading = true;
-    });
+  /// 🔹 Chọn và upload ảnh thật lên Cloudinary
+  Future<void> _pickImage() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
+
+    setState(() => isLoading = true);
 
     try {
-      if (nameController.text.trim().isEmpty) {
-        throw Exception('Product name is required');
-      }
-      if (selectedCategoryId == null || selectedCategoryId!.trim().isEmpty) {
-        throw Exception('Please select a category');
-      }
-      if (productImage == null || productImage!.url == null || productImage!.url!.isEmpty) {
-        throw Exception('Please upload a product image');
-      }
+      final bytes = await picked.readAsBytes();
+      final uri = Uri.parse("https://api.cloudinary.com/v1_1/dqiclelb9/image/upload");
+      final uploadPreset = "dacntt";
 
-      await Future.delayed(const Duration(milliseconds: 500)); 
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: picked.name,
+        ));
+
+      final response = await request.send();
+      final resBody = await response.stream.bytesToString();
+      final data = jsonDecode(resBody);
+
+      if (response.statusCode == 200 && data['secure_url'] != null) {
+        setState(() {
+          imageBytes = bytes;
+          imageUrl = data['secure_url'];
+          imageFile = null;
+          isLoading = false;
+        });
+      } else {
+        throw Exception("Upload failed: ${data['error']}");
+      }
+    } catch (e) {
+      debugPrint("❌ Upload Cloudinary failed: $e");
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+      }
+    }
+  }
+
+  /// 🔹 Submit sản phẩm (add/update vào Firebase)
+  Future<void> _handleSubmit() async {
+    setState(() => isLoading = true);
+    try {
+      if (nameController.text.trim().isEmpty) throw Exception('Please enter the product name');
+      if (selectedCategoryId == null) throw Exception('Select category');
+      if (imageUrl == null || imageUrl!.isEmpty) throw Exception('Select product image');
 
       final productData = {
-        'product_name': nameController.text.trim(),
-        'category_id': selectedCategoryId!.trim(),
-        'brand_id': selectedBrandId?.trim(),
-        'product_image': productImage!.toMap(),
-        '_id': 'FE_NEW_ID',
-        'variants': variants,
+        'id': widget.initialProduct?['id'] ?? '',
+        'name': nameController.text.trim(),
+        'description': descriptionController.text.trim(),
+        'categoryId': selectedCategoryId,
+        'brandId': selectedBrandId,
+        'price': double.tryParse(priceController.text) ?? 0,
+        'discount': double.tryParse(discountController.text) ?? 0,
+        'isActive': isActive,
+        'imageUrl': imageUrl ?? '',
+        'averageRating': double.tryParse(avgRatingController.text) ?? 0,
+        'reviewCount': int.tryParse(reviewCountController.text) ?? 0,
+        'stock': int.tryParse(stockController.text) ?? 0,
+        'createdAt': DateTime.now().toIso8601String(),
       };
+
+      // 🔹 Chuyển Map → ProductModel
+      final productModel = ProductModel.fromJson(productData);
+
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+
+      if (widget.initialProduct == null) {
+        await provider.addProduct(productModel);
+      } else {
+        await provider.updateProduct(productModel.id, productModel);
+      }
 
       widget.onSubmit(productData);
-      setState(() {
-        isLoading = false;
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final navigator = Navigator.of(context);
+        if (navigator.canPop()) {
+          navigator.pop();
+        }
       });
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to add product: ${e.toString().replaceAll('Exception: ', '')}')),
+        SnackBar(content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}')),
       );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
-  Future<void> _handleUpdateProduct() async {
-    if (widget.initialProduct == null) return;
 
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final productId = widget.initialProduct!['_id']?.toString();
-      if (productId == null) {
-        throw Exception('Invalid product ID');
-      }
-      
-      await Future.delayed(const Duration(milliseconds: 500)); 
-
-      final productData = {
-          'product_name': nameController.text.trim(),
-          'category_id': selectedCategoryId,
-          '_id': productId,
-          'variants': variants,
-      };
-
-      widget.onSubmit(productData); 
-      
-      setState(() {
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update product: ${e.toString().replaceAll('Exception: ', '')}')),
-      );
-    }
-  }
-  
   Future<void> _handleDelete() async {
-    if (widget.initialProduct == null || widget.onDelete == null) return;
+    if (widget.onDelete == null) return;
+    setState(() => isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 300));
+    widget.onDelete!();
 
-    final productId = widget.initialProduct!['_id']?.toString();
-    if (productId == null || productId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid product ID')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final navigator = Navigator.of(context);
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
     });
 
-    try {
-      await Future.delayed(const Duration(milliseconds: 500)); 
-      
-      widget.onDelete!(); 
-      
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Product deleted successfully')),
-      );
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete product')),
-      );
-    }
+    setState(() => isLoading = false);
   }
-  
-  void _showVariantForm({Map<String, dynamic>? initialVariant, int? index}) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          title: Text(
-            initialVariant == null ? 'Add Product Variant' : 'Edit Product Variant',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          content: ProductVariantForm(
-            onSubmit: (variantData) async {
-              setState(() {
-                if (index != null) {
-                  variants[index] = variantData;
-                } else {
-                  variants.add(variantData);
-                }
-              });
-              Navigator.of(context).pop();
-            },
-            initialProduct: widget.initialProduct,
-            initialVariant: initialVariant,
-          ),
-        );
-      },
-    );
-  }
-  
+
   @override
   void dispose() {
     nameController.dispose();
+    descriptionController.dispose();
+    priceController.dispose();
+    discountController.dispose();
+    stockController.dispose();
+    avgRatingController.dispose();
+    reviewCountController.dispose();
     super.dispose();
   }
 
@@ -300,6 +233,7 @@ class _ProductFormState extends State<ProductForm> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // 🔹 Cột trái: ảnh
               Expanded(
                 flex: 1,
                 child: Column(
@@ -311,249 +245,68 @@ class _ProductFormState extends State<ProductForm> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: productImage?.url != null
-                          ? Image.network(
-                        productImage!.url!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : imageBytes != null && imageBytes is Uint8List
-                          ? Image.memory(
-                        imageBytes!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : imageFile != null && !kIsWeb
-                          ? Image.file(
-                        imageFile!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : const Center(child: Text('No Image')),
+                      child: _buildImagePreview(),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: isLoading ? null : _pickImage,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         minimumSize: const Size(double.infinity, 48),
                       ),
-                      child: const Text(
-                        'Choose Image',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text('Choose Image', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
               ),
+
               const SizedBox(width: 16),
+
+              // 🔹 Cột phải: form
               Expanded(
                 flex: 2,
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      TextField(
-                        controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Product Name',
-                          border: OutlineInputBorder(),
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Category',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 8),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              return SizedBox(
-                                width: double.infinity,
-                                child: DropdownMenu<String>(
-                                  width: constraints.maxWidth,
-                                  initialSelection: selectedCategoryId,
-                                  onSelected: (value) => setState(() => selectedCategoryId = value),
-                                  dropdownMenuEntries: FE_CATEGORIES
-                                      .map((category) => DropdownMenuEntry(
-                                    value: category.id,
-                                    label: category.name,
-                                  ))
-                                      .toList(),
-                                  textStyle: const TextStyle(fontSize: 14, color: Colors.black),
-                                  menuStyle: MenuStyle(
-                                    maximumSize: WidgetStatePropertyAll(
-                                      Size(constraints.maxWidth, double.infinity),
-                                    ),
-                                    backgroundColor: const WidgetStatePropertyAll(Colors.white),
-                                  ),
-                                  inputDecorationTheme: const InputDecorationTheme(
-                                    border: OutlineInputBorder(),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Brand',
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                          ),
-                          const SizedBox(height: 8),
-                          LayoutBuilder(
-                            builder: (context, constraints) {
-                              return SizedBox(
-                                width: double.infinity,
-                                child: DropdownMenu<String>(
-                                  width: constraints.maxWidth,
-                                  initialSelection: selectedBrandId,
-                                  onSelected: (value) => setState(() => selectedBrandId = value),
-                                  dropdownMenuEntries: FE_BRANDS
-                                      .map((brand) => DropdownMenuEntry(
-                                    value: brand.id,
-                                    label: brand.name,
-                                  ))
-                                      .toList(),
-                                  textStyle: const TextStyle(fontSize: 14, color: Colors.black),
-                                  menuStyle: MenuStyle(
-                                    maximumSize: WidgetStatePropertyAll(
-                                      Size(constraints.maxWidth, double.infinity),
-                                    ),
-                                    backgroundColor: const WidgetStatePropertyAll(Colors.white),
-                                  ),
-                                  inputDecorationTheme: const InputDecorationTheme(
-                                    border: OutlineInputBorder(),
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    contentPadding:
-                                    EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-                      
+                      _buildTextField(nameController, 'Product Name'),
+                      const SizedBox(height: 16),
+                      _buildTextField(descriptionController, 'Description', maxLines: 3),
+                      const SizedBox(height: 16),
+                      _buildDropdownCategory('Category', selectedCategoryId, categories),
+                      const SizedBox(height: 16),
+                      _buildDropdownCategory('Brand', selectedBrandId, brands),
+                      const SizedBox(height: 16),
+                      _buildTextField(priceController, 'Price', inputType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      _buildTextField(discountController, 'Discount (%)', inputType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      _buildTextField(stockController, 'Stock', inputType: TextInputType.number),
+                      const SizedBox(height: 16),
+                      _buildTextField(avgRatingController, 'Rating (readonly)', readOnly: true),
+                      const SizedBox(height: 16),
+                      _buildTextField(reviewCountController, 'Count Review (readonly)', readOnly: true),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Checkbox(
-                            value: isDisabled,
-                            onChanged: (value) => setState(() => isDisabled = value!),
+                            value: isActive,
+                            onChanged: (v) => setState(() => isActive = v!),
                           ),
-                          const Text('Disable Product'),
+                          const Text('Product is available'),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      
-                      if (widget.initialProduct != null)
-                        ElevatedButton(
-                          onPressed: isLoading ? null : () => _showVariantForm(),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            minimumSize: const Size(double.infinity, 48),
-                          ),
-                          child: const Text(
-                            'Add Variant',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      const SizedBox(height: 20),
-                      
-                      if (variants.isNotEmpty)
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Variants',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 10),
-                            ...variants.asMap().entries.map((entry) {
-                              final index = entry.key;
-                              final variant = entry.value;
-                              
-                              final imageList = variant['images'] as List<dynamic>?;
-                              String? imageUrl;
-                              if (imageList != null && imageList.isNotEmpty) {
-                                final firstImage = imageList[0] as Map<String, dynamic>?;
-                                imageUrl = firstImage != null ? firstImage['url'] as String? : null;
-                              } else {
-                                imageUrl = null;
-                              }
-                              
-                              return InkWell(
-                                onTap: () => _showVariantForm(initialVariant: variant, index: index),
-                                child: ListTile(
-                                  leading: SizedBox(
-                                    width: 40,
-                                    height: 40,
-                                    child: imageUrl != null
-                                        ? Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) {
-                                        return const Text('No Image');
-                                      },
-                                    )
-                                        : const Text('No Image'),
-                                  ),
-                                  title: Text(variant['variantName']?.toString() ?? 'N/A'),
-                                  subtitle: Text(
-                                    'Color: ${variant['variantColor'] ?? 'N/A'}, Price: ${formatMoney(variant['price'] ?? 0)}, Quantity: ${variant['quantity']?.toString() ?? 'N/A'}, Rating: ${variant['averageRating']?.toString() ?? 'N/A'}',
-                                  ),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () {
-                                      setState(() {
-                                        variants.removeAt(index);
-                                      });
-                                    },
-                                  ),
-                                ),
-                              );
-                            }),
-                            const SizedBox(height: 20),
-                          ],
-                        ),
-                      
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: ElevatedButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : (widget.initialProduct == null ? _handleAddProduct : _handleUpdateProduct),
+                              onPressed: isLoading ? null : _handleSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 minimumSize: const Size(double.infinity, 48),
                               ),
-                              child: Text(
-                                widget.buttonLabel,
-                                style: const TextStyle(color: Colors.white),
-                              ),
+                              child: Text(widget.buttonLabel,
+                                  style: const TextStyle(color: Colors.white)),
                             ),
                           ),
                           if (widget.onDelete != null) ...[
@@ -565,10 +318,8 @@ class _ProductFormState extends State<ProductForm> {
                                   backgroundColor: Colors.red,
                                   minimumSize: const Size(double.infinity, 48),
                                 ),
-                                child: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.white),
-                                ),
+                                child: const Text('Delete',
+                                    style: TextStyle(color: Colors.white)),
                               ),
                             ),
                           ],
@@ -580,13 +331,68 @@ class _ProductFormState extends State<ProductForm> {
               ),
             ],
           ),
-          
           if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
+    );
+  }
+
+  Widget _buildImagePreview() {
+    if (imageBytes != null) {
+      return Image.memory(imageBytes!, fit: BoxFit.cover);
+    } else if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return Image.network(imageUrl!, fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(child: Text('Không tải được ảnh')));
+    } else if (imageFile != null && !kIsWeb) {
+      return Image.file(imageFile!, fit: BoxFit.cover);
+    } else {
+      return const Center(child: Text('Chưa có ảnh'));
+    }
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label,
+      {int maxLines = 1, bool readOnly = false, TextInputType? inputType}) {
+    return TextField(
+      controller: controller,
+      readOnly: readOnly,
+      maxLines: maxLines,
+      keyboardType: inputType,
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        filled: true,
+        fillColor: readOnly ? Colors.grey.shade100 : Colors.white,
+      ),
+    );
+  }
+
+  Widget _buildDropdownCategory(String label, String? value, List<DropdownEntry> list) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+        const SizedBox(height: 8),
+        DropdownButtonFormField<String>(
+          value: list.any((item) => item.id == value) ? value : null,
+          items: list
+              .map((item) => DropdownMenuItem(
+            value: item.id,
+            child: Text(item.name),
+          ))
+              .toList(),
+          onChanged: (v) {
+            setState(() {
+              if (label == 'Category') {
+                selectedCategoryId = v;
+              } else {
+                selectedBrandId = v;
+              }
+            });
+          },
+          decoration: const InputDecoration(border: OutlineInputBorder()),
+        ),
+      ],
     );
   }
 }

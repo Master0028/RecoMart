@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:provider/provider.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
@@ -14,6 +15,9 @@ import 'package:recomart/utils/responsive.dart' as utils;
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/product/widgets/description_product.dart';
 import 'package:recomart/views/pages/client/product/widgets/quantity.dart';
+
+import '../../../../models/cart.model.dart';
+import '../../../../provider/cart_provider.dart';
 
 class ProductDetailsView extends StatefulWidget {
   const ProductDetailsView({
@@ -66,14 +70,38 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     }
   }
 
-  void _handleAddToCart() {
+  void _handleAddToCart() async {
     if (_product == null) return;
-    showCustomSnackBar(
-      context,
-      '🛒 Đã thêm "${_product!.name}" vào giỏ hàng',
-      type: SnackBarType.success,
-    );
+
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+
+    try {
+      final newItem = ProductForCartModel(
+        productId: _product!.id ?? '', // ✅ ép an toàn
+        productName: _product!.name ?? '',
+        quantity: quantity,
+        unitPrice: _product!.price,
+        discount: _product!.discount,
+        image: _product!.imageUrl ?? '',
+      );
+
+      await cartProvider.addToCart(newItem);
+
+      showCustomSnackBar(
+        context,
+        '🛒 Đã thêm "${_product!.name}" vào giỏ hàng',
+        type: SnackBarType.success,
+      );
+    } catch (e, s) {
+      print('❌ Lỗi khi thêm giỏ hàng: $e\n$s');
+      showCustomSnackBar(
+        context,
+        'Lỗi khi thêm vào giỏ hàng: $e',
+        type: SnackBarType.error,
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {

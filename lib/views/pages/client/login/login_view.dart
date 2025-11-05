@@ -49,8 +49,15 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _isLogin() async {
     final user = FirebaseAuth.instance.currentUser;
+
     if (user != null) {
-      context.go('/home');
+      print(user.email);
+      // Kiểm tra email của user
+      if (user.email == 'admin@gmail.com') {
+        context.go('/admin');
+      } else {
+        context.go('/home');
+      }
     }
   }
 
@@ -81,7 +88,7 @@ class _LoginViewState extends State<LoginView> {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('accessToken', token ?? '');
 
-      context.go('/home');
+      _isLogin();
     } on FirebaseAuthException catch (e) {
       String errorMsg;
       switch (e.code) {

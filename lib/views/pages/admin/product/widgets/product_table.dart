@@ -1,79 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import '../../../../../models/product.model.dart';
+import '../../../../../provider/product_provider.dart';
 import 'package:recomart/utils/responsive.dart';
 import '../../../../../views/pages/admin/product/widgets/product_form.dart';
+import 'add_product_btn.dart';
 
-class ProductImageFE {
-  final String? url;
-  final String? publicId;
-
-  ProductImageFE({this.url, this.publicId});
-
-  Map<String, dynamic> toMap() {
-    return {'url': url, 'public_id': publicId};
-  }
-}
-
-class ProductEntityFE {
-  final String id;
-  final String productName;
-  final bool isActive;
-  final String categoryId;
-  final String brandId;
-  final ProductImageFE? productImage;
-  final List<dynamic> variants;
-
-  ProductEntityFE({
-    required this.id,
-    required this.productName,
-    required this.isActive,
-    required this.categoryId,
-    required this.brandId,
-    this.productImage,
-    required this.variants,
-  });
-
-  Map<String, dynamic> toMap() {
-    return {
-      '_id': id,
-      'product_name': productName,
-      'disabled': !isActive,
-      'category': categoryId,
-      'brand': brandId,
-      'product_image': productImage?.toMap(),
-      'variants': variants,
-    };
-  }
-}
-
-//Mockiup Dataset
-final List<ProductEntityFE> FE_PRODUCT_DATA = [
-  ProductEntityFE(
-    id: '66a01',
-    productName: 'Laptop Pro 14',
-    isActive: true,
-    categoryId: 'cat_id_1',
-    brandId: 'brand_id_1',
-    productImage: ProductImageFE(url: 'https://placehold.co/40x40/FF7F50/white?text=A'),
-    variants: [{'quantity': 5}, {'quantity': 7}],
-  ),
-  ProductEntityFE(
-    id: '66a02',
-    productName: 'Gaming Mouse X',
-    isActive: false,
-    categoryId: 'cat_id_2',
-    brandId: 'brand_id_2',
-    productImage: ProductImageFE(url: 'https://placehold.co/40x40/3CB371/white?text=B'),
-    variants: [{'quantity': 10}],
-  ),
-];
-
-final Map<String, String> FE_CATEGORIES_MAP = {'cat_id_1': 'Laptop', 'cat_id_2': 'Phụ kiện'};
-final Map<String, String> FE_BRANDS_MAP = {'brand_id_1': 'Brand A', 'brand_id_2': 'Brand B'};
 const int FE_TOTAL_PAGE = 5;
-const int FE_LIMIT = 12;
-
+const int FE_LIMIT = 10;
 
 class ProductTable extends StatefulWidget {
   const ProductTable({super.key});
@@ -86,120 +21,150 @@ class _ProductTableState extends State<ProductTable> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
-  List<ProductEntityFE> _productsData = FE_PRODUCT_DATA;
+  List<ProductModel> _productsData = [];
+  Map<String, String> _categoryMap = {};
+  Map<String, String> _brandMap = {};
   int _page = 1;
   int _limit = FE_LIMIT;
   int _totalPage = FE_TOTAL_PAGE;
-
+  bool _hasNextPage = true;
 
   @override
   void initState() {
     super.initState();
+    _initializeData();
     _searchController.addListener(_onSearchChanged);
   }
 
-  void _onSearchChanged() {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (_searchController.text.isEmpty) {
-        _fetchFilteredProductsManagement(page: 1, limit: _limit);
-      } else {
-        _searchFilteredProducts(
-          name: _searchController.text,
-          page: 1,
-          limit: _limit,
-        );
-      }
-    });
+  Future<void> _initializeData() async {
+    await Future.wait([
+      _fetchCategories(),
+      _fetchBrands(),
+      _fetchFromFirebase(page: 1),
+    ]);
   }
-  
-  void _fetchFilteredProductsManagement({required int page, required int limit}) {
+
+  /// Lấy danh mục từ Firebase thông qua Provider
+  Future<void> _fetchCategories() async {
+    try {
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      await provider.fetchCategories(); // gọi hàm trong provider
+      if (!mounted) return;
       setState(() {
-          _page = page;
-          _limit = limit;
-          _productsData = FE_PRODUCT_DATA; 
-          _totalPage = FE_TOTAL_PAGE;
+        _categoryMap = provider.categoriesMap;
       });
-  }
-  
-  void _searchFilteredProducts({required String name, required int page, required int limit}) {
-      setState(() {
-          _page = page;
-          _limit = limit;
-          _productsData = FE_PRODUCT_DATA.where((p) => p.productName.toLowerCase().contains(name.toLowerCase())).toList();
-          _totalPage = 1;
-      });
-  }
-
-
-  List<ProductEntityFE> get filteredProducts {
-    return _productsData;
-  }
-
-  List<ProductEntityFE> _sortProducts(List<ProductEntityFE> products) {
-    return products..sort((a, b) => b.id.compareTo(a.id)); 
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Active':
-        return Colors.green;
-      case 'Disabled':
-        return Colors.red;
-      default:
-        return Colors.grey;
+    } catch (e) {
+      debugPrint('⚠️ Lỗi tải danh mục: $e');
     }
   }
 
-  void _showProductForm(ProductEntityFE product) {
+  /// Lấy thương hiệu từ Firebase thông qua Provider
+  Future<void> _fetchBrands() async {
+    try {
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      await provider.fetchBrands(); // gọi hàm trong provider
+      if (!mounted) return;
+      setState(() {
+        _brandMap = provider.brandsMap;
+      });
+    } catch (e) {
+      debugPrint('⚠️ Lỗi tải thương hiệu: $e');
+    }
+  }
+
+  /// Lấy dữ liệu sản phẩm thực từ Firebase thông qua Provider
+  Future<void> _fetchFromFirebase({int page = 1}) async {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    await provider.fetchProductsPaginated(page: page, limit: _limit);
+
+    if (!mounted) return;
+
+    setState(() {
+      _page = page;
+      _productsData = provider.products;
+      _hasNextPage = _productsData.length == _limit; // ✅ Nếu ít hơn 10 => hết trang
+    });
+  }
+
+  /// 🔹 Lọc sản phẩm theo tên
+  void _onSearchChanged() {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return; // ✅ Tránh gọi setState sau dispose
+
+      final text = _searchController.text.toLowerCase();
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+
+      setState(() {
+        _productsData = text.isEmpty
+            ? provider.products
+            : provider.products
+            .where((p) => p.name.toLowerCase().contains(text))
+            .toList();
+      });
+    });
+  }
+
+  List<ProductModel> get filteredProducts {
+    return _productsData;
+  }
+
+  List<ProductModel> _sortProducts(List<ProductModel> products) {
+    return products..sort((a, b) => b.id.compareTo(a.id));
+  }
+
+  Color _getStatusColor(bool isActive) {
+    return isActive ? Colors.green : Colors.red;
+  }
+
+  void _showProductForm(ProductModel product) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: Text(
-            product.productName,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: Theme(
-            data: Theme.of(context).copyWith(
-              inputDecorationTheme: const InputDecorationTheme(
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.orange, width: 2),
-                ),
-                labelStyle: TextStyle(color: Colors.black),
-                floatingLabelStyle: TextStyle(color: Colors.orange),
-              ),
-            ),
-            child: ProductForm(
-              buttonLabel: 'Save',
-              initialProduct: product.toMap(),
-              onSubmit: (updatedProductData) async {
-                print('ProductTable onSubmit: Logic updated UI state.');
-                _fetchFilteredProductsManagement(page: _page, limit: _limit);
-                Navigator.of(context).pop();
-              },
-              onDelete: () async {
-                print('ProductTable onDelete: Logic updated UI state.');
-                _fetchFilteredProductsManagement(page: 1, limit: _limit);
-                Navigator.of(context).pop();
-              },
-            ),
+          title: Text(product.name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          content: ProductForm(
+            buttonLabel: 'Save',
+            initialProduct: product.toJson(),
+            onSubmit: (updatedData) async {
+              print('✅ Cập nhật sản phẩm: $updatedData');
+
+              // ✅ Pop dialog an toàn, không pop router
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (Navigator.of(dialogContext).canPop()) {
+                  Navigator.of(dialogContext).pop();
+                }
+              });
+
+              if (mounted) await _fetchFromFirebase();
+            },
+            onDelete: () async {
+              print('🗑️ Xóa sản phẩm: ${product.name}');
+
+              WidgetsBinding.instance.addPostFrameCallback((_) async {
+                if (Navigator.of(dialogContext).canPop()) {
+                  Navigator.of(dialogContext).pop();
+                }
+              });
+
+              await Provider.of<ProductProvider>(context, listen: false)
+                  .deleteProduct(product.id);
+
+              if (mounted) await _fetchFromFirebase();
+            },
           ),
         );
       },
     );
   }
 
-  // Row Header Table (FE logic)
   TableRow buildHeaderRow(List<String> headers, List<double> colWidths) {
     return TableRow(
-      decoration: const BoxDecoration(color: Color.fromARGB(255, 240, 240, 240)),
+      decoration:
+      const BoxDecoration(color: Color.fromARGB(255, 240, 240, 240)),
       children: List.generate(headers.length, (index) {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
@@ -214,22 +179,12 @@ class _ProductTableState extends State<ProductTable> {
     );
   }
 
-  TableRow buildProductRow(ProductEntityFE product, List<double> colWidths) {
+  TableRow buildProductRow(ProductModel product, List<double> colWidths) {
     final isMobile = Responsive.isMobile(context);
+    String getShortId(String id) => id.length > 5 ? id.substring(0, 5) : id;
 
-    String getShortId(String id) {
-      return id.length > 5 ? id.substring(0, 5) : id;
-    }
-
-    String categoryName = FE_CATEGORIES_MAP[product.categoryId] ?? 'N/A';
-    String brandName = FE_BRANDS_MAP[product.brandId] ?? 'N/A';
-
-    final totalStock = product.variants.isNotEmpty
-        ? product.variants
-        .map((variant) => variant['quantity'] ?? 0)
-        .reduce((a, b) => a + b)
-        .toString()
-        : '0';
+    String categoryName = _categoryMap[product.categoryId] ?? 'N/A';
+    final totalStock = product.stock.toString();
 
     return TableRow(
       children: isMobile
@@ -244,7 +199,8 @@ class _ProductTableState extends State<ProductTable> {
         ),
         InkWell(
           onTap: () => _showProductForm(product),
-          child: cellText(product.isActive ? 'Active' : 'Disabled', colWidths[2]),
+          child: cellText(
+              product.isActive ? 'Active' : 'Disabled', colWidths[2]),
         ),
       ]
           : [
@@ -266,19 +222,15 @@ class _ProductTableState extends State<ProductTable> {
         ),
         InkWell(
           onTap: () => _showProductForm(product),
-          child: cellText(brandName, colWidths[4]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
           child: Container(
-            width: colWidths[5],
+            width: colWidths[4],
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Chip(
               label: Text(
                 product.isActive ? 'Active' : 'Disabled',
                 style: const TextStyle(color: Colors.white),
               ),
-              backgroundColor: _getStatusColor(product.isActive ? 'Active' : 'Disabled'),
+              backgroundColor: _getStatusColor(product.isActive),
             ),
           ),
         ),
@@ -298,36 +250,26 @@ class _ProductTableState extends State<ProductTable> {
     );
   }
 
-  Widget productCell(ProductEntityFE product, double width) {
-    String getShortId(String id) {
-      return id.length > 5 ? id.substring(0, 5) : id;
-    }
-
+  Widget productCell(ProductModel product, double width) {
     return Container(
       width: width,
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
       child: Row(
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: product.productImage?.url != null && product.productImage!.url!.isNotEmpty
-                ? Image.network(
-              product.productImage!.url!,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              product.imageUrl ?? '',
+              width: 50,
+              height: 50,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  color: Colors.grey[300],
-                  child: const Center(child: Text("No Image")),
-                );
-              },
-            )
-                : Container(
-              color: Colors.grey[300],
-              child: const Center(child: Text("No Image")),
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: Colors.grey[300],
+                width: 50,
+                height: 50,
+                alignment: Alignment.center,
+                child: const Text("No Image"),
+              ),
             ),
           ),
           const SizedBox(width: 8),
@@ -335,24 +277,10 @@ class _ProductTableState extends State<ProductTable> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  product.productName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 2,
-                ),
-                Text(
-                  'ID: ${getShortId(product.id)}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+                Text(product.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text('Giá: ${product.price.toStringAsFixed(0)}₫'),
+                Text('Tồn kho: ${product.stock}'),
               ],
             ),
           ),
@@ -361,46 +289,18 @@ class _ProductTableState extends State<ProductTable> {
     );
   }
 
-  // Logic phân trang (FE logic)
   Widget _buildPagination() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
           icon: const Icon(Icons.chevron_left),
-          onPressed: _page > 1
-              ? () {
-            _fetchFilteredProductsManagement(
-              page: _page - 1,
-              limit: _limit,
-            );
-          }
-              : null,
+          onPressed: _page > 1 ? () => _fetchFromFirebase(page: _page - 1) : null,
         ),
-        Text('Page $_page of $_totalPage'),
+        Text('Page $_page'),
         IconButton(
           icon: const Icon(Icons.chevron_right),
-          onPressed: _page < _totalPage
-              ? () {
-            _fetchFilteredProductsManagement(
-              page: _page + 1,
-              limit: _limit,
-            );
-          }
-              : null,
-        ),
-        const SizedBox(width: 16),
-        DropdownButton<int>(
-          value: _limit,
-          items: [12, 24, 48].map((value) => DropdownMenuItem(
-            value: value,
-            child: Text('$value per page'),
-          )).toList(),
-          onChanged: (value) {
-            if (value != null) {
-              _fetchFilteredProductsManagement(page: 1, limit: value);
-            }
-          },
+          onPressed: _hasNextPage ? () => _fetchFromFirebase(page: _page + 1) : null,
         ),
       ],
     );
@@ -419,16 +319,15 @@ class _ProductTableState extends State<ProductTable> {
             ? [tableWidth * 0.08, tableWidth * 0.55, tableWidth * 0.25]
             : [
           tableWidth * 0.08,
-          tableWidth * 0.30,
+          tableWidth * 0.35,
           tableWidth * 0.12,
-          tableWidth * 0.15,
-          tableWidth * 0.15,
+          tableWidth * 0.20,
           tableWidth * 0.15,
         ];
 
         final headers = isMobile
             ? ['ID', 'Product', 'Status']
-            : ['ID', 'Product', 'Stock', 'Category', 'Brand', 'Status'];
+            : ['ID', 'Product', 'Stock', 'Category', 'Status'];
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -455,31 +354,31 @@ class _ProductTableState extends State<ProductTable> {
                     'Product List',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  SizedBox(
-                    width: 200,
-                    height: 36,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                        hintText: 'Search by name',
-                        prefixIcon: const Icon(Icons.search, size: 18),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: Colors.grey),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: const BorderSide(color: Colors.orange),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 200,
+                        height: 36,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                            hintText: 'Search by name',
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
                         ),
                       ),
-                      onChanged: (value) {
-                        setState(() {});
-                      },
-                    ),
+                      const SizedBox(width: 12),
+                      // ✅ Gọi AddProductButton, truyền callback reload
+                      AddProductButton(onProductAdded: _fetchFromFirebase),
+                    ],
                   ),
                 ],
               ),
+
               const SizedBox(height: 16),
               // Table
               SingleChildScrollView(
@@ -487,14 +386,17 @@ class _ProductTableState extends State<ProductTable> {
                 child: SizedBox(
                   width: tableWidth - 40,
                   child: Table(
-                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    defaultVerticalAlignment:
+                    TableCellVerticalAlignment.middle,
                     columnWidths: {
-                      for (int i = 0; i < colWidths.length; i++) i: FixedColumnWidth(colWidths[i]),
+                      for (int i = 0; i < colWidths.length; i++)
+                        i: FixedColumnWidth(colWidths[i]),
                     },
                     border: TableBorder.all(color: Colors.grey.shade300),
                     children: [
                       buildHeaderRow(headers, colWidths),
-                      ...sortedProducts.map((product) => buildProductRow(product, colWidths)),
+                      ...sortedProducts
+                          .map((product) => buildProductRow(product, colWidths)),
                     ],
                   ),
                 ),

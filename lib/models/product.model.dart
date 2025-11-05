@@ -5,6 +5,7 @@ class ProductModel {
   final String name;             // Tên sản phẩm
   final String description;      // Mô tả sản phẩm
   final String categoryId;       // ID danh mục
+  final String brandId;
   final double price;            // Giá
   final double discount;         // Giảm giá (nếu có)
   final bool isActive;           // Còn bán không
@@ -18,6 +19,7 @@ class ProductModel {
     required this.name,
     required this.description,
     required this.categoryId,
+    required this.brandId,
     required this.price,
     required this.discount,
     required this.isActive,
@@ -27,7 +29,7 @@ class ProductModel {
     required this.stock,
   });
 
-  /// 🧠 Chuyển từ Firestore DocumentSnapshot → Model
+  /// Chuyển từ Firestore DocumentSnapshot → Model
   factory ProductModel.fromSnapshot(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
 
@@ -36,6 +38,7 @@ class ProductModel {
       name: data['name'] ?? '',
       description: data['description'] ?? '',
       categoryId: data['categoryId'] ?? '',
+      brandId: data['brandId'] ?? '',
       price: (data['price'] ?? 0).toDouble(),
       discount: (data['discount'] ?? 0).toDouble(),
       isActive: data['isActive'] ?? true,
@@ -46,13 +49,14 @@ class ProductModel {
     );
   }
 
-  /// 🧩 Dùng khi đọc JSON (VD: từ Firestore hoặc REST API)
+  /// Dùng khi đọc JSON (VD: từ Firestore hoặc REST API)
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       description: json['description'] ?? '',
       categoryId: json['categoryId'] ?? '',
+      brandId: json['brandId'] ?? '',
       price: (json['price'] ?? 0).toDouble(),
       discount: (json['discount'] ?? 0).toDouble(),
       isActive: json['isActive'] ?? true,
@@ -63,13 +67,14 @@ class ProductModel {
     );
   }
 
-  /// 🔁 Dùng khi muốn convert sang Map để lưu Firestore
+  /// Dùng khi muốn convert sang Map để lưu Firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
       'description': description,
       'categoryId': categoryId,
+      'brandId': brandId,
       'price': price,
       'discount': discount,
       'isActive': isActive,
@@ -79,4 +84,20 @@ class ProductModel {
       'stock': stock,
     };
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'name': name,
+    'description': description,
+    'categoryId': categoryId,
+    'brandId': brandId,
+    'price': price,
+    'discount': discount,
+    'isActive': isActive,
+    'imageUrl': imageUrl,
+    'averageRating': averageRating,
+    'reviewCount': reviewCount,
+    'stock': stock,
+  };
+
 }

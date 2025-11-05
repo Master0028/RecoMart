@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 // import 'package:recomart/components/custom/snackbar.dart';
@@ -12,6 +13,7 @@ import 'package:recomart/models/product.model.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
 import 'package:recomart/utils/responsive.dart';
+import '../../../../../provider/product_provider.dart';
 import '../../../../../services/product.service.dart';
 
 class ProductListViewWidget extends StatefulWidget {
@@ -28,39 +30,49 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
   String errorMessage = '';
   List<ProductModel> mockProducts = [];
   final ProductService _productService = ProductService();
+  int _currentPage = 1;
+  bool _hasMore = true;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _simulateFetchProducts();
+      _fetchProducts(page: 1);
     });
   }
 
-  Future<void> _simulateFetchProducts() async {
-    setState(() {
-      _isLoading = true;
-      errorMessage = '';
-    });
+  Future<void> _fetchProducts({int page = 1, bool append = false}) async {
+    setState(() => _isLoading = true);
 
     try {
-      // Lấy dữ liệu từ Firestore
-      final products = await _productService.getProducts();
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      await provider.fetchProductsPaginated(page: page, limit: 10);
 
+      if (!mounted) return;
       setState(() {
-        mockProducts = products;
         _isLoading = false;
-      });
+        errorMessage = '';
 
-      print("Đã tải ${products.length} sản phẩm từ Firebase");
+        // ✅ Nếu append = true thì nối thêm vào danh sách hiện tại
+        if (append) {
+          mockProducts.addAll(provider.products);
+        } else {
+          mockProducts = provider.products;
+        }
+
+        // ✅ Nếu trả về ít hơn 10 => hết dữ liệu
+        _hasMore = provider.products.length == 10;
+        _currentPage = page;
+      });
     } catch (e) {
-      print('Lỗi khi tải sản phẩm: $e');
+      debugPrint('⚠️ Lỗi tải sản phẩm: $e');
       setState(() {
-        errorMessage = 'Không thể tải danh sách sản phẩm. Vui lòng thử lại!';
+        errorMessage = 'Không thể tải danh sách sản phẩm.';
         _isLoading = false;
       });
     }
   }
+
 
   @override
   void dispose() {
@@ -70,8 +82,6 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
   @override
   Widget build(BuildContext context) {
     final List<ProductModel> products = _isLoading ? [] : mockProducts;
-    const int totalPage = 5; // Giá trị cố định cho FE
-    const int currentPage = 1; // Giá trị cố định cho FE
 
     if (errorMessage.isNotEmpty && products.isEmpty) {
       final mediaQuery = MediaQuery.of(context);
@@ -139,12 +149,19 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
         const SizedBox(
           height: 20,
         ),
-        PaginationWidget(
-          currentPage: currentPage,
-          totalPages: totalPage,
-          onPageChanged: (page) {
-          },
-        ),
+        if (_hasMore && !_isLoading)
+          ElevatedButton(
+            onPressed: () async {
+              await _fetchProducts(page: _currentPage + 1, append: true);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size(180, 48),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Xem thêm', style: TextStyle(color: Colors.white)),
+          ),
+
         const SizedBox(
           height: 20,
         ),

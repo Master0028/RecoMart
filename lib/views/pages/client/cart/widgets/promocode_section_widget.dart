@@ -9,24 +9,22 @@ class PromocodeSectionWidget extends StatefulWidget {
   final List<dynamic> cartItems;
 
   @override
-  State<PromocodeSectionWidget> createState() => _PromocodeSectionWidgetState();
+  State<PromocodeSectionWidget> createState() =>
+      _PromocodeSectionWidgetState();
 }
 
 class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
-  String _selectedShippingMethod = 'Express delivery';
   double voucherDiscountMoney = 0;
-
-  final List<String> _shippingMethods = [
-    'Pickup at store',
-    'Express delivery',
-  ];
-
   bool _isVoucherApplied = false;
 
+  // 🧩 Loyalty Points
+  int _loyaltyPoints = 0;
+  final int _maxLoyaltyPoints = 2000;
+
   double get subtotal {
-    
     double total = 10000000;
     total -= voucherDiscountMoney;
+    total -= _loyaltyPoints * 1000; // ✅ Mỗi điểm giảm 1.000đ
     if (total < 0) total = 0;
     return total;
   }
@@ -41,7 +39,8 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               const SizedBox(width: 8),
               Text(
                 'Voucher applied: ${formatMoney(discount)}',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -56,27 +55,39 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
       );
     }
   }
-  
-  void _handleVoucherSelect() async {      
-      final result = 100000.0;
 
-      if (result != null) {
-          double newDiscount = result as double;
-          setState(() {
-              voucherDiscountMoney = newDiscount;
-              _isVoucherApplied = newDiscount > 0;
-          });
-          _showVoucherAppliedNotification(newDiscount);
-      }
-  }
-  
-  void _handleCheckout() {
-      context.push('/payment');
-      print('Checkout action triggered');
-      print('Shipping Method: $_selectedShippingMethod');
-      print('Voucher Discount: $voucherDiscountMoney');
+  void _handleVoucherSelect() async {
+    final result = 100000.0; // mock discount value
+
+    if (result != null) {
+      double newDiscount = result;
+      setState(() {
+        voucherDiscountMoney = newDiscount;
+        _isVoucherApplied = newDiscount > 0;
+      });
+      _showVoucherAppliedNotification(newDiscount);
+    }
   }
 
+  void _applyLoyaltyPoints(int points) {
+    if (points <= _maxLoyaltyPoints && points >= 0) {
+      setState(() {
+        _loyaltyPoints = points;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '🎁 Đã áp dụng $points điểm (giảm ${formatMoney(points * 1000)})',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,6 +104,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 🔹 Voucher Section
             InkWell(
               onTap: _handleVoucherSelect,
               borderRadius: BorderRadius.circular(16),
@@ -123,38 +135,41 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                       children: [
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return ScaleTransition(scale: animation, child: child);
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            return ScaleTransition(
+                                scale: animation, child: child);
                           },
                           child: voucherDiscountMoney > 0
                               ? Container(
-                                  key: ValueKey<double>(voucherDiscountMoney),
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 5, horizontal: 10),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.1), 
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppColors.primary, width: 1),
-                                  ),
-                                  child: Text(
-                                    '- ${formatMoney(voucherDiscountMoney)}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                )
+                            key: ValueKey<double>(voucherDiscountMoney),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 5, horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                  color: AppColors.primary, width: 1),
+                            ),
+                            child: Text(
+                              '- ${formatMoney(voucherDiscountMoney)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          )
                               : Container(
-                                  key: const ValueKey<String>('NoVoucher'),
-                                  child: Text(
-                                    'Select Voucher',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey.shade600,
-                                    ),
-                                  ),
-                                ),
+                            key: const ValueKey<String>('NoVoucher'),
+                            child: Text(
+                              'Select Voucher',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(width: 5),
                         Icon(
@@ -168,7 +183,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                 ),
               ),
             ),
-            
+
             const Divider(
               color: Colors.grey,
               height: 20,
@@ -177,58 +192,63 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               endIndent: 16,
             ),
 
+            // 🔹 Loyalty Points Section
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Row(
                     children: [
-                       Icon(
-                        FeatherIcons.truck,
+                      Icon(
+                        FeatherIcons.gift,
                         color: AppColors.primary,
                         size: 20,
                       ),
                       SizedBox(width: 10),
                       Text(
-                        'Shipping Method',
+                        'Loyalty Points',
                         style: TextStyle(
-                          fontSize: 16, 
-                          fontWeight: FontWeight.w600, 
-                          color: Colors.black87
-                        ),
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87),
                       ),
                     ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.primary),
-                        elevation: 1,
-                        dropdownColor: Colors.white,
-                        value: _selectedShippingMethod,
-                        style: const TextStyle(color: Colors.black, fontSize: 14),
-                        items: _shippingMethods.map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value, style: const TextStyle(fontSize: 14)),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          if (newValue != null) {
-                            setState(() {
-                              _selectedShippingMethod = newValue;
-                            });
-                          }
-                        },
+                  const SizedBox(height: 10),
+                  Text(
+                    'Bạn có $_maxLoyaltyPoints điểm. Mỗi điểm trị giá 1.000đ.',
+                    style: const TextStyle(fontSize: 14, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            labelText: 'Nhập số điểm muốn dùng',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            final entered = int.tryParse(value) ?? 0;
+                            if (entered <= _maxLoyaltyPoints && entered >= 0) {
+                              _applyLoyaltyPoints(entered);
+                            }
+                          },
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '-${formatMoney(_loyaltyPoints * 1000)}',
+                        style: TextStyle(
+                          color: AppColors.secondary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -241,9 +261,11 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               indent: 16,
               endIndent: 16,
             ),
-            
+
+            // 🔹 Total Pay
             Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
+              padding:
+              const EdgeInsets.only(left: 16, right: 16, bottom: 16, top: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -254,7 +276,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         const Text(
-                          'Total Pay',
+                          'Total',
                           style: TextStyle(fontSize: 16, color: Colors.black54),
                         ),
                         const SizedBox(height: 4),
@@ -267,30 +289,6 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 3,
-                    child: SizedBox(
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _handleCheckout,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16.0),
-                          ),
-                          elevation: 10, 
-                          shadowColor: AppColors.primary.withOpacity(0.5),
-                        ),
-                        child: const Text(
-                          'Checkout',
-                          style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
                     ),
                   ),
                 ],

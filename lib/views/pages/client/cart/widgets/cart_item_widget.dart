@@ -1,5 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
@@ -8,23 +10,7 @@ import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/views/pages/client/cart/widgets/quantity_widget.dart';
 
-class ProductForCartModelFE {
-  final String productVariantName;
-  final double unitPrice;
-  final double discount;
-  final int quantity;
-  final String productVariantId;
-  final dynamic images;
-
-  ProductForCartModelFE({
-    required this.productVariantName,
-    required this.unitPrice,
-    required this.discount,
-    required this.quantity,
-    required this.productVariantId,
-    required this.images,
-  });
-}
+import '../../../../../provider/cart_provider.dart';
 
 class CartItemWidget extends StatefulWidget {
   final bool isRemove;
@@ -47,13 +33,28 @@ class CartItemWidget extends StatefulWidget {
 class _CartItemWidgetState extends State<CartItemWidget> {
   bool isProcessing = false;
 
-  void _handleRemoveItem() {
-    showCustomSnackBar(
-      context,
-      'Delete product from cart successfully (FE Action)',
-      type: SnackBarType.success,
-    );
+  void _handleRemoveItem(String productId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      await Provider.of<CartProvider>(context, listen: false)
+          .removeItemFromCart(user.uid, productId);
+
+      showCustomSnackBar(
+        context,
+        '🗑️ Đã xóa sản phẩm khỏi giỏ hàng!',
+        type: SnackBarType.success,
+      );
+    } catch (e) {
+      showCustomSnackBar(
+        context,
+        'Lỗi khi xóa sản phẩm: $e',
+        type: SnackBarType.error,
+      );
+    }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +83,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                             borderRadius:
                                 BorderRadius.all(Radius.circular(10))),
                         child: CachedNetworkImage(
-                          imageUrl: widget.itemCart.images?.url ?? 'default_url',
+                          imageUrl: widget.itemCart.image ?? 'default_url',
                           fit: BoxFit.cover,
                           width: double.infinity,
                           height: 350, 
@@ -104,7 +105,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                             SizedBox(
                               width: 200,
                               child: Text(
-                                widget.itemCart.productVariantName ?? 'Product Name',
+                                widget.itemCart.productName ?? 'Product Name',
                                 style: const TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -141,9 +142,34 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                         : MainAxisAlignment.start,
                     children: [
                       QuantitySelector(
-                        productId: widget.itemCart.productVariantId ?? '0',
+                        productId: widget.itemCart.productId ?? '0',
                         initialQuantity: widget.itemCart.quantity ?? 1,
-                        onQuantityChanged: widget.onQuantityChanged ?? (val) {}, 
+                        onQuantityChanged: (newQuantity) async {
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user == null) return;
+
+                          setState(() => isProcessing = true);
+                          try {
+                            await Provider.of<CartProvider>(context, listen: false)
+                                .updateItemQuantity(user.uid, widget.itemCart.productId ?? '', newQuantity);
+
+                            showCustomSnackBar(
+                              context,
+                              '✅ Đã cập nhật số lượng!',
+                              type: SnackBarType.success,
+                            );
+
+                            widget.onQuantityChanged?.call(newQuantity);
+                          } catch (e) {
+                            showCustomSnackBar(
+                              context,
+                              '⚠️ Lỗi khi cập nhật: $e',
+                              type: SnackBarType.error,
+                            );
+                          } finally {
+                            setState(() => isProcessing = false);
+                          }
+                        },
                         maxQuantity: widget.maxQuantity,
                         isProcessing: isProcessing,
                         onChangeProgressing: (value) {
@@ -176,7 +202,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                 // REMOVE
                 if (!Responsive.isMobile(context))
                   IconButton(
-                    onPressed: _handleRemoveItem, 
+                    onPressed: () => _handleRemoveItem(widget.itemCart.productId ?? ''),
                     icon: const Icon(
                       Icons.delete,
                       color: Colors.red,

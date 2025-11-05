@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:recomart/components/custom/bottom_navigation_bar.dart';
 import 'package:recomart/components/custom/dropdown.dart';
 import 'package:recomart/components/custom/pagination.dart';
@@ -12,6 +13,8 @@ import 'package:recomart/consts/index.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
 import 'package:recomart/views/pages/client/login/widgets/button.dart';
+
+import '../../../../provider/product_provider.dart';
 
 class CategoryModelFE { final String id; final String name; CategoryModelFE({required this.id, required this.name}); }
 class BrandModelFE { final String id; final String name; BrandModelFE({required this.id, required this.name}); }
@@ -190,11 +193,23 @@ class _FilterWidgetState extends State<FilterWidget> {
   List<dynamic> brands = FE_BRANDS;
 
   Future<void> fetchData() async {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    await Future.wait([
+      provider.fetchCategories(),
+      provider.fetchBrands(),
+    ]);
+
     setState(() {
-      categories = FE_CATEGORIES;
-      brands = FE_BRANDS;
+      categories = provider.categoriesMap.entries
+          .map((entry) => CategoryModelFE(id: entry.key, name: entry.value))
+          .toList();
+
+      brands = provider.brandsMap.entries
+          .map((entry) => BrandModelFE(id: entry.key, name: entry.value))
+          .toList();
     });
-    print('FE: Filter data fetched (Stub)');
+
+    print('✅ Filter data fetched from Firebase (categories + brands)');
   }
 
   Map<String, bool> isExpanded = {
@@ -292,12 +307,11 @@ class _FilterWidgetState extends State<FilterWidget> {
                       text: 'Reset',
                       variantIsOutline: true,
                       onTap: (_) {
-                        print('FE: Filters reset');
+                        final provider = Provider.of<ProductProvider>(context, listen: false);
+                        provider.resetFilters();
+
                         setState(() {
-                          selectedItems = {
-                            'Category': {},
-                            'Brand': {},
-                          };
+                          selectedItems = {'Category': {}, 'Brand': {}};
                           _rangeValues = RangeValues(minPrice, maxPrice);
                           _selectedRatingValue = RatingFilterValue.all;
                         });
@@ -312,15 +326,39 @@ class _FilterWidgetState extends State<FilterWidget> {
                     child: MyButton(
                       text: 'Apply',
                       onTap: (_) {
-                        print('FE: Filters applied');
+                        final provider = Provider.of<ProductProvider>(context, listen: false);
+
+                        // Lấy ID danh mục / thương hiệu đầu tiên được chọn
+                        final selectedCategory = selectedItems['Category']?.isNotEmpty == true
+                            ? selectedItems['Category']!.first
+                            : null;
+                        final selectedBrand = selectedItems['Brand']?.isNotEmpty == true
+                            ? selectedItems['Brand']!.first
+                            : null;
+
+                        double minRating = 0;
+                        if (_selectedRatingValue == RatingFilterValue.fiveStar) minRating = 5;
+                        else if (_selectedRatingValue == RatingFilterValue.fourStar) minRating = 4;
+                        else if (_selectedRatingValue == RatingFilterValue.threeStar) minRating = 3;
+                        else if (_selectedRatingValue == RatingFilterValue.twoStar) minRating = 2;
+                        else if (_selectedRatingValue == RatingFilterValue.oneStar) minRating = 1;
+
+                        provider.updateFilters(
+                          categoryId: selectedCategory,
+                          brandId: selectedBrand,
+                          minPrice: _rangeValues.start,
+                          maxPrice: _rangeValues.end,
+                          minRating: minRating,
+                        );
+
                         if (Responsive.isMobile(context)) {
                           Navigator.pop(context);
                         }
                       },
                     ),
-                  )
+                  ),
                 ],
-              ),
+              )
             ],
           ),
         ),
@@ -626,26 +664,20 @@ class ProductList extends StatefulWidget {
 }
 
 class _ProductListState extends State<ProductList> {
-  bool _isLoading = false;
-  String errorMessage = '';
-
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductProvider>(context, listen: false).fetchProductsFilter(reset: true);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final products = FE_PRODUCTS; 
-    const totalPage = 5;
-    const currentPage = 1;
+    final provider = Provider.of<ProductProvider>(context);
+    final isMobile = Responsive.isMobile(context);
 
-    if (_isLoading) {
+    if (provider.loading && provider.products.isEmpty) {
       return GridView.builder(
         itemCount: 10,
         physics: const NeverScrollableScrollPhysics(),
@@ -661,42 +693,7 @@ class _ProductListState extends State<ProductList> {
       );
     }
 
-    if (errorMessage.isNotEmpty && products.isEmpty) { 
-      final mediaQuery = MediaQuery.of(context);
-      final remainingHeight = mediaQuery.size.height - 350;
-
-      return SizedBox(
-        height: remainingHeight,
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Image.asset(
-                'assets/images/No_Internet.png',
-                width: 250,
-                height: 250,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: 300,
-                child: Text(
-                  errorMessage,
-                  style: const TextStyle(
-                    color: Colors.black,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (products.isEmpty) {
+    if (provider.products.isEmpty) {
       return const Center(
         child: Text(
           'No products found!',
@@ -704,6 +701,8 @@ class _ProductListState extends State<ProductList> {
         ),
       );
     }
+
+    final products = provider.products;
 
     return Column(
       children: [
@@ -719,23 +718,27 @@ class _ProductListState extends State<ProductList> {
             mainAxisExtent: 350,
           ),
           itemBuilder: (context, index) {
-            final variant = products[index];
+            final p = products[index];
             return ProductView(
-              id: variant['id'],
-              categoryId: variant['categoryId'] ?? '',
-              name: variant['name'],
-              image: variant['imageUrl'],
-              price: variant['price'],
-              averageRating: variant['averageRating'].toString(),
+              id: p.id,
+              categoryId: p.categoryId,
+              name: p.name,
+              image: p.imageUrl,
+              price: p.price,
+              averageRating: p.averageRating.toString(),
             );
           },
         ),
         const SizedBox(height: 20),
         PaginationWidget(
-          currentPage: currentPage,
-          totalPages: totalPage,
+          currentPage: provider.currentPage,
+          totalPages: 999, // tạm đặt cao, vì mình kiểm tra hasMore
           onPageChanged: (page) async {
-            print('FE: Page changed to $page');
+            if (provider.hasMore) {
+              await provider.nextPage();
+            } else {
+              showCustomSnackBar(context, "No more products!");
+            }
           },
         ),
         const SizedBox(height: 20),

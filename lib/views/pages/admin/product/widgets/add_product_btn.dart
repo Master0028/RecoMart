@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../../../provider/product_provider.dart';
+import '../../../../../models/product.model.dart';
 import 'product_form.dart';
 
 class AddProductButton extends StatelessWidget {
-  const AddProductButton({super.key});
+  final VoidCallback onProductAdded; // ✅ callback từ cha (ProductTable)
+
+  const AddProductButton({super.key, required this.onProductAdded});
 
   void _handleAddProduct(BuildContext context) {
     showDialog(
@@ -18,24 +23,18 @@ class AddProductButton extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          content: Theme(
-            data: Theme.of(context).copyWith(
-              inputDecorationTheme: const InputDecorationTheme(
-                border: OutlineInputBorder(),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.orange, width: 2),
-                ),
-                labelStyle: TextStyle(color: Colors.black),
-                floatingLabelStyle: TextStyle(color: Colors.orange),
-              ),
-            ),
-            child: ProductForm(
-              buttonLabel: "Add Product",
-              onSubmit: (productData) {
-                print("FE Action: Attempt to add product with data: $productData");
-                Navigator.of(context).pop();
-              },
-            ),
+          content: ProductForm(
+            buttonLabel: "Add Product",
+            onSubmit: (productData) async {
+              print("Adding product: $productData");
+              // Sau khi thêm xong, gọi callback để cha reload data
+              onProductAdded();
+
+              // Đóng dialog an toàn
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+              });
+            },
           ),
         );
       },
