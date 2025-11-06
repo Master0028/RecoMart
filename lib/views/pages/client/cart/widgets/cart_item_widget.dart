@@ -50,7 +50,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
   void _handleRemoveItem() {
     showCustomSnackBar(
       context,
-      'Delete product from cart successfully (FE Action)',
+      'Delete product from cart successfully',
       type: SnackBarType.success,
     );
   }

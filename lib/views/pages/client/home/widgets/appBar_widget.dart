@@ -90,9 +90,29 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
       }).toList(),
       elevation: 8,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ).then((value) {
-      if (value != null) {
-        _handleMenuAction(value);
+    ).then((selectedValue) {
+      if (selectedValue != null) {
+        switch (selectedValue) {
+        case 'Home':
+          context.push('/home');
+          break;
+
+        case 'Profile':
+          context.push('/profile');
+          break;
+
+        case 'Cart':
+          context.push('/cart');
+          break;
+
+        case 'Support':
+          context.push('/support');
+          break;
+
+        case 'Logout':
+          context.go('/login');
+          break;
+        }
       }
     });
   }

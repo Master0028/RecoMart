@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:recomart/views/pages/admin/order/widgets/order_table.dart';
 
 // Dữ liệu giả lập
 final List<Map<String, dynamic>> FE_ORDERS_STUB = [
@@ -26,32 +27,6 @@ final List<Map<String, dynamic>> FE_ORDERS_STUB = [
   },
 ];
 
-class OrderManagementTable extends StatelessWidget {
-  final List<Map<String, dynamic>> orders;
-  const OrderManagementTable({super.key, required this.orders});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Order Management Table', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Text('${orders.length} orders loaded.'),
-        ],
-      ),
-    );
-  }
-}
-
-
 class OrderManagementScreen extends StatelessWidget {
   const OrderManagementScreen({super.key});
 
@@ -70,7 +45,6 @@ class OrderManagementScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (isLoading)
-              // ignore: dead_code
               const Center(child: CircularProgressIndicator())
             else if (orders.isEmpty)
               const Center(child: Text("No orders found"))
