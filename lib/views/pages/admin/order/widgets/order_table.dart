@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:intl/intl.dart';
-import 'dart:async';
 import 'order_detail_dialog.dart';
 
 class OrderManagementTable extends StatefulWidget {
@@ -19,427 +18,339 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   DateTimeRange? _customDateRange;
   int _currentPage = 1;
   final int _itemsPerPage = 20;
-  bool _isLoadingOrders = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
+    _searchController.addListener(() {
+      setState(() => _currentPage = 1);
+    });
   }
 
-  Future<void> _loadOrders() async {
-    setState(() {
-      _isLoadingOrders = false;
-    });
-    await Future.delayed(Duration.zero);
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   List<Map<String, dynamic>> get filteredOrders {
-    List<Map<String, dynamic>> sortedOrders = List.from(widget.orders)
+    List<Map<String, dynamic>> sorted = List.from(widget.orders)
       ..sort((a, b) {
-        DateTime dateA = DateTime.parse(a['orderDate'] ?? '2000-01-01');
-        DateTime dateB = DateTime.parse(b['orderDate'] ?? '2000-01-01');
+        final dateA = DateTime.tryParse(a['orderDate'] ?? '') ?? DateTime(2000);
+        final dateB = DateTime.tryParse(b['orderDate'] ?? '') ?? DateTime(2000);
         return dateB.compareTo(dateA);
       });
 
-    DateTime now = DateTime.now();
-    DateTime todayStart = DateTime(now.year, now.month, now.day);
-    DateTime yesterdayStart = todayStart.subtract(const Duration(days: 1));
-    DateTime weekStart = todayStart.subtract(Duration(days: now.weekday - 1));
-    DateTime monthStart = DateTime(now.year, now.month, 1);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    final monthStart = DateTime(now.year, now.month, 1);
 
     switch (_selectedFilter) {
       case "Today":
-        sortedOrders = sortedOrders.where((order) {
-          DateTime orderDate = DateTime.parse(order['orderDate'] ?? '2000-01-01');
-          return orderDate.isAfter(todayStart) || orderDate.isAtSameMomentAs(todayStart);
+        sorted = sorted.where((o) {
+          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          return d.isAfter(today.subtract(const Duration(seconds: 1))) || d.isAtSameMomentAs(today);
         }).toList();
         break;
       case "Yesterday":
-        sortedOrders = sortedOrders.where((order) {
-          DateTime orderDate = DateTime.parse(order['orderDate'] ?? '2000-01-01');
-          return orderDate.isAfter(yesterdayStart) && orderDate.isBefore(todayStart);
+        sorted = sorted.where((o) {
+          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          return d.isAfter(yesterday) && d.isBefore(today);
         }).toList();
         break;
       case "This Week":
-        sortedOrders = sortedOrders.where((order) {
-          DateTime orderDate = DateTime.parse(order['orderDate'] ?? '2000-01-01');
-          return orderDate.isAfter(weekStart) || orderDate.isAtSameMomentAs(weekStart);
+        sorted = sorted.where((o) {
+          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          return d.isAfter(weekStart.subtract(const Duration(seconds: 1)));
         }).toList();
         break;
       case "This Month":
-        sortedOrders = sortedOrders.where((order) {
-          DateTime orderDate = DateTime.parse(order['orderDate'] ?? '2000-01-01');
-          return orderDate.isAfter(monthStart) || orderDate.isAtSameMomentAs(monthStart);
+        sorted = sorted.where((o) {
+          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          return d.isAfter(monthStart.subtract(const Duration(seconds: 1)));
         }).toList();
         break;
       case "Custom":
         if (_customDateRange != null) {
-          sortedOrders = sortedOrders.where((order) {
-            DateTime orderDate = DateTime.parse(order['orderDate'] ?? '2000-01-01');
-            return orderDate.isAfter(_customDateRange!.start) &&
-                orderDate.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
+          sorted = sorted.where((o) {
+            final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+            return d.isAfter(_customDateRange!.start) &&
+                d.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
           }).toList();
         }
-        break;
-      default:
         break;
     }
 
     if (_searchController.text.isNotEmpty) {
-      sortedOrders = sortedOrders.where((order) {
-        return (order['id'] as String?)?.toLowerCase().contains(_searchController.text.toLowerCase()) ?? false;
+      final query = _searchController.text.toLowerCase();
+      sorted = sorted.where((o) {
+        return (o['id'] as String?)?.toLowerCase().contains(query) ?? false;
       }).toList();
     }
 
-    return sortedOrders;
+    return sorted;
   }
 
   List<Map<String, dynamic>> get paginatedOrders {
-    int startIndex = (_currentPage - 1) * _itemsPerPage;
-    int endIndex = startIndex + _itemsPerPage;
-    if (startIndex >= filteredOrders.length) return [];
-    return filteredOrders.sublist(
-        startIndex, endIndex > filteredOrders.length ? filteredOrders.length : endIndex);
+    final start = (_currentPage - 1) * _itemsPerPage;
+    final end = start + _itemsPerPage;
+    return filteredOrders.length > start
+        ? filteredOrders.sublist(start, end > filteredOrders.length ? filteredOrders.length : end)
+        : [];
   }
 
   Color _getStatusColor(String status) {
     switch (status.toUpperCase()) {
-      case 'PENDING':
-        return Colors.orange;
-      case 'SHIPPING':
-        return Colors.blue;
-      case 'DELIVERED':
-        return Colors.teal;
-      case 'CANCELLED':
-        return Colors.red;
-      default:
-        return Colors.blueGrey;
+      case 'PENDING': return Colors.orange.shade700;
+      case 'SHIPPING': return Colors.blue.shade700;
+      case 'DELIVERED': return Colors.teal.shade700;
+      case 'CANCELLED': return Colors.red.shade700;
+      default: return Colors.grey.shade600;
     }
   }
 
   void _showOrderDetail(Map<String, dynamic> order) {
     showDialog(
       context: context,
-      builder: (dialogContext) {
-        return OrderDetailDialog(
-          order: order,
-          onStatusChanged: (newStatus) async {
-            setState(() {
-              order['status'] = newStatus;
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Status updated successfully')),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  TableRow buildHeaderRow(List<String> headers, List<double> colWidths) {
-    return TableRow(
-      decoration: const BoxDecoration(color: Color.fromARGB(255, 240, 240, 240)),
-      children: List.generate(headers.length, (index) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
-          width: colWidths[index],
-          child: Text(
-            headers[index],
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        );
-      }),
-    );
-  }
-
-  TableRow buildOrderRow(Map<String, dynamic> order, List<double> colWidths) {
-    final isMobile = Responsive.isMobile(context);
-    final String orderId = order['id'] as String? ?? '';
-    final String firstFiveChars = orderId.length >= 5 ? orderId.substring(0, 5) : orderId;
-
-    final String orderDate = order['orderDate'] ?? '2000-01-01';
-    final double totalAmount = order['totalAmount'] as double? ?? 0.0;
-    final double discountApplied = order['discountApplied'] as double? ?? 0.0;
-
-    return TableRow(
-      children: isMobile
-          ? [
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText(firstFiveChars, colWidths[0]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText(
-              DateFormat('dd/MM/yyyy').format(DateTime.parse(orderDate)),
-              colWidths[1]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText('${totalAmount.toStringAsFixed(0)}đ', colWidths[2]),
-        ),
-      ]
-          : [
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText(firstFiveChars, colWidths[0]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText(order['customerName'] ?? 'Unknown', colWidths[1]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText(
-              DateFormat('dd/MM/yyyy').format(DateTime.parse(orderDate)),
-              colWidths[2]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText('${totalAmount.toStringAsFixed(0)}đ', colWidths[3]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: cellText('${discountApplied.toStringAsFixed(0)}đ', colWidths[4]),
-        ),
-        InkWell(
-          onTap: () => _showOrderDetail(order),
-          child: Container(
-            width: colWidths[5],
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Chip(
-              label: Text(
-                order['status'] ?? 'PENDING',
-                style: const TextStyle(color: Colors.white),
-              ),
-              backgroundColor: _getStatusColor(order['status'] ?? 'PENDING'),
+      barrierDismissible: false,
+      builder: (_) => OrderDetailDialog(
+        order: Map.from(order), // Clone để tránh thay đổi gốc
+        onStatusChanged: (newStatus) {
+          setState(() {
+            order['status'] = newStatus;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Cập nhật trạng thái thành công: $newStatus"),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
             ),
-          ),
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 
-  Widget cellText(String text, double width) {
+  Widget _buildHeader(String title, double width, {bool isMobile = false}) {
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+      ),
+      child: Text(
+        title,
+        textAlign: isMobile ? TextAlign.left : TextAlign.center,
+        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+      ),
+    );
+  }
+
+  Widget _buildCell(String text, double width, {Color? color, bool bold = false}) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       child: Text(
         text,
+        style: TextStyle(
+          fontSize: 13,
+          color: color ?? Colors.black87,
+          fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
+        ),
         overflow: TextOverflow.ellipsis,
         maxLines: 1,
-        softWrap: false,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = Responsive.isMobile(context);
-        final double tableWidth = constraints.maxWidth;
+    final isMobile = Responsive.isMobile(context);
+    final width = MediaQuery.of(context).size.width;
+    final colCount = isMobile ? 3 : 6;
+    final colWidth = width / colCount;
 
-        final List<double> colWidths = isMobile
-            ? [tableWidth * 0.3, tableWidth * 0.3, tableWidth * 0.3]
-            : List.generate(6, (index) => tableWidth / 6);
-
-        final headers = isMobile
-            ? ["Order ID", "Date", "Total Amount"]
-            : [
-          "Order ID",
-          "Customer",
-          "Date",
-          "Total Amount",
-          "Discount",
-          "Status",
-        ];
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withAlpha(50),
-                spreadRadius: 2,
-                blurRadius: 5,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_isLoadingOrders)
-                const Center(child: CircularProgressIndicator()),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    "Order List",
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    return Card(
+      elevation: 6,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header + Controls
+            Row(
+              children: [
+                const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Spacer(),
+                // Search
+                SizedBox(
+                  width: isMobile ? 140 : 220,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Tìm mã đơn...",
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      isDense: true,
+                    ),
                   ),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: isMobile ? 120 : 200,
-                        height: 36,
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(horizontal: isMobile ? 8 : 12),
-                            hintText: "Search by Order ID",
-                            prefixIcon: Icon(Icons.search, size: isMobile ? 16 : 18),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                              borderSide: const BorderSide(color: Colors.orange),
-                            ),
-                            hintStyle: TextStyle(fontSize: isMobile ? 12 : 14),
-                            labelStyle: TextStyle(fontSize: isMobile ? 12 : 14),
-                          ),
-                          style: TextStyle(fontSize: isMobile ? 12 : 14),
-                          onChanged: (value) {
-                            setState(() {
-                              _currentPage = 1;
-                              _loadOrders();
-                            });
-                          },
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: isMobile ? 120 : 200,
-                        child: DropdownMenu<String>(
-                          initialSelection: _selectedFilter,
-                          onSelected: (value) async {
-                            if (value == "Custom") {
-                              final DateTimeRange? picked = await showDateRangePicker(
-                                context: context,
-                                firstDate: DateTime(2000),
-                                lastDate: DateTime.now(),
-                                initialDateRange: _customDateRange,
-                              );
-                              if (picked != null) {
-                                setState(() {
-                                  _customDateRange = picked;
-                                  _selectedFilter = value!;
-                                  _currentPage = 1;
-                                  _loadOrders();
-                                });
-                              }
-                            } else {
-                              setState(() {
-                                _selectedFilter = value!;
-                                _customDateRange = null;
-                                _currentPage = 1;
-                                _loadOrders();
-                              });
-                            }
-                          },
-                          dropdownMenuEntries: [
-                            "All",
-                            "Today",
-                            "Yesterday",
-                            "This Week",
-                            "This Month",
-                            "Custom"
-                          ]
-                              .map((value) => DropdownMenuEntry(
-                            value: value,
-                            label: value,
-                          ))
-                              .toList(),
-                          textStyle: TextStyle(
-                            fontSize: isMobile ? 12 : 15,
-                            color: Colors.black,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          menuStyle: const MenuStyle(
-                            elevation: WidgetStatePropertyAll(4),
-                            backgroundColor: WidgetStatePropertyAll(Colors.white),
-                          ),
-                          inputDecorationTheme: InputDecorationTheme(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: BorderSide(color: Colors.orange, width: 2),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(30),
-                              borderSide: const BorderSide(color: Colors.grey),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: isMobile ? 8 : 16, vertical: isMobile ? 0 : 12),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              ConstrainedBox(
-                constraints: BoxConstraints(
-                  maxWidth: tableWidth,
-                  maxHeight: MediaQuery.of(context).size.height * 0.8,
                 ),
-                child: Table(
-                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                  columnWidths: {
-                    for (int i = 0; i < colWidths.length; i++) i: FixedColumnWidth(colWidths[i]),
-                  },
-                  border: TableBorder.all(color: Colors.grey.shade300),
-                  children: [
-                    buildHeaderRow(headers, colWidths),
-                    ...paginatedOrders.map((order) => buildOrderRow(order, colWidths)),
-                  ],
+                const SizedBox(width: 12),
+                // Filter
+                SizedBox(
+                  width: isMobile ? 130 : 180,
+                  child: DropdownButtonFormField<String>(
+                    value: _selectedFilter,
+                    decoration: InputDecoration(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    items: ["All", "Today", "Yesterday", "This Week", "This Month", "Custom"]
+                        .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
+                        .toList(),
+                    onChanged: (value) async {
+                      if (value == "Custom") {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime.now(),
+                          initialDateRange: _customDateRange,
+                        );
+                        if (picked != null && mounted) {
+                          setState(() {
+                            _customDateRange = picked;
+                            _selectedFilter = value!;
+                            _currentPage = 1;
+                          });
+                        }
+                      } else if (value != null) {
+                        setState(() {
+                          _selectedFilter = value;
+                          _customDateRange = null;
+                          _currentPage = 1;
+                        });
+                      }
+                    },
+                  ),
                 ),
+              ],
+            ),
+
+            const SizedBox(height: 16),
+
+            // Table
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (filteredOrders.isEmpty)
+              const Center(child: Text("Không có đơn hàng nào", style: TextStyle(color: Colors.grey)))
+            else
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                      child: Column(
+                        children: [
+                          // Header Row
+                          Row(
+                            children: isMobile
+                                ? ["Mã đơn", "Ngày", "Tổng tiền"]
+                                    .map((h) => _buildHeader(h, colWidth, isMobile: true))
+                                    .toList()
+                                : ["Mã đơn", "Khách hàng", "Ngày", "Tổng tiền", "Giảm giá", "Trạng thái"]
+                                    .map((h) => _buildHeader(h, colWidth))
+                                    .toList(),
+                          ),
+                          // Data Rows
+                          ...paginatedOrders.map((order) {
+                            final id = (order['id'] as String?) ?? '';
+                            final shortId = id.length > 8 ? '${id.substring(0, 8)}...' : id;
+                            final date = DateTime.tryParse(order['orderDate'] ?? '') ?? DateTime.now();
+                            final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
+                            final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
+
+                            return InkWell(
+                              onTap: () => _showOrderDetail(order),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                  color: Colors.white,
+                                ),
+                                child: Row(
+                                  children: isMobile
+                                      ? [
+                                          _buildCell(shortId, colWidth, bold: true),
+                                          _buildCell(DateFormat('dd/MM/yyyy').format(date), colWidth),
+                                          _buildCell('${NumberFormat('#,##0', 'vi').format(total)}đ', colWidth, color: Colors.blue, bold: true),
+                                        ]
+                                      : [
+                                          _buildCell(shortId, colWidth, bold: true),
+                                          _buildCell(order['customerName'] ?? 'Khách lẻ', colWidth),
+                                          _buildCell(DateFormat('dd/MM/yyyy').format(date), colWidth),
+                                          _buildCell('${NumberFormat('#,##0', 'vi').format(total)}đ', colWidth, color: Colors.blue, bold: true),
+                                          _buildCell('-${NumberFormat('#,##0', 'vi').format(discount)}đ', colWidth, color: Colors.redAccent),
+                                          Container(
+                                            width: colWidth,
+                                            padding: const EdgeInsets.symmetric(vertical: 8),
+                                            child: Chip(
+                                              label: Text(
+                                                order['status']?.toString().toUpperCase() ?? 'PENDING',
+                                                style: const TextStyle(color: Colors.white, fontSize: 11),
+                                              ),
+                                              backgroundColor: _getStatusColor(order['status'] ?? 'PENDING'),
+                                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                                            ),
+                                          ),
+                                        ],
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back),
-                    onPressed: _currentPage > 1
-                        ? () {
-                      setState(() {
-                        _currentPage--;
-                        _loadOrders();
-                      });
-                    }
-                        : null,
+
+            const SizedBox(height: 16),
+
+            // Pagination
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  onPressed: _currentPage > 1
+                      ? () => setState(() => _currentPage--)
+                      : null,
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Text("Page $_currentPage"),
-                  IconButton(
-                    icon: const Icon(Icons.arrow_forward),
-                    onPressed: (_currentPage * _itemsPerPage) < filteredOrders.length
-                        ? () {
-                      setState(() {
-                        _currentPage++;
-                        _loadOrders();
-                      });
-                    }
-                        : null,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                  child: Text("Trang $_currentPage / ${((filteredOrders.length - 1) / _itemsPerPage).ceil()}"),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  onPressed: (_currentPage * _itemsPerPage) < filteredOrders.length
+                      ? () => setState(() => _currentPage++)
+                      : null,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

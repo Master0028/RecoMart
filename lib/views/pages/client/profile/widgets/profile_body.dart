@@ -123,10 +123,13 @@ class _ProfileBodyState extends State<ProfileBody> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(FeatherIcons.award, color: Colors.white, size: 14),
-                            const SizedBox(width: 5),
-                            Text(
-                              '${point.toStringAsFixed(0)} Points',
-                              style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${point.toStringAsFixed(0)} Points',
+                                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),

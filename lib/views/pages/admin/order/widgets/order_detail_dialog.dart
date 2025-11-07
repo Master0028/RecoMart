@@ -41,7 +41,6 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
     final double discountApplied = widget.order['discountApplied'] as double? ?? 0.0;
     final List<dynamic> products = widget.order['products'] as List<dynamic>? ?? [];
 
-
     return AlertDialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(
