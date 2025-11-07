@@ -12,6 +12,8 @@ import 'package:recomart/services/product.service.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+import '../views/pages/admin/brand/widgets/brand_table.dart';
+
 class ProductProvider with ChangeNotifier {
   List<ProductModel> _products = [];
   List<BrandModel> brands = [];

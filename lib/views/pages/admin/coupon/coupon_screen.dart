@@ -1,22 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/coupon_provider.dart';
 import 'package:recomart/views/pages/admin/coupon/widgets/add_coupon_btn.dart';
 import 'package:recomart/views/pages/admin/coupon/widgets/coupon_table.dart';
+import 'package:recomart/models/coupon.model.dart';
 
-final List<Map<String, dynamic>> FE_COUPONS_STUB = [
-  {'id': 'c1', 'code': 'SALE2024', 'discount': 0.1, 'min_amount': 500000},
-  {'id': 'c2', 'code': 'FREESHIP', 'discount': 20000, 'min_amount': 0},
-];
+class CouponManagementScreen extends StatefulWidget {
+  const CouponManagementScreen({super.key});
 
-class CouponManagementScreen extends StatelessWidget {
-  CouponManagementScreen({super.key});
+  @override
+  State<CouponManagementScreen> createState() => _CouponManagementScreenState();
+}
 
-  final bool _isLoading = false;
-  final String? _errorMessage = null;
-  
-  final List<Map<String, dynamic>> _coupons = FE_COUPONS_STUB;
+class _CouponManagementScreenState extends State<CouponManagementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 🔹 Lấy dữ liệu ngay khi mở trang
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CouponProvider>(context, listen: false).fetchCoupons();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<CouponProvider>(context);
+    final List<CouponModel> coupons = provider.coupons;
+    final bool isLoading = provider.loading;
+    final String? errorMessage = provider.error;
 
     return Container(
       color: Colors.grey[100],
@@ -29,17 +40,15 @@ class CouponManagementScreen extends StatelessWidget {
           children: [
             const AddCouponButton(),
             const SizedBox(height: 16),
-            
-            if (_isLoading)
+
+            if (isLoading)
               const Center(child: CircularProgressIndicator())
-            else if (_errorMessage != null)
-              Center(child: Text(_errorMessage!))
-            else if (_coupons.isEmpty)
-              const Center(child: Text('No coupons found'))
-            else
-              CouponTable(
-                coupons: _coupons,
-              ),
+            else if (errorMessage != null)
+              Center(child: Text(errorMessage))
+            else if (coupons.isEmpty)
+                const Center(child: Text('Không có mã giảm giá nào'))
+              else
+                CouponTable(coupons: coupons),
           ],
         ),
       ),

@@ -1,24 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/category_provider.dart';
 import 'package:recomart/views/pages/admin/category/widgets/add_category_btn.dart';
 import 'package:recomart/views/pages/admin/category/widgets/category_table.dart';
-
-final List<Map<String, dynamic>> FE_CATEGORIES_DATA_STUB = [
-  {
-    'id': 'c1', 
-    'name': 'Laptop & Notebooks',
-    'description': 'High performance machines.',
-    'isActive': true,
-    'image': {'url': 'https://placehold.co/40x40.png'},
-  },
-  {
-    'id': 'c2', 
-    'name': 'Monitors & Displays',
-    'description': 'Visual clarity devices.',
-    'isActive': false,
-    'image': {'url': 'https://placehold.co/40x40.png'},
-  },
-];
-const int FE_CATEGORIES_COUNT = 2;
 
 class CategoryManagementScreen extends StatefulWidget {
   const CategoryManagementScreen({super.key});
@@ -28,10 +12,17 @@ class CategoryManagementScreen extends StatefulWidget {
 }
 
 class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 🧠 Lấy dữ liệu thật từ Firestore khi mở màn hình
+    Future.microtask(() =>
+        Provider.of<CategoryProvider>(context, listen: false).fetchCategories());
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<dynamic> categories = FE_CATEGORIES_DATA_STUB;
+    final categoryProvider = Provider.of<CategoryProvider>(context);
 
     return Container(
       color: Colors.grey[100],
@@ -42,9 +33,17 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AddCategoryButton(), 
+            const AddCategoryButton(),
             const SizedBox(height: 16),
-            CategoryTable(categories: categories as dynamic), 
+
+            /// 🔹 Nếu đang tải thì hiển thị loading
+            if (categoryProvider.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (categoryProvider.categories.isEmpty)
+              const Text("Không có danh mục nào trong Firestore.")
+            else
+            /// 🔹 Giữ nguyên CategoryTable (chỉ truyền dữ liệu thật)
+              CategoryTable(categories: categoryProvider.categories),
           ],
         ),
       ),

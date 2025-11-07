@@ -1,21 +1,17 @@
+import 'dart:convert';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../../../../../models/brand.model.dart';
+import '../../../../../provider/brand_provider.dart';
 
 class BrandForm extends StatefulWidget {
-  final void Function(Map<String, dynamic>) onSubmit;
-  final void Function()? onDelete;
-  final String buttonLabel;
-  final Map<String, dynamic>? initialBrand;
+  final BrandModel? initialBrand; // null = thêm mới, có giá trị = sửa
 
-  const BrandForm({
-    super.key,
-    required this.onSubmit,
-    this.onDelete,
-    required this.buttonLabel,
-    this.initialBrand,
-  });
+  const BrandForm({super.key, this.initialBrand});
 
   @override
   State<BrandForm> createState() => _BrandFormState();
@@ -23,10 +19,10 @@ class BrandForm extends StatefulWidget {
 
 class _BrandFormState extends State<BrandForm> {
   late TextEditingController nameController;
+  bool isActive = true;
   File? imageFile;
   Uint8List? imageBytes;
-  Map<String, dynamic>? brandImage;
-  bool isActive = true;
+  String? imageUrl;
   bool isLoading = false;
 
   final ImagePicker _picker = ImagePicker();
@@ -34,144 +30,112 @@ class _BrandFormState extends State<BrandForm> {
   @override
   void initState() {
     super.initState();
-    final data = widget.initialBrand;
-
-    nameController = TextEditingController(text: data?['brand_name']?.toString() ?? '');
-    isActive = data?['isActive'] is bool ? data!['isActive'] : true;
-
-    if (data?['brand_image'] != null && data!['brand_image'] is Map<String, dynamic>) {
-      final imageMap = data['brand_image'] as Map<String, dynamic>;
-      if (imageMap['url'] != null && imageMap['url'].toString().isNotEmpty) {
-        brandImage = {
-          'url': imageMap['url'].toString(),
-          'public_id': imageMap['public_id']?.toString() ?? '',
-        };
-      }
-    }
+    final brand = widget.initialBrand;
+    nameController = TextEditingController(text: brand?.name ?? '');
+    imageUrl = brand?.imageUrl ?? '';
+    isActive = brand?.isActive ?? true;
   }
 
+  /// 🟢 Chọn ảnh từ gallery (chỉ demo, chưa upload thực)
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
 
-    if (pickedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No image selected.')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final bytes = await picked.readAsBytes();
+      final uri = Uri.parse("https://api.cloudinary.com/v1_1/dqiclelb9/image/upload");
+      final uploadPreset = "dacntt";
 
-      const String FE_IMAGE_URL = 'https://placehold.co/600x400.png'; 
-      const String FE_PUBLIC_ID = 'fe_public_id';
-      
-      final bytes = await pickedFile.readAsBytes();
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: picked.name,
+        ));
 
-      setState(() {
-        imageBytes = bytes;
-        imageFile = null;
-        brandImage = {
-          'url': FE_IMAGE_URL,
-          'public_id': FE_PUBLIC_ID,
-        };
-        isLoading = false;
-      });
-      
+      final response = await request.send();
+      final resBody = await response.stream.bytesToString();
+      final data = jsonDecode(resBody);
+
+      if (response.statusCode == 200 && data['secure_url'] != null) {
+        setState(() {
+          imageBytes = bytes;
+          imageUrl = data['secure_url'];
+          imageFile = null;
+          isLoading = false;
+        });
+      } else {
+        throw Exception("Upload failed: ${data['error']}");
+      }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Image picking failed.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint("❌ Upload Cloudinary failed: $e");
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+      }
     }
   }
 
+  /// 🟢 Submit thêm hoặc cập nhật
   Future<void> _handleSubmit() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    try {
-      final brandName = nameController.text.trim();
-      if (brandName.isEmpty) {
-        throw Exception('Tên thương hiệu không được để trống');
-      }
-      if (brandImage == null || brandImage!['url'] == null || brandImage!['url'].isEmpty) {
-        throw Exception('URL hình ảnh không được để trống');
-      }
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      final brandData = {
-        'brand_name': brandName,
-        'brand_image': brandImage!,
-        'isActive': isActive,
-        '_id': widget.initialBrand != null ? widget.initialBrand!['_id'] : 'FE_NEW_ID',
-      };
-      
-      widget.onSubmit(brandData); 
-      
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thương hiệu đã được lưu thành công')),
-      );
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Lưu thương hiệu thất bại: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _handleDelete() async {
-    if (widget.initialBrand == null || widget.onDelete == null) return;
-
-    final brandId = widget.initialBrand!['_id']?.toString();
-    if (brandId == null || brandId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ID thương hiệu không hợp lệ')),
-      );
+    final brandProvider = Provider.of<BrandProvider>(context, listen: false);
+    final name = nameController.text.trim();
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Tên thương hiệu không được trống')));
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final newBrand = BrandModel(
+        id: widget.initialBrand?.id ?? '', // Firestore tự tạo nếu thêm mới
+        name: name,
+        isActive: isActive,
+        imageUrl: imageUrl ?? '',
+      );
 
-      widget.onDelete!();
-      
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Thương hiệu đã được xóa thành công')),
-      );
+      if (widget.initialBrand == null) {
+        await brandProvider.addBrand(newBrand);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('✅ Thêm thương hiệu thành công')));
+      } else {
+        await brandProvider.updateBrand(newBrand);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('✅ Cập nhật thương hiệu thành công')));
+      }
+
+      Navigator.pop(context); // Đóng dialog sau khi submit
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Xóa thương hiệu thất bại.')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ Lỗi: $e')));
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  /// 🟢 Xoá thương hiệu
+  Future<void> _handleDelete() async {
+    if (widget.initialBrand == null) return;
+
+    final brandProvider = Provider.of<BrandProvider>(context, listen: false);
+
+    setState(() => isLoading = true);
+    try {
+      await brandProvider.deleteBrand(widget.initialBrand!.id);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('🗑️ Xoá thương hiệu thành công')));
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('❌ Lỗi xoá: $e')));
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -195,30 +159,10 @@ class _BrandFormState extends State<BrandForm> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: brandImage != null && brandImage!['url'] != null && brandImage!['url'].isNotEmpty
-                          ? Image.network(
-                        brandImage!['url'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
+                      child: imageUrl != null && imageUrl!.isNotEmpty
+                          ? Image.network(imageUrl!, fit: BoxFit.cover)
                           : imageBytes != null
-                          ? Image.memory(
-                        imageBytes!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : imageFile != null && !kIsWeb
-                          ? Image.file(
-                        imageFile!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
+                          ? Image.memory(imageBytes!, fit: BoxFit.cover)
                           : const Center(child: Text('No Image')),
                     ),
                     const SizedBox(height: 20),
@@ -228,10 +172,8 @@ class _BrandFormState extends State<BrandForm> {
                         backgroundColor: Colors.blue,
                         minimumSize: const Size(double.infinity, 48),
                       ),
-                      child: const Text(
-                        'Chọn Hình Ảnh',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text('Choose Image',
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -245,7 +187,7 @@ class _BrandFormState extends State<BrandForm> {
                       TextField(
                         controller: nameController,
                         decoration: const InputDecoration(
-                          labelText: 'Tên Thương Hiệu',
+                          labelText: 'Brand Name',
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -254,9 +196,9 @@ class _BrandFormState extends State<BrandForm> {
                         children: [
                           Checkbox(
                             value: isActive,
-                            onChanged: (value) => setState(() => isActive = value!),
+                            onChanged: (v) => setState(() => isActive = v!),
                           ),
-                          const Text('Kích Hoạt'),
+                          const Text('Active'),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -271,27 +213,29 @@ class _BrandFormState extends State<BrandForm> {
                                 minimumSize: const Size(double.infinity, 48),
                               ),
                               child: Text(
-                                widget.buttonLabel,
-                                style: const TextStyle(color: Colors.white),
+                                widget.initialBrand == null
+                                    ? 'Add Brand'
+                                    : 'Update Brand',
+                                style:
+                                const TextStyle(color: Colors.white),
                               ),
                             ),
                           ),
-                          if (widget.onDelete != null) ...[
+                          if (widget.initialBrand != null) ...[
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _handleDelete,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
-                                  minimumSize: const Size(double.infinity, 48),
+                                  minimumSize:
+                                  const Size(double.infinity, 48),
                                 ),
-                                child: const Text(
-                                  'Xóa',
-                                  style: TextStyle(color: Colors.white),
-                                ),
+                                child: const Text('Delete',
+                                    style: TextStyle(color: Colors.white)),
                               ),
                             ),
-                          ],
+                          ]
                         ],
                       ),
                     ],
@@ -301,9 +245,7 @@ class _BrandFormState extends State<BrandForm> {
             ],
           ),
           if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
-            ),
+            const Center(child: CircularProgressIndicator()),
         ],
       ),
     );

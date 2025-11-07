@@ -1,39 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/utils/responsive.dart';
-import 'category_form.dart'; 
-
-class CategoryImage {
-  final String url;
-  final String? publicId;
-
-  CategoryImage({required this.url, this.publicId});
-  Map<String, dynamic> toMap() => {'url': url, 'public_id': publicId};
-}
-
-class CategoryModel {
-  final String id;
-  final String name;
-  final String? description;
-  final bool isActive;
-  final CategoryImage? image;
-
-  CategoryModel({
-    required this.id,
-    required this.name,
-    this.description,
-    required this.isActive,
-    this.image,
-  });
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'category_name': name,
-    'category_description': description,
-    'isActive': isActive,
-    'category_image': image?.toMap(),
-  };
-}
+import '../../../../../models/category.model.dart';
+import 'category_form.dart';
 
 class CategoryTable extends StatefulWidget {
   final List<dynamic> categories; 
@@ -47,27 +16,43 @@ class CategoryTable extends StatefulWidget {
 class _CategoryTableState extends State<CategoryTable> {
   final TextEditingController _searchController = TextEditingController();
 
- List<CategoryModel> get filteredCategories {
-    List<CategoryModel> allCategories = widget.categories.map((data) {
+  List<CategoryModel> get filteredCategories {
+    final List<CategoryModel> allCategories = widget.categories.map<CategoryModel>((item) {
+      if (item is CategoryModel) {
+        return item;
+      } else if (item is Map<String, dynamic>) {
+        // chuyển Map -> CategoryModel (chấp nhận id int hoặc string)
+        final dynamic rawId = item['id'];
+        final int parsedId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
+
         return CategoryModel(
-            id: data['id'] ?? '',
-            name: data['name'] ?? 'Unknown',
-            description: data['description'],
-            isActive: data['isActive'] ?? false,
-            image: (data['image'] != null && data['image']['url'] != null) 
-                   ? CategoryImage(url: data['image']['url']) : null,
+          id: parsedId,
+          name: item['name'] ?? 'Unknown',
+          description: item['description'],
+          isActive: item['isActive'],
+          // nếu trước đây còn lưu kiểu { image: { url: ... } } thì fallback:
+          imageUrl: item['imageUrl'] ?? (item['image']?['url'] ?? ''),
+          // nếu CategoryModel của bạn có trường isActive:
+          // isActive: item['isActive'] ?? true,
         );
+      } else {
+        // trường hợp không mong đợi
+        return CategoryModel(
+          id: 0,
+          name: 'Unknown',
+          description: null,
+          isActive: false,
+          imageUrl: '',
+          // isActive: true,
+        );
+      }
     }).toList();
-    
+
     if (_searchController.text.isEmpty) {
       return allCategories;
-    } else {
-      return allCategories.where((category) {
-        return category.name
-            .toLowerCase()
-            .contains(_searchController.text.toLowerCase());
-      }).toList();
     }
+    final kw = _searchController.text.toLowerCase();
+    return allCategories.where((c) => c.name.toLowerCase().contains(kw)).toList();
   }
 
   Color _getStatusColor(String status) {
@@ -82,8 +67,8 @@ class _CategoryTableState extends State<CategoryTable> {
   }
 
   void _showCategoryForm(CategoryModel category) {
-    print('showCategoryForm: Category data = ${category.toJson()} (FE Action)'); 
-    
+    print('showCategoryForm: Category data = ${category.toJson()} (FE Action)');
+
     showDialog(
       context: context,
       builder: (context) {
@@ -110,7 +95,7 @@ class _CategoryTableState extends State<CategoryTable> {
             ),
             child: CategoryForm(
               buttonLabel: 'Save',
-              initialCategory: category.toJson(),
+              initialCategory: category,
               onSubmit: (updatedCategoryData) async {
                 print('Submit category update: $updatedCategoryData (FE Action)');
                 await Future.delayed(const Duration(milliseconds: 300));
@@ -156,7 +141,7 @@ class _CategoryTableState extends State<CategoryTable> {
       children: [
         InkWell(
           onTap: () => _showCategoryForm(category),
-          child: cellText(getShortId(category.id), colWidths[0]),
+          child: cellText(getShortId(category.id.toString()), colWidths[0]),
         ),
         InkWell(
           onTap: () => _showCategoryForm(category),
@@ -209,9 +194,9 @@ class _CategoryTableState extends State<CategoryTable> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
-            child: category.image?.url != null && category.image!.url.isNotEmpty
+            child: category.imageUrl != null && category.imageUrl.isNotEmpty
                 ? Image.network(
-              category.image!.url,
+              category.imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -240,7 +225,7 @@ class _CategoryTableState extends State<CategoryTable> {
                   maxLines: 2,
                 ),
                 Text(
-                  'ID: ${getShortId(category.id)}',
+                  'ID: ${getShortId(category.id.toString())}',
                   style: TextStyle(
                     fontSize: 12,
                     color: Colors.grey[600],

@@ -1,13 +1,19 @@
+import 'dart:convert';
 import 'dart:io' show File;
 import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
+import '../../../../../models/category.model.dart';
+import '../../../../../provider/category_provider.dart';
 
 class CategoryForm extends StatefulWidget {
   final void Function(Map<String, dynamic>) onSubmit;
   final void Function()? onDelete;
   final String buttonLabel;
-  final Map<String, dynamic>? initialCategory;
+  final CategoryModel? initialCategory;
 
   const CategoryForm({
     super.key,
@@ -26,7 +32,7 @@ class _CategoryFormState extends State<CategoryForm> {
   late TextEditingController descriptionController;
   File? imageFile;
   Uint8List? imageBytes;
-  Map<String, dynamic>? categoryImage;
+  String? imageUrl;
   bool isActive = true;
   bool isLoading = false;
 
@@ -35,147 +41,125 @@ class _CategoryFormState extends State<CategoryForm> {
   @override
   void initState() {
     super.initState();
-    final data = widget.initialCategory;
 
-    nameController = TextEditingController(text: data?['category_name']?.toString() ?? '');
-    descriptionController = TextEditingController(text: data?['category_description']?.toString() ?? '');
-    isActive = data?['isActive'] is bool ? data!['isActive'] : true;
-
-    if (data?['category_image'] != null && data!['category_image'] is Map<String, dynamic>) {
-      final imageMap = data['category_image'] as Map<String, dynamic>;
-      if (imageMap['url'] != null && imageMap['url'].toString().isNotEmpty) {
-        categoryImage = {
-          'url': imageMap['url'].toString(),
-          'public_id': imageMap['public_id']?.toString() ?? '',
-        };
-      }
-    }
+    nameController =
+        TextEditingController(text: widget.initialCategory?.name ?? '');
+    descriptionController =
+        TextEditingController(text: widget.initialCategory?.description ?? '');
+    imageUrl = widget.initialCategory?.imageUrl;
   }
 
-  // Logic chọn và xử lý hình ảnh (FE Only)
+  /// 🔹 Chọn và upload ảnh thật lên Cloudinary
   Future<void> _pickImage() async {
-    final XFile? pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked == null) return;
 
-    if (pickedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No image selected.')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
+      final bytes = await picked.readAsBytes();
+      final uri = Uri.parse("https://api.cloudinary.com/v1_1/dqiclelb9/image/upload");
+      final uploadPreset = "dacntt";
 
-      const String FE_IMAGE_URL = 'https://placehold.co/600x400.png'; 
-      const String FE_PUBLIC_ID = 'fe_public_id';
-      
-      final bytes = await pickedFile.readAsBytes();
+      final request = http.MultipartRequest('POST', uri)
+        ..fields['upload_preset'] = uploadPreset
+        ..files.add(http.MultipartFile.fromBytes(
+          'file',
+          bytes,
+          filename: picked.name,
+        ));
 
-      setState(() {
-        imageBytes = bytes;
-        imageFile = null;
-        categoryImage = {
-          'url': FE_IMAGE_URL,
-          'public_id': FE_PUBLIC_ID,
-        };
-        isLoading = false;
-      });
-      
+      final response = await request.send();
+      final resBody = await response.stream.bytesToString();
+      final data = jsonDecode(resBody);
+
+      if (response.statusCode == 200 && data['secure_url'] != null) {
+        setState(() {
+          imageBytes = bytes;
+          imageUrl = data['secure_url'];
+          imageFile = null;
+          isLoading = false;
+        });
+      } else {
+        throw Exception("Upload failed: ${data['error']}");
+      }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: Image picking failed.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      debugPrint("❌ Upload Cloudinary failed: $e");
+      if (mounted) {
+        setState(() => isLoading = false);
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+      }
     }
   }
 
-  // Logic Submit/Update (FE Only)
+  // 💾 Lưu lên Firebase qua Provider
   Future<void> _handleSubmit() async {
-    setState(() {
-      isLoading = true;
-    });
+    final name = nameController.text.trim();
+    final desc = descriptionController.text.trim();
 
-    try {
-      final categoryName = nameController.text.trim();
-      if (categoryName.isEmpty) {
-        throw Exception('Tên danh mục không được để trống');
-      }
-      if (categoryImage == null || categoryImage!['url'] == null || categoryImage!['url'].isEmpty) {
-        throw Exception('URL không được để trống');
-      }
-      
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      final categoryData = {
-        'category_name': categoryName,
-        'category_image': categoryImage!,
-        'category_description': descriptionController.text.trim(),
-        'isActive': isActive,
-        if (widget.initialCategory != null) '_id': widget.initialCategory!['_id'] ?? 'FE_ID',
-        if (widget.initialCategory == null) '_id': 'FE_NEW_ID',
-      };
-      
-      widget.onSubmit(categoryData);
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Category saved successfully')),
-      );
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to save category: ${e.toString().replaceAll('Exception: ', '')}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  // Logic Delete (FE Only)
-  Future<void> _handleDelete() async {
-    if (widget.initialCategory == null || widget.onDelete == null) return;
-
-    final categoryId = widget.initialCategory!['_id']?.toString();
-    if (categoryId == null || categoryId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid category ID')),
-      );
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Tên không được để trống')));
       return;
     }
 
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      widget.onDelete!();
-      setState(() {
-        isLoading = false;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Category deleted successfully')),
+      final provider = Provider.of<CategoryProvider>(context, listen: false);
+      final category = CategoryModel(
+        id: widget.initialCategory?.id ?? 0,
+        name: name,
+        description: desc,
+        isActive: isActive,
+        imageUrl: imageUrl ?? '',
       );
+
+      if (widget.initialCategory == null) {
+        await provider.addCategory(category);
+      } else {
+        await provider.updateCategory(category);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(widget.initialCategory == null
+              ? 'Thêm danh mục thành công!'
+              : 'Cập nhật danh mục thành công!')),
+        );
+      }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete category')),
+        SnackBar(content: Text('Lỗi khi lưu danh mục: $e')),
       );
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
+  // ❌ Xóa khỏi Firestore
+  Future<void> _handleDelete() async {
+    if (widget.initialCategory == null) return;
+
+    final provider = Provider.of<CategoryProvider>(context, listen: false);
+    setState(() => isLoading = true);
+
+    try {
+      await provider.deleteCategory(widget.initialCategory!.id.toString());
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Đã xóa danh mục')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi xóa: $e')),
+      );
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -199,31 +183,49 @@ class _CategoryFormState extends State<CategoryForm> {
                         border: Border.all(color: Colors.grey),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: categoryImage != null && categoryImage!['url'] != null && categoryImage!['url'].isNotEmpty
-                          ? Image.network(
-                        categoryImage!['url'],
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
+                      child: Builder(
+                        builder: (context) {
+                          // Ưu tiên URL ảnh
+                          if (imageUrl != null && imageUrl!.isNotEmpty) {
+                            return Image.network(
+                              imageUrl!,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => const Center(child: Text('Invalid Image URL')),
+                            );
+                          }
+
+                          // Nếu có bytes — kiểm tra định dạng
+                          if (imageBytes != null && imageBytes!.isNotEmpty) {
+                            // Kiểm tra header (8 byte đầu)
+                            final header = imageBytes!.take(8).toList();
+                            // Header XML/SVG: [0x3c, 0x3f, 0x78, 0x6d, 0x6c] = "<?xml"
+                            final isXml = header.length >= 5 &&
+                                header[0] == 0x3c &&
+                                header[1] == 0x3f &&
+                                header[2] == 0x78 &&
+                                header[3] == 0x6d &&
+                                header[4] == 0x6c;
+
+                            if (isXml) {
+                              return SvgPicture.memory(imageBytes!);
+                            }
+
+                            try {
+                              return Image.memory(
+                                imageBytes!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => const Center(child: Text('Invalid image data')),
+                              );
+                            } catch (_) {
+                              return const Center(child: Text('Invalid image data'));
+                            }
+                          }
+
+                          // Nếu không có ảnh
+                          return const Center(child: Text('No Image'));
                         },
-                      )
-                          : imageBytes != null
-                          ? Image.memory(
-                        imageBytes!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : imageFile != null && !kIsWeb
-                          ? Image.file(
-                        imageFile!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Center(child: Text('Error Loading Image'));
-                        },
-                      )
-                          : const Center(child: Text('No Image')),
+                      ),
+
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -232,10 +234,8 @@ class _CategoryFormState extends State<CategoryForm> {
                         backgroundColor: Colors.blue,
                         minimumSize: const Size(double.infinity, 48),
                       ),
-                      child: const Text(
-                        'Choose Image',
-                        style: TextStyle(color: Colors.white),
-                      ),
+                      child: const Text('Choose Image',
+                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
@@ -246,7 +246,6 @@ class _CategoryFormState extends State<CategoryForm> {
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      // Input Tên Danh mục
                       TextField(
                         controller: nameController,
                         decoration: const InputDecoration(
@@ -255,28 +254,25 @@ class _CategoryFormState extends State<CategoryForm> {
                         ),
                       ),
                       const SizedBox(height: 20),
-                      // Input Mô tả
                       TextField(
                         controller: descriptionController,
                         decoration: const InputDecoration(
-                          labelText: 'Category Description (Optional)',
+                          labelText: 'Description (optional)',
                           border: OutlineInputBorder(),
                         ),
                         maxLines: 3,
                       ),
                       const SizedBox(height: 20),
-                      // Checkbox Active
                       Row(
                         children: [
                           Checkbox(
                             value: isActive,
-                            onChanged: (value) => setState(() => isActive = value!),
+                            onChanged: (v) => setState(() => isActive = v!),
                           ),
                           const Text('Active'),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // Nút Submit/Update và Delete
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -285,30 +281,33 @@ class _CategoryFormState extends State<CategoryForm> {
                               onPressed: isLoading ? null : _handleSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
-                                minimumSize: const Size(double.infinity, 48),
+                                minimumSize:
+                                const Size(double.infinity, 48),
                               ),
                               child: Text(
-                                widget.buttonLabel,
-                                style: const TextStyle(color: Colors.white),
+                                widget.initialCategory == null
+                                    ? 'Add Category'
+                                    : 'Update',
+                                style:
+                                const TextStyle(color: Colors.white),
                               ),
                             ),
                           ),
-                          if (widget.onDelete != null) ...[
+                          if (widget.initialCategory != null) ...[
                             const SizedBox(width: 16),
                             Expanded(
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _handleDelete,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
-                                  minimumSize: const Size(double.infinity, 48),
+                                  minimumSize:
+                                  const Size(double.infinity, 48),
                                 ),
-                                child: const Text(
-                                  'Delete',
-                                  style: TextStyle(color: Colors.white),
-                                ),
+                                child: const Text('Delete',
+                                    style: TextStyle(color: Colors.white)),
                               ),
                             ),
-                          ],
+                          ]
                         ],
                       ),
                     ],

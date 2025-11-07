@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recomart/models/coupon.model.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:intl/intl.dart';
 import 'coupon_form.dart';
 
 class CouponTable extends StatefulWidget {
-  final List<dynamic> coupons; 
+  final List<CouponModel> coupons;
 
   const CouponTable({super.key, required this.coupons});
 
@@ -21,19 +22,19 @@ class _CouponTableState extends State<CouponTable> {
       return widget.coupons;
     } else {
       return widget.coupons.where((coupon) {
-        return (coupon['code'] as String? ?? '').toLowerCase().contains(_searchController.text.toLowerCase());
+        return (coupon.code ?? '').toLowerCase().contains(_searchController.text.toLowerCase());
       }).toList();
     }
   }
 
-  void _showCouponForm(Map<String, dynamic> coupon) {
+  void _showCouponForm(CouponModel coupon) {
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           title: Text(
-            coupon['code'] as String? ?? 'N/A',
+            coupon.code ?? 'N/A',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 20,
@@ -86,16 +87,16 @@ class _CouponTableState extends State<CouponTable> {
     );
   }
 
-  TableRow buildCouponRow(Map<String, dynamic> coupon, List<double> colWidths) {
+  TableRow buildCouponRow(CouponModel coupon, List<double> colWidths) {
     final isMobile = Responsive.isMobile(context);
-    final DateTime? createdAt = coupon['createdAt'] as DateTime?;
+    DateTime? createdAt = coupon.createdAt.toDate();
 
     return TableRow(
       children: isMobile
           ? [
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText(coupon['code'] as String? ?? 'N/A', colWidths[0]),
+          child: cellText(coupon.code as String? ?? 'N/A', colWidths[0]),
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
@@ -108,13 +109,13 @@ class _CouponTableState extends State<CouponTable> {
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText("${coupon['discount_amount'] as num? ?? 0}đ", colWidths[2]),
+          child: cellText("${coupon.discountValue as num? ?? 0}đ", colWidths[2]),
         ),
       ]
           : [
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText(coupon['code'] as String? ?? 'N/A', colWidths[0]),
+          child: cellText(coupon.code as String? ?? 'N/A', colWidths[0]),
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
@@ -127,15 +128,15 @@ class _CouponTableState extends State<CouponTable> {
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText("${coupon['discount_amount'] as num? ?? 0}đ", colWidths[2]),
+          child: cellText("${coupon.discountValue as num? ?? 0}đ", colWidths[2]),
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText((coupon['usage_count'] as num? ?? 0).toString(), colWidths[3]),
+          child: cellText((coupon.maxUsage as num? ?? 0).toString(), colWidths[3]),
         ),
         InkWell(
           onTap: () => _showCouponForm(coupon),
-          child: cellText((coupon['usage_limit'] as num? ?? 0).toString(), colWidths[4]),
+          child: cellText((coupon.usedCount as num? ?? 0).toString(), colWidths[4]),
         ),
       ],
     );

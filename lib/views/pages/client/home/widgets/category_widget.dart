@@ -302,7 +302,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
       // 👇 Thêm log ở đây
       print("✅ Đã tải ${data.length} danh mục");
       for (var c in data) {
-        print("📦 ${c.name} - ${c.image?.url}");
+        print("📦 ${c.name} - ${c.imageUrl}");
       }
       if (mounted) {
         setState(() {
@@ -403,7 +403,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                     ),
                     itemCount: itemCount,
                     itemBuilder: (context, index) => ListCategoryWidget(
-                      icon: categories[index].image!.url,
+                      icon: categories[index].imageUrl,
                       text: categories[index].name,
                     ),
                   ),

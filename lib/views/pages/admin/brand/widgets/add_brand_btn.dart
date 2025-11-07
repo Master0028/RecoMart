@@ -22,25 +22,7 @@ class AddBrandButton extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Theme(
-                data: Theme.of(context).copyWith(
-                  inputDecorationTheme: const InputDecorationTheme(
-                    border: OutlineInputBorder(),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.orange, width: 2),
-                    ),
-                    labelStyle: TextStyle(color: Colors.black),
-                    floatingLabelStyle: TextStyle(color: Colors.orange),
-                  ),
-                ),
-                child: BrandForm(
-                  buttonLabel: "Add Brand",
-                  onSubmit: (brandData) {
-                    print("Đã thêm thương hiệu: $brandData");
-                    context.pop();
-                  },
-                ),
-              ),
+              content: BrandForm(),
             );
           },
         );

@@ -1,37 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:recomart/utils/responsive.dart';
+import '../../../../../models/brand.model.dart';
 import 'brand_form.dart';
-
-class BrandImage {
-  final String url;
-  final String? publicId;
-  BrandImage({required this.url, this.publicId});
-  Map<String, dynamic> toMap() => {'url': url, 'publicId': publicId};
-}
-
-class BrandModel {
-  final String id;
-  final String name;
-  final BrandImage? image;
-  final bool isActive;
-
-  BrandModel({
-    required this.id,
-    required this.name,
-    this.image,
-    required this.isActive,
-  });
-
-  Map<String, dynamic> toJson() {
-    return {
-      '_id': id,
-      'brand_name': name,
-      'brand_image': image?.toMap(),
-      'isActive': isActive,
-    };
-  }
-}
-// --- Kết thúc STUB Model ---
 
 class BrandTable extends StatefulWidget {
   // BrandTable giờ chấp nhận List<BrandModel> (Model Stub)
@@ -72,15 +42,13 @@ class _BrandTableState extends State<BrandTable> {
   }
 
   void _showBrandForm(BrandModel brand) {
-    print('showBrandForm: Brand data = ${brand.toJson()}');
-
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
           title: Text(
-            brand.name,
+            brand.name.isNotEmpty ? 'Edit Brand' : 'Add Brand',
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 20,
@@ -98,18 +66,7 @@ class _BrandTableState extends State<BrandTable> {
                 floatingLabelStyle: TextStyle(color: Colors.orange),
               ),
             ),
-            child: BrandForm(
-              buttonLabel: 'Lưu',
-              initialBrand: brand.toJson(),
-              onSubmit: (updatedBrandData) async {
-                print('FE: Brand Update Submitted: $updatedBrandData');
-                Navigator.pop(context); // Sử dụng Navigator.pop thay vì context.pop()
-              },
-              onDelete: () async {
-                print('FE: Brand Delete Triggered for ID: ${brand.id}');
-                Navigator.pop(context); // Sử dụng Navigator.pop thay vì context.pop()
-              },
-            ),
+            child: BrandForm(initialBrand: brand),
           ),
         );
       },
@@ -133,7 +90,7 @@ class _BrandTableState extends State<BrandTable> {
     );
   }
 
-  TableRow buildBrandRow(BrandModel brand, List<double> colWidths) {
+  TableRow buildBrandRow(int index, BrandModel brand, List<double> colWidths) {
     String getShortId(String id) {
       // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.id)
       return brand.id.length > 5 ? brand.id.substring(0, 5) : brand.id; 
@@ -143,7 +100,7 @@ class _BrandTableState extends State<BrandTable> {
       children: [
         InkWell(
           onTap: () => _showBrandForm(brand),
-          child: cellText(getShortId(brand.id), colWidths[0]),
+          child: cellText(index.toString(), colWidths[0]),
         ),
         InkWell(
           onTap: () => _showBrandForm(brand),
@@ -197,9 +154,9 @@ class _BrandTableState extends State<BrandTable> {
               borderRadius: BorderRadius.circular(8),
             ),
             // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.image)
-            child: brand.image?.url != null && brand.image!.url.isNotEmpty
+            child: brand.imageUrl != null && brand.imageUrl.isNotEmpty
                 ? Image.network(
-              brand.image!.url,
+              brand.imageUrl,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
@@ -329,8 +286,11 @@ class _BrandTableState extends State<BrandTable> {
                     border: TableBorder.all(color: Colors.grey.shade300),
                     children: [
                       buildHeaderRow(headers, colWidths),
-                      ...filteredBrands
-                          .map((brand) => buildBrandRow(brand, colWidths)),
+                      ...filteredBrands.asMap().entries.map((entry) {
+                        final index = entry.key + 1; // 🧮 STT bắt đầu từ 1
+                        final brand = entry.value;
+                        return buildBrandRow(index, brand, colWidths);
+                      }),
                     ],
                   ),
                 ),

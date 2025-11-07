@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/models/brand.model.dart';
+import 'package:recomart/provider/brand_provider.dart';
 import 'package:recomart/views/pages/admin/brand/widgets/add_brand_btn.dart';
 import 'package:recomart/views/pages/admin/brand/widgets/brand_table.dart';
-
-final List<BrandModel> FE_BRANDS_STUB = [
-  BrandModel(id: '1', name: 'Apple', isActive: true, image: BrandImage(url: 'https://placehold.co/40x40.png', publicId: 'a')),
-  BrandModel(id: '2', name: 'Samsung', isActive: true, image: BrandImage(url: 'https://placehold.co/40x40.png', publicId: 'b')),
-  BrandModel(id: '3', name: 'HP', isActive: false, image: BrandImage(url: 'https://placehold.co/40x40.png', publicId: 'c')),
-];
 
 class BrandManagementScreen extends StatefulWidget {
   const BrandManagementScreen({super.key});
@@ -17,8 +14,17 @@ class BrandManagementScreen extends StatefulWidget {
 
 class _BrandManagementScreenState extends State<BrandManagementScreen> {
   @override
+  void initState() {
+    super.initState();
+    // Lấy danh sách brand thật từ Firestore khi mở màn hình
+    Future.microtask(() =>
+        Provider.of<BrandProvider>(context, listen: false).fetchBrands());
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final List<BrandModel> brands = FE_BRANDS_STUB;
+    final brandProvider = Provider.of<BrandProvider>(context);
+    final List<BrandModel> brands = brandProvider.brands;
 
     return Container(
       color: Colors.grey[100],
@@ -29,9 +35,14 @@ class _BrandManagementScreenState extends State<BrandManagementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const AddBrandButton(), 
+            const AddBrandButton(),
             const SizedBox(height: 16),
-            BrandTable(brands: brands), 
+            if (brandProvider.isLoading)
+              const Center(child: CircularProgressIndicator())
+            else if (brands.isEmpty)
+              const Text("Không có thương hiệu nào trong Firestore.")
+            else
+              BrandTable(brands: brands),
           ],
         ),
       ),
