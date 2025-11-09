@@ -182,9 +182,9 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
     return ElevatedButton(
       onPressed: () {
         if (_selectedMethod == 'SMS') {
-          context.push('/verify-otp'); 
+          context.push('/setup-pass'); 
         } else if (_selectedMethod == 'Email') {
-          context.push('/verify-email');
+          context.push('/setup-pass');
         }
       },
       style: ElevatedButton.styleFrom(

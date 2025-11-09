@@ -46,11 +46,22 @@ class BannerImage extends StatelessWidget {
           ),
         ],
       ),
-      child: const Center(
-        child: Icon(
-          Icons.shopping_bag_outlined,
-          size: 100,
-          color: Colors.blue,
+      child: Center( 
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(60),
+          child: Image.asset(
+            imagePath,
+            width: width,
+            height: height,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return const Icon( 
+                Icons.shopping_bag_outlined,
+                size: 100,
+                color: Colors.blue,
+              );
+            },
+          ),
         ),
       ),
     );
