@@ -10,6 +10,19 @@ class UserService {
     return doc.exists ? doc.data() : null;
   }
 
+  Future<UserModel?> getUserById(String uid) async {
+    try {
+      final doc = await _db.collection('users').doc(uid).get();
+      if (doc.exists) {
+        return UserModel.fromMap(doc.data()!, uid);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error fetching user: $e');
+      return null;
+    }
+  }
+
   /// 🔹 Lấy danh sách tất cả người dùng
   Future<List<UserModel>> fetchUsers() async {
     final snapshot = await _db.collection(collection).get();
@@ -32,4 +45,18 @@ class UserService {
   Future<void> deleteUser(String id) async {
     await _db.collection(collection).doc(id).delete();
   }
+
+  Future<double> getLoyaltyPoints(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (!doc.exists) return 0;
+    final data = doc.data();
+    return (data?['loyaltyPoints'] ?? 0).toDouble();
+  }
+
+  Future<void> updateLoyaltyPoints(String uid, double newPoints) async {
+    await _db.collection('users').doc(uid).update({
+      'loyaltyPoints': newPoints
+    });
+  }
+
 }

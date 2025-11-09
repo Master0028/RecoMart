@@ -1,8 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:feather_icons/feather_icons.dart'; 
+import 'package:feather_icons/feather_icons.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:recomart/config/color.dart'; 
 import 'package:recomart/utils/responsive.dart';
+
+import '../../../../../services/chat.service.dart';
 
 class ChatBody extends StatefulWidget {
   const ChatBody({super.key});
@@ -14,6 +19,7 @@ class ChatBody extends StatefulWidget {
 class _ChatBodyState extends State<ChatBody> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final _chatService = ChatService();
 
   final List<Map<String, dynamic>> users = []; 
 
@@ -36,17 +42,14 @@ class _ChatBodyState extends State<ChatBody> {
     }
   }
 
-  void _sendMessage() {
+  void _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isNotEmpty) {
-      setState(() {
-        messages.add({'text': text, 'isMe': true});
-                messages.add({'text': 'This is a mock reply.', 'isMe': false}); 
-      });
-      _messageController.clear();
-      _scrollToBottom();
-    }
+    if (text.isEmpty) return;
+    await _chatService.sendMessage(text);
+    _messageController.clear();
+    _scrollToBottom();
   }
+
 
 
   Widget _buildChatListItem(Map<String, dynamic> user) {
@@ -253,12 +256,53 @@ class _ChatBodyState extends State<ChatBody> {
                               color: Colors.grey, fontWeight: FontWeight.w500)),
                     ),
                     Expanded(
-                      child: ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: messages.length,
-                        itemBuilder: (context, index) {
-                          return _buildMessageBubble(messages[index]);
+                      child: StreamBuilder(
+                        stream: _chatService.getMessages(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+
+                          final docs = snapshot.data!.docs;
+                          if (docs.isEmpty) {
+                            return const Center(child: Text("Chưa có tin nhắn nào."));
+                          }
+
+                          return ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            itemCount: docs.length,
+                            itemBuilder: (context, index) {
+                              final msg = docs[index].data();
+                              final bool isMe =
+                                  msg['senderId'] == ChatService().auth.currentUser?.uid;
+                              return Align(
+                                alignment:
+                                isMe ? Alignment.centerRight : Alignment.centerLeft,
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                                  ),
+                                  margin: const EdgeInsets.symmetric(vertical: 6),
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isMe ? AppColors.primary : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: msg['imageUrl'] != null
+                                      ? Image.network(msg['imageUrl'], width: 200)
+                                      : Text(
+                                    msg['text'] ?? '',
+                                    style: TextStyle(
+                                      color:
+                                      isMe ? Colors.white : Colors.black87,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
                         },
                       ),
                     ),
@@ -284,7 +328,13 @@ class _ChatBodyState extends State<ChatBody> {
                       child: Row(
                         children: [
                           IconButton(
-                            onPressed: () {print('Attachment clicked');},
+                            onPressed: () async {
+                              final picker = ImagePicker();
+                              final picked = await picker.pickImage(source: ImageSource.gallery);
+                              if (picked != null) {
+                                await _chatService.sendImage(File(picked.path));
+                              }
+                            },
                             icon: Icon(FeatherIcons.paperclip, color: AppColors.primary),
                           ),
                           Expanded(

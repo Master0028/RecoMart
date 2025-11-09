@@ -1,193 +1,209 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:feather_icons/feather_icons.dart';
-import 'package:recomart/config/color.dart'; 
+import 'package:provider/provider.dart';
+import 'package:recomart/config/color.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
-import 'package:recomart/components/custom/snackbar.dart';
 
-final List<Map<String, dynamic>> accountUtilities = [
-  {
-    'title': 'Payment Methods',
-    'subtitle': 'Manage your cards & e-wallets',
-    'icon': FeatherIcons.creditCard,
-    'route': '/profile/payment'
-  },
-  {
-    'title': 'Notifications',
-    'subtitle': 'Control push & email alerts',
-    'icon': FeatherIcons.bell,
-    'route': '/profile/notifications'
-  },
-];
+import '../../../../../provider/user_provider.dart';
 
-final List<Map<String, dynamic>> supportUtilities = [
-  {
-    'title': 'Help Center',
-    'subtitle': 'Find FAQs and contact support',
-    'icon': FeatherIcons.helpCircle,
-    'route': '/support/faq'
-  },
-  {
-    'title': 'Language',
-    'subtitle': 'English (US)',
-    'icon': FeatherIcons.globe,
-    'route': '/settings/language'
-  },
-  {
-    'title': 'Privacy Policy',
-    'subtitle': 'Legal information',
-    'icon': FeatherIcons.shield,
-    'route': '/legal/privacy'
-  },
-  {
-    'title': 'Rate Our App',
-    'subtitle': 'We value your feedback',
-    'icon': FeatherIcons.star,
-    'route': '/rate-app'
-  },
-];
-
-class MyUtilitiesPage extends StatelessWidget {
-  const MyUtilitiesPage({super.key});
-
-  Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16.0, bottom: 12.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: Colors.black87
-        ),
-      ),
-    );
-  }
+class LoyaltyPointsPage extends StatefulWidget {
+  const LoyaltyPointsPage({super.key});
 
   @override
+  State<LoyaltyPointsPage> createState() => _LoyaltyPointsPageState();
+}
+
+class _LoyaltyPointsPageState extends State<LoyaltyPointsPage> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    // ✅ Gọi load loyalty points khi mở trang
+    Future.microtask(() {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      userProvider.fetchLoyaltyPoints();
+    });
+  }
+  @override
   Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final double totalPoints = userProvider.loyaltyPoints;
+    final double totalValue = totalPoints * 1000;
+
+    List<Map<String, dynamic>> transactions = [
+      {
+        'title': 'Mua hàng #RM-3021',
+        'type': 'earned',
+        'amount': 120,
+        'orderTotal': 1200000,
+        'date': DateTime(2025, 11, 1),
+      },
+      {
+        'title': 'Đã sử dụng điểm cho đơn hàng #RM-3025',
+        'type': 'redeemed',
+        'amount': -80,
+        'orderTotal': 800000,
+        'date': DateTime(2025, 11, 3),
+      },
+      {
+        'title': 'Mua hàng #RM-3028',
+        'type': 'earned',
+        'amount': 100,
+        'orderTotal': 1000000,
+        'date': DateTime(2025, 11, 6),
+      },
+    ];
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: const CustomAppBarMobile(
-        title: 'My Utilities',
+        title: 'Loyalty Points',
         isBack: true,
       ),
       body: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                _buildSectionHeader('Account Settings'),
-                _buildUtilityGrid(context, accountUtilities),
-                
-                _buildSectionHeader('Support & Legal'),
-                _buildUtilityGrid(context, supportUtilities),
+                // 🧩 Tổng điểm hiện tại
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(FeatherIcons.award, size: 48, color: Colors.white),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Điểm khách hàng thân thiết',
+                        style: TextStyle(color: Colors.white, fontSize: 18),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${totalPoints.toStringAsFixed(0)} điểm',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 40,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'Tương đương ${(totalValue).toStringAsFixed(0)} ₫',
+                        style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // 🧩 Quy tắc tích điểm
+                Card(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  elevation: 3,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(FeatherIcons.info, color: AppColors.primary, size: 24),
+                        const SizedBox(width: 10),
+                        const Expanded(
+                          child: Text(
+                            'Bạn sẽ nhận được 10% giá trị đơn hàng dưới dạng điểm.\n'
+                                'Ví dụ: đơn hàng 1.000.000₫ = 100 điểm (tương đương 100.000₫).\n'
+                                'Điểm có thể sử dụng ngay trong đơn hàng kế tiếp, không giới hạn thời gian.',
+                            style: TextStyle(fontSize: 14, color: Colors.black87),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
+
+                // 🧩 Lịch sử giao dịch điểm
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Lịch sử điểm thưởng',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                ListView.builder(
+                  itemCount: transactions.length,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemBuilder: (context, index) {
+                    final tx = transactions[index];
+                    final bool isEarned = tx['type'] == 'earned';
+                    final Color color =
+                    isEarned ? Colors.green : Colors.redAccent;
+
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            isEarned
+                                ? FeatherIcons.arrowUpCircle
+                                : FeatherIcons.arrowDownCircle,
+                            color: color,
+                          ),
+                        ),
+                        title: Text(
+                          tx['title'],
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        subtitle: Text(
+                          'Ngày: ${tx['date'].day}/${tx['date'].month}/${tx['date'].year}\n'
+                              'Giá trị đơn hàng: ${tx['orderTotal'].toStringAsFixed(0)} ₫',
+                          style: const TextStyle(fontSize: 13, color: Colors.black54),
+                        ),
+                        trailing: Text(
+                          (isEarned ? '+' : '') + '${tx['amount']} điểm',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: color,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUtilityGrid(BuildContext context, List<Map<String, dynamic>> items) {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 350, 
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.2, 
-      ),
-      itemCount: items.length,
-      shrinkWrap: true, 
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _UtilityCard(
-          title: item['title'] as String,
-          subtitle: item['subtitle'] as String,
-          icon: item['icon'] as IconData,
-          onTap: () {
-            showCustomSnackBar(context, 'Navigating to ${item['title']}', type: SnackBarType.info);
-          },
-        );
-      },
-    );
-  }
-}
-
-class _UtilityCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _UtilityCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: Colors.grey.shade200, width: 1),
-      ),
-      color: Colors.white,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Icon
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(icon, color: AppColors.primary, size: 28),
-              ),
-              const SizedBox(height: 16),
-              // Text
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
       ),

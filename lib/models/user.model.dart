@@ -31,7 +31,7 @@ class UserModel {
       address: data['address'],
       avatar: data['avatar'],
       role: data['role'] ?? 'user',
-      loyaltyPoints: (data['loyalty_points'] ?? 0).toDouble(),
+      loyaltyPoints: (data['loyaltyPoints'] ?? 0).toDouble(),
       isActive: data['isActive'] ?? true,
     );
   }
@@ -46,7 +46,7 @@ class UserModel {
       address: json['address'],
       avatar: json['avatar'],
       role: json['role'] ?? 'user',
-      loyaltyPoints: (json['loyalty_points'] ?? 0).toDouble(),
+      loyaltyPoints: (json['loyaltyPoints'] ?? 0).toDouble(),
       isActive: json['isActive'] ?? true,
     );
   }
@@ -59,7 +59,7 @@ class UserModel {
     'address': address,
     'avatar': avatar,
     'role': role,
-    'loyalty_points': loyaltyPoints,
+    'loyaltyPoints': loyaltyPoints,
     'isActive': isActive,
   };
 

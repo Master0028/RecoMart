@@ -77,7 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
       // Lưu thêm thông tin vào Firestore
       await FirebaseFirestore.instance.collection('users').doc(authResult.user!.uid).set({
-        'name': name,
+        'fullName': name,
         'email': email,
         'address': address,
         'createdAt': FieldValue.serverTimestamp(),

@@ -69,9 +69,8 @@ class _MyAccountView extends State<MyAccountView> {
   
   List<Map<String, dynamic>> myAccountItems = [
     {'title': 'Personal Information', 'icon': CupertinoIcons.person, 'type': 'auth'},
-    {'title': 'My Utilities', 'icon': CupertinoIcons.square_grid_2x2, 'type': 'general'},
+    {'title': 'Loyalty Points', 'icon': CupertinoIcons.square_grid_2x2, 'type': 'general'},
     {'title': 'Change Password', 'icon': CupertinoIcons.lock, 'type': 'auth'},
-    {'title': 'Address', 'icon': CupertinoIcons.location_north, 'type': 'general'},
     {'title': 'Switch Account/Logout', 'icon': CupertinoIcons.arrow_right_square, 'type': 'auth'},
   ];
   
@@ -114,15 +113,12 @@ class _MyAccountView extends State<MyAccountView> {
                   case 'Personal Information':
                     context.push('/personal-information');
                     break; 
-                  case 'My Utilities':
+                  case 'Loyalty Points':
                     context.push('/utilities');
                     showCustomSnackBar(context, 'Chuyển đến trang Tiện ích của tôi', type: SnackBarType.info);
                     break;
                   case 'Change Password':
                     context.push('/change-password'); 
-                    break;
-                  case 'Address':
-                    context.push('/address');
                     break;
                   case 'Switch Account/Logout':
                     if (isExistUser) {

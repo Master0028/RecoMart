@@ -24,7 +24,10 @@ void showCustomSnackBar(
       icon = Icons.error;
       break;
     case SnackBarType.info:
-      throw UnimplementedError();
+      backgroundColor = Colors.blue.shade50;
+      textColor = Colors.blue.shade800;
+      icon = Icons.info_outline;
+      break;
   }
 
   ScaffoldMessenger.of(context).showSnackBar(

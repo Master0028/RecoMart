@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../models/user.model.dart';
@@ -8,6 +9,8 @@ class UserProvider with ChangeNotifier {
   List<UserModel> _users = [];
   bool _loading = false;
   String? _error;
+  double _loyaltyPoints = 0;
+  double get loyaltyPoints => _loyaltyPoints;
 
   List<UserModel> get users => _users;
   bool get loading => _loading;
@@ -15,6 +18,9 @@ class UserProvider with ChangeNotifier {
 
   final FirebaseAuth _auth = FirebaseAuth.instance;
   User? _currentUser;
+
+  UserModel? _userInfo;
+  UserModel? get userInfo => _userInfo;
 
   UserProvider() {
     // Lắng nghe sự thay đổi đăng nhập
@@ -59,6 +65,35 @@ class UserProvider with ChangeNotifier {
     }
   }
 
+  Future<void> fetchUserInfo() async {
+    try {
+      _loading = true;
+      notifyListeners();
+
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        print("⚠️ No Firebase user logged in");
+        _currentUser = null;
+        _loading = false;
+        notifyListeners();
+        return;
+      }
+
+      final userData = await _service.getUserById(user.uid);
+      if (userData != null) {
+        _userInfo = userData;
+        print("✅ User info fetched: ${_userInfo!.fullName}");
+      } else {
+        print("⚠️ No user data found for UID ${user.uid}");
+      }
+    } catch (e) {
+      print('❌ fetchUserInfo error: $e');
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   /// 🔹 Cập nhật thông tin người dùng
   Future<void> updateUser(UserModel user) async {
     try {
@@ -69,6 +104,39 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// 🔹 Cập nhật thông tin người dùng hiện tại
+  Future<void> updateUserInfo({
+    required String name,
+    String? phone,
+    String? address,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'fullName': name,
+        'phone': phone,
+        'address': address,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Cập nhật local model
+      _userInfo = _userInfo?.copyWith(
+        fullName: name,
+        phone: phone,
+        address: address,
+      );
+
+      notifyListeners();
+      print("✅ User info updated successfully");
+    } catch (e) {
+      print("❌ Error updating user info: $e");
+      _error = e.toString();
+    }
+  }
+
 
   /// 🔹 Cấm / mở khóa người dùng
   Future<void> toggleUserStatus(String id, bool isActive) async {
@@ -89,6 +157,19 @@ class UserProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
+    }
+  }
+
+  Future<void> fetchLoyaltyPoints() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+      final points = await _service.getLoyaltyPoints(user.uid);
+      _loyaltyPoints = points;
+      notifyListeners();
+      print("✅ Loyalty points fetched: $_loyaltyPoints");
+    } catch (e) {
+      print("❌ Error fetching loyalty points: $e");
     }
   }
 }

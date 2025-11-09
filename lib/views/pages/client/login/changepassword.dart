@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -68,6 +69,76 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     );
   }
 
+  Future<void> handleChangePassword() async {
+    final oldPassword = _oldPasswordController.text.trim();
+    final newPassword = _newPasswordController.text.trim();
+    final confirmPassword = _confirmedPasswordController.text.trim();
+
+    if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      _showSnack('Vui lòng nhập đầy đủ thông tin', Colors.redAccent);
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      _showSnack('Mật khẩu xác nhận không khớp', Colors.redAccent);
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+
+      if (user == null || user.email == null) {
+        _showSnack('Không tìm thấy người dùng đang đăng nhập', Colors.redAccent);
+        return;
+      }
+
+      // 1️⃣ Reauthenticate (xác thực lại bằng mật khẩu cũ)
+      final cred = EmailAuthProvider.credential(
+        email: user.email!,
+        password: oldPassword,
+      );
+      await user.reauthenticateWithCredential(cred);
+
+      // 2️⃣ Đổi mật khẩu mới
+      await user.updatePassword(newPassword);
+
+      _showSnack('Đổi mật khẩu thành công!', Colors.green);
+      await Future.delayed(const Duration(seconds: 1));
+      if (mounted) context.pop();
+    } on FirebaseAuthException catch (e) {
+      String msg;
+      switch (e.code) {
+        case 'wrong-password':
+          msg = 'Mật khẩu cũ không chính xác.';
+          break;
+        case 'weak-password':
+          msg = 'Mật khẩu mới quá yếu.';
+          break;
+        case 'requires-recent-login':
+          msg = 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+          break;
+        default:
+          msg = 'Lỗi: ${e.message}';
+      }
+      _showSnack(msg, Colors.redAccent);
+    } catch (e) {
+      _showSnack('Lỗi không xác định: $e', Colors.redAccent);
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _showSnack(String text, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(text),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
   Widget buildInputField({
     required String hintText,
     required IconData icon,
@@ -123,35 +194,24 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Widget buildDoneButton() {
     return ElevatedButton(
-      onPressed: _loading
-          ? null
-          : () {
-              context.pop();
-            },
+      onPressed: _loading ? null : handleChangePassword, // ✅ Gọi hàm đổi mật khẩu
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryBlue,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(largeRadius),
         ),
-        elevation: 2,
       ),
       child: _loading
           ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3.0,
-              ),
-            )
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+      )
           : const Text(
-              'Change Password',
-              style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white),
-            ),
+        'Change Password',
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      ),
     );
   }
 
