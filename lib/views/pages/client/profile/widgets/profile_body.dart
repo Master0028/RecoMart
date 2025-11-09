@@ -26,7 +26,6 @@ class _ProfileBodyState extends State<ProfileBody> {
     {'title': 'My Account', 'icon': FeatherIcons.user},
     {'title': 'Order Management', 'icon': FeatherIcons.package},
     {'title': 'Payment Method', 'icon': FeatherIcons.creditCard},
-    {'title': 'Support', 'icon': FeatherIcons.helpCircle},
   ];
 
   @override
@@ -43,7 +42,7 @@ class _ProfileBodyState extends State<ProfileBody> {
       case 2:
         return const PaymentManagement();
       case 3:
-        return const SupportAccount();
+        return const SupportChatScreen();
       default:
         return const SizedBox.shrink();
     }

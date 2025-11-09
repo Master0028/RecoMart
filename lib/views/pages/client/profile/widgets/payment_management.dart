@@ -2,6 +2,7 @@ import 'package:recomart/config/color.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:go_router/go_router.dart';
 
 class ModernPaymentListTile extends StatelessWidget {
   const ModernPaymentListTile({
@@ -57,7 +58,6 @@ class ModernPaymentListTile extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Icon mũi tên (chevron)
                 Icon(
                   CupertinoIcons.chevron_forward,
                   color: Colors.grey.shade400,
@@ -90,9 +90,16 @@ class PaymentManagement extends StatefulWidget {
 
 class _PaymentManagementState extends State<PaymentManagement> {
   List<Map<String, dynamic>> paymentMethodItems = [
-    {'title': 'Cash on Delivery (COD)', 'icon': FeatherIcons.dollarSign},
-    {'title': 'Credit/Debit Card', 'icon': FeatherIcons.creditCard},
-    {'title': 'E-Wallet (MoMo, ZaloPay,...)', 'icon': CupertinoIcons.money_dollar_circle},
+    {
+      'title': 'Credit/Debit Card',
+      'icon': FeatherIcons.creditCard,
+      'route': '/atm'
+    },
+    {
+      'title': 'E-Wallet (MoMo, ZaloPay,...)',
+      'icon': CupertinoIcons.money_dollar_circle,
+      'route': '/e-wallets' 
+    },
   ];
 
   @override
@@ -111,19 +118,26 @@ class _PaymentManagementState extends State<PaymentManagement> {
             ),
           ],
         ),
-        child: Column(
-          children: List.generate(paymentMethodItems.length, (index) {
-            final item = paymentMethodItems[index];
-            return ModernPaymentListTile(
-              icon: item['icon'],
-              title: item['title'],
-              isFirst: index == 0,
-              isLast: index == paymentMethodItems.length - 1,
-              onTap: () {
-                print('Tapped on ${item['title']}');
-              },
-            );
-          }),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: Column(
+            children: List.generate(paymentMethodItems.length, (index) {
+              final item = paymentMethodItems[index];
+              return ModernPaymentListTile(
+                icon: item['icon'],
+                title: item['title'],
+                isFirst: index == 0,
+                isLast: index == paymentMethodItems.length - 1,
+                onTap: () {
+                  if (item['route'] != null) {
+                    context.push(item['route']);
+                  } else {
+                    print('No route defined for ${item['title']}');
+                  }
+                },
+              );
+            }),
+          ),
         ),
       ),
     );
