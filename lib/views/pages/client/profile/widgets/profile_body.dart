@@ -14,7 +14,7 @@ const String FE_USER_ID = 'FE_USER_ID_123';
 
 class ProfileBody extends StatefulWidget {
   const ProfileBody({super.key});
-
+  
   @override
   State<ProfileBody> createState() => _ProfileBodyState();
 }
@@ -61,7 +61,6 @@ class _ProfileBodyState extends State<ProfileBody> {
 
     return Column(
       children: [
-        // === HEADER === (FE Logic)
         Container(
           width: double.infinity,
           padding: const EdgeInsets.only(top: 40, bottom: 20, left: 16, right: 16),
