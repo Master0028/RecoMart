@@ -2,6 +2,7 @@ import 'package:recomart/config/color.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:go_router/go_router.dart';
 
 class OrderManagement extends StatefulWidget {
   const OrderManagement({super.key, required this.userId});
@@ -14,13 +15,27 @@ class OrderManagement extends StatefulWidget {
 
 class _OrderManagementState extends State<OrderManagement> {
   List<Map<String, dynamic>> orderItems = [
-    {'title': 'Current Orders', 'icon': FeatherIcons.package},
-    {'title': 'Order History', 'icon': FeatherIcons.archive},
-    {'title': 'Tracking Order', 'icon': FeatherIcons.truck},
+    {
+      'title': 'Current Orders',
+      'icon': FeatherIcons.package,
+      'route': '/current'
+    },
+    {
+      'title': 'Order History',
+      'icon': FeatherIcons.archive,
+      'route': '/history'
+    },
+    {
+      'title': 'Tracking Order',
+      'icon': FeatherIcons.truck,
+      'route': '/tracking'
+    },
   ];
 
-  void _handleNavigation(String routeName) {
-    print('Navigate to route: $routeName');
+  void _handleNavigation(BuildContext context, String routeName) {
+    if (context.mounted) {
+      context.push(routeName);
+    }
   }
 
   @override
@@ -59,14 +74,15 @@ class _OrderManagementState extends State<OrderManagement> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                _handleNavigation('login');
+                _handleNavigation(context, '/login');
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               child: const Text(
                 'Go to Login',
@@ -95,15 +111,17 @@ class _OrderManagementState extends State<OrderManagement> {
             ),
           ],
         ),
+        clipBehavior: Clip.antiAlias,
         child: Column(
           children: List.generate(orderItems.length, (index) {
+            final item = orderItems[index];
             return ModernOrderListTile(
-              icon: orderItems[index]['icon'],
-              title: orderItems[index]['title'],
+              icon: item['icon'],
+              title: item['title'],
               isFirst: index == 0,
               isLast: index == orderItems.length - 1,
               onTap: () {
-                _handleNavigation('order-view');
+                _handleNavigation(context, item['route']);
               },
             );
           }),
@@ -133,10 +151,6 @@ class ModernOrderListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.vertical(
-        top: isFirst ? const Radius.circular(16) : Radius.zero,
-        bottom: isLast ? const Radius.circular(16) : Radius.zero,
-      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
         child: Column(

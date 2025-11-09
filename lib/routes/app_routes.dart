@@ -10,8 +10,11 @@ import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
 import 'package:recomart/views/pages/client/order/order_view.dart';
 import 'package:recomart/views/pages/client/profile/module/address.dart';
 import 'package:recomart/views/pages/client/profile/module/atm.dart';
+import 'package:recomart/views/pages/client/profile/module/currentorder.dart';
 import 'package:recomart/views/pages/client/profile/module/epay.dart';
+import 'package:recomart/views/pages/client/profile/module/history.dart';
 import 'package:recomart/views/pages/client/profile/module/personalinfor.dart';
+import 'package:recomart/views/pages/client/profile/module/tracking.dart';
 import 'package:recomart/views/pages/client/profile/module/utilities.dart';
 import 'package:recomart/views/pages/client/profile/widgets/support.dart';
 import 'package:recomart/views/pages/client/search/search_screen.dart';
@@ -179,6 +182,23 @@ final GoRouter appRouter = GoRouter(
       path: '/chat',
       builder: (context, state) => const ChatView(),
     ),
+
+    //Orders
+    GoRoute(
+      path: '/current',
+      builder: (context, state) => const CurrentOrderPage(),
+    ),
+
+    GoRoute(
+      path: '/history',
+      builder: (context, state) => const OrderHistoryPage(),
+    ),
+
+    GoRoute(
+      path: '/tracking',
+      builder: (context, state) => const OrderTrackingPage(),
+    ),
+
     GoRoute(
       path: '/admin',
       builder: (context, state) => const AdminScreen(),

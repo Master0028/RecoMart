@@ -1,3 +1,5 @@
+import 'package:flutter_svg/flutter_svg.dart';
+
 import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
@@ -22,14 +24,16 @@ class CartItemModelFE {
   final double unitPrice;
   final double discount;
   final int quantity;
-  final ProductImageFE images;
+  
+  final ProductImageFE image; 
+
   CartItemModelFE({
     required this.productVariantId,
     required this.productVariantName,
     required this.unitPrice,
     required this.discount,
     required this.quantity,
-    required this.images,
+    required this.image,
   });
 
   factory CartItemModelFE.fromMap(Map<String, dynamic> map) {
@@ -39,7 +43,7 @@ class CartItemModelFE {
       unitPrice: map['unitPrice'] as double,
       discount: map['discount'] as double,
       quantity: map['quantity'] as int,
-      images: ProductImageFE(url: map['images']['url'] as String),
+      image: ProductImageFE(url: map['images']['url'] as String), 
     );
   }
 }
@@ -51,7 +55,7 @@ final List<dynamic> FE_CART_DATA_RAW = [
     'unitPrice': 25000000.0,
     'discount': 0.1,
     'quantity': 1,
-    'images': {'url': 'https://placehold.co/400x400.png'}
+    'images': {'url': 'https://placehold.co/svg/100x100/E8F0FE/007AFF?text=X1'}
   },
   {
     'productVariantId': '2',
@@ -59,7 +63,7 @@ final List<dynamic> FE_CART_DATA_RAW = [
     'unitPrice': 800000.0,
     'discount': 0.0,
     'quantity': 2,
-    'images': {'url': 'https://placehold.co/400x400.png'}
+    'images': {'url': 'https://placehold.co/svg/100x100/FCE4EC/333?text=Mouse'}
   },
 ];
 
@@ -71,8 +75,6 @@ enum ShippingMethod {
   pickupAtStore,
   expressDelivery,
 }
-// --- (Kết thúc Model Stub) ---
-
 
 class CartView extends StatefulWidget {
   const CartView({super.key});
@@ -98,10 +100,8 @@ class _CartViewState extends State<CartView> {
       'Delete product $productVariantId from cart successfully',
       type: SnackBarType.success,
     );
-    // (Thêm logic xóa FE_CART_ITEMS ở đây nếu muốn)
   }
 
-  // Tiêu đề bảng (Chỉ Desktop)
   Widget _buildHeaderRow() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
@@ -112,11 +112,11 @@ class _CartViewState extends State<CartView> {
       child: const Row(
         children: [
           Expanded(
-            flex: 3, // Tăng không gian cho Tên
+            flex: 3,
             child: Text('PRODUCT', style: TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
           Expanded(
-            flex: 2, // Tăng không gian cho Số lượng
+            flex: 2,
             child: Text('QUANTITY', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
           Expanded(
@@ -128,14 +128,13 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  // Tùy chọn Vận chuyển (Thiết kế lại hiện đại)
   Widget _buildShippingOptions() {
     return _ModernCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            '🚚 Choose Delivery Mode',
+            'Choose Delivery Mode',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
           const SizedBox(height: 12),
@@ -145,7 +144,7 @@ class _CartViewState extends State<CartView> {
             value: ShippingMethod.pickupAtStore,
             title: Row(
               children: [
-                const Expanded( // Cho phép text xuống dòng nếu hẹp
+                const Expanded(
                   child: Text(
                     'Store pickup (Ready in 20 min)',
                     style: TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
@@ -208,11 +207,7 @@ class _CartViewState extends State<CartView> {
     );
   }
   
-  // --- TÁCH BIỆT LOGIC SUMMARY ---
-
-  // 1. Chỉ chi tiết (Subtotal, Shipping, Discount)
   Widget _buildSummaryDetails(List<CartItemModelFE> cartItems) {
-    // (Logic tính toán FE - Giữ nguyên)
     const double subTotal = 4500000;
     const double shippingFee = 49000;
     const double discountAmount = 100000;
@@ -255,12 +250,11 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  // 2. Chỉ Tổng tiền và Nút Checkout
   Widget _buildCheckoutAction(List<CartItemModelFE> cartItems) {
-    const double finalTotal = 10000000; // Dữ liệu FE
+    const double finalTotal = 10000000;
 
     return Column(
-      mainAxisSize: MainAxisSize.min, // Quan trọng cho BottomNavBar
+      mainAxisSize: MainAxisSize.min,
       children: [
         const Divider(height: 24),
         _buildRowWithLabel(
@@ -336,60 +330,25 @@ class _CartViewState extends State<CartView> {
             title: 'My Cart (${FE_CART_ITEM_COUNT})',
             isBack: true,
           ),
-          body: LayoutBuilder( // Sử dụng LayoutBuilder để xác định bố cục
+          body: LayoutBuilder(
             builder: (context, constraints) {
               
-              // Quyết định bố cục dựa trên chiều rộng
-              // Màn hình dưới 800px sẽ là layout 1 cột (Mobile/Tablet)
-              final bool isVerticalLayout = constraints.maxWidth < 800;
+              final bool isVerticalLayout = constraints.maxWidth < 900;
 
               return Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1400), // Giới hạn chiều rộng tối đa
+                  constraints: const BoxConstraints(maxWidth: 1400),
                   child: SingleChildScrollView(
                     padding: EdgeInsets.symmetric(
                       vertical: 24,
-                      // Padding ngang lớn hơn cho Desktop
-                      horizontal: isVerticalLayout ? 16 : 32, 
+                      horizontal: isVerticalLayout ? 0 : 32,
                     ),
                     child: Column(
                       children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // --- CỘT BÊN TRÁI (DANH SÁCH SẢN PHẨM) ---
-                            Expanded(
-                              // Tỷ lệ flex thay đổi theo layout
-                              flex: isVerticalLayout ? 1 : 3,
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (!isVerticalLayout) ...[
-                                    _buildHeaderRow(),
-                                    const SizedBox(height: 16),
-                                  ],
-                                  _buildCartList(cartItems, isVerticalLayout),
-                                ],
-                              ),
-                            ),
-                            
-                            // --- CỘT BÊN PHẢI (TÓM TẮT) - ẨN TRÊN MOBILE ---
-                            if (!isVerticalLayout)
-                              Expanded(
-                                flex: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.only(left: 32),
-                                  child: _buildSidebar(cartItems, isMobile: false),
-                                ),
-                              ),
-                          ],
-                        ),
-
-                        // --- SIDEBAR CHO MOBILE (HIỂN THỊ BÊN DƯỚI LIST) ---
-                        if (isVerticalLayout)
-                          _buildSidebar(cartItems, isMobile: true),
-                          
-                        // --- FOOTER (CHỈ HIỂN THỊ DESKTOP) ---
+                        isVerticalLayout 
+                          ? _buildVerticalLayout(cartItems, isMobile)
+                          : _buildHorizontalLayout(cartItems),
+                        
                         if (!isMobile) ...[
                           const SizedBox(height: 40),
                           FooterWidget(),
@@ -402,16 +361,14 @@ class _CartViewState extends State<CartView> {
             },
           ),
           
-          // --- BOTTOM NAV BAR (STICKY CHO MOBILE) ---
           bottomNavigationBar: isMobile && cartItems.isNotEmpty
               ? _buildMobileBottomBar(cartItems)
               : null,
         ),
         
-        // --- MODAL XÁC NHẬN XÓA (Giữ nguyên) ---
         if (_itemToRemove != null) ...[
           Positioned.fill(child: Container(color: Colors.black.withOpacity(0.5))),
-          RemoveCartWidget(
+          RemoveCartWidget( 
             cartItems: cartItems,
             itemToRemove: _itemToRemove,
             cancelRemoveItem: _cancelRemoveItem,
@@ -424,8 +381,45 @@ class _CartViewState extends State<CartView> {
       ],
     );
   }
+  
+  Widget _buildVerticalLayout(List<CartItemModelFE> cartItems, bool isMobile) {
+    return Column(
+      children: [
+        _buildCartList(cartItems, true),
+        _buildSidebar(cartItems, isMobile: true),
+      ],
+    );
+  }
 
-  // Widget Danh sách sản phẩm (Tách riêng)
+  Widget _buildHorizontalLayout(List<CartItemModelFE> cartItems) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          flex: 3,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: _buildHeaderRow(),
+              ),
+              const SizedBox(height: 16),
+              _buildCartList(cartItems, false),
+            ],
+          ),
+        ),
+        Expanded(
+          flex: 2,
+          child: Padding(
+            padding: const EdgeInsets.only(left: 32),
+            child: _buildSidebar(cartItems, isMobile: false),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildCartList(List<CartItemModelFE> cartItems, bool isVerticalLayout) {
     return SlidableAutoCloseBehavior(
       child: ListView.separated(
@@ -435,30 +429,33 @@ class _CartViewState extends State<CartView> {
         itemCount: cartItems.length,
         itemBuilder: (context, index) {
           final item = cartItems[index];
-          return Slidable(
-            key: ValueKey(item.productVariantId),
-            endActionPane: ActionPane(
-              motion: const ScrollMotion(),
-              children: [
-                CustomSlidableAction(
-                  borderRadius: BorderRadius.circular(16),
-                  onPressed: (_) => _handleRemoveItem(item.productVariantId),
-                  backgroundColor: Colors.transparent,
-                  child: const Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(FeatherIcons.trash2, color: AppColors.red, size: 24),
-                      Text('Remove', style: TextStyle(color: AppColors.red, fontSize: 12)),
-                    ],
+          return Padding(
+            padding: EdgeInsets.symmetric(horizontal: isVerticalLayout ? 16 : 0),
+            child: Slidable(
+              key: ValueKey(item.productVariantId),
+              endActionPane: ActionPane(
+                motion: const ScrollMotion(),
+                children: [
+                  CustomSlidableAction(
+                    borderRadius: BorderRadius.circular(16),
+                    onPressed: (_) => _handleRemoveItem(item.productVariantId),
+                    backgroundColor: Colors.transparent,
+                    child: const Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(FeatherIcons.trash2, color: AppColors.red, size: 24),
+                        Text('Remove', style: TextStyle(color: AppColors.red, fontSize: 12)),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+              child: _ModernCard(
+                padding: EdgeInsets.zero,
+                child: CartItemWidget(
+                  itemCart: item,
+                  onQuantityChanged: (_) => setState(() {}),
                 ),
-              ],
-            ),
-            child: _ModernCard( // Sử dụng Card hiện đại
-              padding: EdgeInsets.zero,
-              child: CartItemWidget(
-                itemCart: item,
-                onQuantityChanged: (_) => setState(() {}),
               ),
             ),
           );
@@ -467,39 +464,39 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  // Widget Sidebar (Cho cả Mobile và Desktop)
   Widget _buildSidebar(List<CartItemModelFE> cartItems, {required bool isMobile}) {
-    return Column(
-      children: [
-        if (isMobile) const SizedBox(height: 24),
-        _buildShippingOptions(),
-        const SizedBox(height: 16),
-        PromocodeSectionWidget(cartItems: cartItems),
-        const SizedBox(height: 16),
-        // Chỉ Mobile mới cần Card Summary (Desktop đã có trong BottomBar)
-        if (!isMobile)
-          _ModernCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Order Summary',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const Divider(height: 24),
-                _buildSummaryDetails(cartItems),
-                _buildCheckoutAction(cartItems),
-              ],
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 0),
+      child: Column(
+        children: [
+          if (isMobile) const SizedBox(height: 24),
+          _buildShippingOptions(),
+          const SizedBox(height: 16),
+          PromocodeSectionWidget(cartItems: cartItems),
+          const SizedBox(height: 16),
+          if (!isMobile)
+            _ModernCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Order Summary',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+                  const Divider(height: 24),
+                  _buildSummaryDetails(cartItems),
+                  _buildCheckoutAction(cartItems),
+                ],
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
-  // Widget Bottom Bar (Chỉ Mobile)
   Widget _buildMobileBottomBar(List<CartItemModelFE> cartItems) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32), // Tăng padding dưới
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
@@ -510,7 +507,6 @@ class _CartViewState extends State<CartView> {
   }
 }
 
-// Widget Card hiện đại (Tái sử dụng)
 class _ModernCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
