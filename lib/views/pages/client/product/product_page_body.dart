@@ -545,6 +545,7 @@ class _ShowListProductWidgetState extends State<ShowListProductWidget> {
   Widget build(BuildContext context) {
     final filters = FE_CURRENT_FILTERS;
     final bool isMobile = Responsive.isMobile(context);
+    final provider = Provider.of<ProductProvider>(context);
     return Container(
       padding: !isMobile ? const EdgeInsets.all(16) : null,
       decoration: BoxDecoration(
@@ -592,8 +593,9 @@ class _ShowListProductWidgetState extends State<ShowListProductWidget> {
                     ),
                     child: DropdownCustom(
                       items: sortOptions,
+                      value: provider.currentSort, // dùng thuộc tính vừa thêm
                       onChanged: (value) {
-                        _handleSortChangeFE(value);
+                        provider.sortProducts(value);
                       },
                     ),
                   ),
@@ -732,7 +734,7 @@ class _ProductListState extends State<ProductList> {
         const SizedBox(height: 20),
         PaginationWidget(
           currentPage: provider.currentPage,
-          totalPages: 999, // tạm đặt cao, vì mình kiểm tra hasMore
+          totalPages: 9, // tạm đặt cao, vì mình kiểm tra hasMore
           onPageChanged: (page) async {
             if (provider.hasMore) {
               await provider.nextPage();
@@ -746,3 +748,49 @@ class _ProductListState extends State<ProductList> {
     );
   }
 }
+
+class DropdownCustom extends StatefulWidget {
+  final List<String> items;
+  final String? value; // 🔹 thêm dòng này
+  final ValueChanged<String> onChanged;
+
+  const DropdownCustom({
+    super.key,
+    required this.items,
+    required this.onChanged,
+    this.value, // 🔹 thêm dòng này
+  });
+
+  @override
+  State<DropdownCustom> createState() => _DropdownCustomState();
+}
+
+class _DropdownCustomState extends State<DropdownCustom> {
+  String? _selectedValue;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedValue = widget.value; // 🔹 gán giá trị khởi tạo
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButton<String>(
+      value: _selectedValue,
+      items: widget.items
+          .map((e) => DropdownMenuItem<String>(
+        value: e,
+        child: Text(e),
+      ))
+          .toList(),
+      onChanged: (val) {
+        if (val != null) {
+          setState(() => _selectedValue = val);
+          widget.onChanged(val);
+        }
+      },
+    );
+  }
+}
+

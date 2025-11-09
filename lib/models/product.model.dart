@@ -13,6 +13,10 @@ class ProductModel {
   final double averageRating;    // Đánh giá trung bình
   final int reviewCount;         // Số lượt đánh giá
   final int stock;               // Tồn kho
+  final List<Map<String, dynamic>> reviews; // Danh sách đánh giá người dùng
+  final Timestamp? createdAt;
+  String? brandName;
+  String? categoryName;
 
   ProductModel({
     required this.id,
@@ -27,6 +31,10 @@ class ProductModel {
     required this.averageRating,
     required this.reviewCount,
     required this.stock,
+    this.reviews = const [],
+    this.createdAt,
+    this.brandName,
+    this.categoryName
   });
 
   /// Chuyển từ Firestore DocumentSnapshot → Model
@@ -46,6 +54,11 @@ class ProductModel {
       averageRating: (data['averageRating'] ?? 0).toDouble(),
       reviewCount: (data['reviewCount'] ?? 0).toInt(),
       stock: (data['stock'] ?? 0).toInt(),
+      reviews: (data['reviews'] is List)
+          ? List<Map<String, dynamic>>.from(
+          (data['reviews'] as List).map((r) => Map<String, dynamic>.from(r)))
+          : [],
+      createdAt: data['createdAt'] is Timestamp ? data['createdAt'] : null,
     );
   }
 
@@ -64,6 +77,11 @@ class ProductModel {
       averageRating: (json['averageRating'] ?? 0).toDouble(),
       reviewCount: (json['reviewCount'] ?? 0).toInt(),
       stock: (json['stock'] ?? 0).toInt(),
+      reviews: (json['reviews'] is List)
+          ? List<Map<String, dynamic>>.from(
+          (json['reviews'] as List).map((r) => Map<String, dynamic>.from(r)))
+          : [],
+      createdAt: json['createdAt'] is Timestamp ? json['createdAt'] : null,
     );
   }
 
@@ -82,6 +100,8 @@ class ProductModel {
       'averageRating': averageRating,
       'reviewCount': reviewCount,
       'stock': stock,
+      'reviews': reviews,
+      'createdAt': createdAt ?? FieldValue.serverTimestamp(),
     };
   }
 
@@ -98,6 +118,59 @@ class ProductModel {
     'averageRating': averageRating,
     'reviewCount': reviewCount,
     'stock': stock,
+    'reviews': reviews,
+    'createdAt': createdAt ?? FieldValue.serverTimestamp(),
   };
+
+  // 🔧 fromMap: tạo ProductModel từ Firestore map
+  factory ProductModel.fromMap(Map<String, dynamic> map, {String? docId}) {
+    T _numAs<T extends num>(dynamic v, T fallback) {
+      if (v is num) return (T == int ? v.toInt() : v.toDouble()) as T;
+      if (v is String) {
+        final p = (T == int) ? int.tryParse(v) : double.tryParse(v);
+        return (p ?? fallback) as T;
+      }
+      return fallback;
+    }
+
+    return ProductModel(
+      id: docId ?? (map['id'] as String? ?? ''),
+      name: map['name'] as String? ?? '',
+      imageUrl: map['imageUrl'] as String? ?? '',
+      categoryId: map['categoryId'] as String? ?? '',
+      brandId: map['brandId'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      stock: _numAs<int>(map['stock'], 0),
+      price: _numAs<double>(map['price'], 0),
+      discount: _numAs<double>(map['discount'], 0),
+      isActive: map['isActive'] ?? true,
+      averageRating: _numAs<double>(map['averageRating'], 0),
+      reviewCount: _numAs<int>(map['reviewCount'], 0),
+      // brandName/categoryName sẽ gán sau khi fetch
+    );
+  }
+
+  // 🔁 copyWith để gán brandName/categoryName sau khi fetch
+  ProductModel copyWith({
+    String? brandName,
+    String? categoryName,
+  }) {
+    return ProductModel(
+      id: id,
+      name: name,
+      imageUrl: imageUrl,
+      categoryId: categoryId,
+      brandId: brandId,
+      description: description,
+      stock: stock,
+      price: price,
+      discount: discount,
+      averageRating: averageRating,
+      reviewCount: reviewCount,
+      isActive: isActive,
+      brandName: brandName ?? this.brandName,
+      categoryName: categoryName ?? this.categoryName,
+    );
+  }
 
 }

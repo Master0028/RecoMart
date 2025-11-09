@@ -5,6 +5,11 @@ class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String collection = 'users';
 
+  Future<Map<String, dynamic>?> getUserInfo(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    return doc.exists ? doc.data() : null;
+  }
+
   /// 🔹 Lấy danh sách tất cả người dùng
   Future<List<UserModel>> fetchUsers() async {
     final snapshot = await _db.collection(collection).get();

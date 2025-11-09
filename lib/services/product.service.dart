@@ -42,10 +42,28 @@ class ProductService {
     return snapshot.docs.map((doc) => ProductModel.fromSnapshot(doc)).toList();
   }
 
-  Future<ProductModel> getProductById(String id) async {
-    final doc = await FirebaseFirestore.instance.collection('products').doc(id).get();
-    if (!doc.exists) throw Exception('Không tìm thấy sản phẩm!');
-    return ProductModel.fromSnapshot(doc);
+  Future<ProductModel> getProductById(String productId) async {
+    final doc = await FirebaseFirestore.instance.collection('products').doc(productId).get();
+    if (!doc.exists) throw Exception('Sản phẩm không tồn tại');
+
+    final data = doc.data()!;
+    var product = ProductModel.fromMap(data, docId: doc.id);
+
+    // Lấy tên brand
+    if (product.brandId.isNotEmpty) {
+      final b = await FirebaseFirestore.instance.collection('brands').doc(product.brandId).get();
+      final brandName = b.data()?['name'] as String?;
+      product = product.copyWith(brandName: brandName ?? 'Không xác định');
+    }
+
+    // Lấy tên category
+    if (product.categoryId.isNotEmpty) {
+      final c = await FirebaseFirestore.instance.collection('categories').doc(product.categoryId).get();
+      final categoryName = c.data()?['name'] as String?;
+      product = product.copyWith(categoryName: categoryName ?? 'Không xác định');
+    }
+
+    return product;
   }
 
   Future<List<ProductModel>> getProductsByCategory(String categoryId) async {

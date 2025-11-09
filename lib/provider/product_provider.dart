@@ -12,6 +12,8 @@ import 'package:recomart/services/product.service.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
+import '../models/review.model.dart';
+import '../services/review.service.dart';
 import '../views/pages/admin/brand/widgets/brand_table.dart';
 
 class ProductProvider with ChangeNotifier {
@@ -54,6 +56,10 @@ class ProductProvider with ChangeNotifier {
   Map<String, String> get brandsMap => _brandsMap;
 
   final ProductService _productService = ProductService();
+  final ReviewService _reviewService = ReviewService();
+
+  Map<String, List<ReviewModel>> _productReviews = {};
+  Map<String, List<ReviewModel>> get productReviews => _productReviews;
 
 
   /// 🔹 Lấy danh sách sản phẩm
@@ -199,5 +205,71 @@ class ProductProvider with ChangeNotifier {
     _maxPrice = null;
     _minRating = null;
     await fetchProductsFilter(reset: true);
+  }
+
+  /// 🟩 Thêm đánh giá cho sản phẩm
+  Future<void> addReview({
+    required String productId,
+    required String userId,
+    required String content,
+    required int rating,
+    required String userName,
+    required String userAvatar,
+  }) async {
+    try {
+      final review = ReviewModel(
+        id: '',
+        productId: productId,
+        userId: userId,
+        content: content,
+        rating: rating,
+        user: UserModelForReview(
+          id: userId,
+          name: userName,
+          avatar: userAvatar,
+        ),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      await _reviewService.addReviewForProduct(productId, review);
+
+      // Cập nhật danh sách review local
+      _productReviews[productId] = [
+        review,
+        ...(_productReviews[productId] ?? [])
+      ];
+
+      notifyListeners();
+    } catch (e) {
+      print("❌ Failed to add review: $e");
+      rethrow;
+    }
+  }
+
+  String _currentSort = 'All Products';
+  String get currentSort => _currentSort;
+  void sortProducts(String sortOption) {
+    if (_products.isEmpty) return;
+
+    switch (sortOption) {
+      case 'Name: A to Z':
+        _products.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+        break;
+      case 'Name: Z to A':
+        _products.sort((a, b) => b.name.toLowerCase().compareTo(a.name.toLowerCase()));
+        break;
+      case 'Price: Low to High':
+        _products.sort((a, b) => a.price.compareTo(b.price));
+        break;
+      case 'Price: High to Low':
+        _products.sort((a, b) => b.price.compareTo(a.price));
+        break;
+      default:
+        break; // "All Products" hoặc chưa chọn gì
+    }
+
+    notifyListeners();
+    print('✅ Sorted products by $sortOption');
   }
 }

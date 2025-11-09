@@ -1,6 +1,6 @@
 class ReviewModel {
   String id;
-  String productVariantId;
+  String productId;
   String? userId;
   String content;
   int? rating;
@@ -10,7 +10,7 @@ class ReviewModel {
 
   ReviewModel({
     required this.id,
-    required this.productVariantId,
+    required this.productId,
     this.userId,
     required this.content,
     this.rating,
@@ -22,7 +22,7 @@ class ReviewModel {
   Map<String, dynamic> toMap() {
     return <String, dynamic>{
       'id': id,
-      'productVariantId': productVariantId,
+      'productId': productId,
       'userId': userId,
       'content': content,
       'rating': rating,
@@ -35,7 +35,7 @@ class ReviewModel {
   factory ReviewModel.fromMap(Map<String, dynamic> map) {
     return ReviewModel(
       id: map['_id'] as String,
-      productVariantId: map['product_variant_id'] as String,
+      productId: map['product_variant_id'] as String,
       userId: map['user_id'] as String,
       content: map['content'] as String,
       rating: map['rating'] as int? ?? 0,
@@ -50,7 +50,7 @@ class ReviewModel {
   factory ReviewModel.fromJson(Map<String, dynamic> json) {
     return ReviewModel(
       id: json['_id'] as String,
-      productVariantId: json['product_variant_id'] as String,
+      productId: json['product_variant_id'] as String,
       userId: json['user_id'] as String?, // ✅ sửa ở đây
       content: json['content'] as String,
       rating: json['rating'] as int? ?? 0,
@@ -64,7 +64,7 @@ class ReviewModel {
 
   @override
   String toString() {
-    return 'ReviewModel(id: $id, productVariantId: $productVariantId, userId: $userId, content: $content, rating: $rating, user: $user, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'ReviewModel(id: $id, productVariantId: $productId, userId: $userId, content: $content, rating: $rating, user: $user, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 }
 
