@@ -8,6 +8,9 @@ import 'package:recomart/views/pages/client/login/passwordrecoverymethods.dart';
 import 'package:recomart/views/pages/client/login/signup_screen.dart';
 import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
 import 'package:recomart/views/pages/client/order/order_view.dart';
+import 'package:recomart/views/pages/client/profile/module/address.dart';
+import 'package:recomart/views/pages/client/profile/module/atm.dart';
+import 'package:recomart/views/pages/client/profile/module/epay.dart';
 import 'package:recomart/views/pages/client/profile/module/personalinfor.dart';
 import 'package:recomart/views/pages/client/profile/module/utilities.dart';
 import 'package:recomart/views/pages/client/profile/widgets/support.dart';
@@ -97,15 +100,30 @@ final GoRouter appRouter = GoRouter(
       path: '/personal-information',
       builder: (context, state) => const PersonelInformationPage(userInfo: {},),
     ),
+
+    GoRoute(
+      path: '/address',
+      builder: (context, state) => const AddressPage(),
+    ),
     
     GoRoute(
       path: '/utilities',
-      builder: (context, state) => const LoyaltyPointsPage(),
+      builder: (context, state) => const MyUtilitiesPage(),
     ),
 
     GoRoute(
       path: '/support',
-      builder: (context, state) => const SupportAccount(),
+      builder: (context, state) => const SupportChatScreen(),
+    ),
+
+    GoRoute(
+      path: '/atm',
+      builder: (context, state) => const PaymentMethodsScreen(),
+    ),
+
+    GoRoute(
+      path: '/e-wallets',
+      builder: (context, state) => const EWalletPage(),
     ),
     
     GoRoute(

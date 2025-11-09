@@ -15,7 +15,7 @@ class ChangePasswordApp extends StatelessWidget {
       title: 'Đổi Mật Khẩu',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: Colors.white, // Nền trắng
+        scaffoldBackgroundColor: Colors.white,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: const ChangePasswordScreen(),

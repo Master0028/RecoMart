@@ -17,7 +17,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   String _selectedFilter = "All";
   DateTimeRange? _customDateRange;
   int _currentPage = 1;
-  final int _itemsPerPage = 20;
+  final int _itemsPerPage = 10;
   bool _isLoading = false;
 
   @override
@@ -117,10 +117,13 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
       context: context,
       barrierDismissible: false,
       builder: (_) => OrderDetailDialog(
-        order: Map.from(order), // Clone để tránh thay đổi gốc
+        order: Map.from(order), 
         onStatusChanged: (newStatus) {
           setState(() {
-            order['status'] = newStatus;
+            final index = widget.orders.indexWhere((o) => o['id'] == order['id']);
+            if (index != -1) {
+              widget.orders[index]['status'] = newStatus;
+            }
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -134,223 +137,222 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     );
   }
 
-  Widget _buildHeader(String title, double width, {bool isMobile = false}) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-      ),
-      child: Text(
-        title,
-        textAlign: isMobile ? TextAlign.left : TextAlign.center,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildCell(String text, double width, {Color? color, bool bold = false}) {
-    return Container(
-      width: width,
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          color: color ?? Colors.black87,
-          fontWeight: bold ? FontWeight.w600 : FontWeight.normal,
-        ),
-        overflow: TextOverflow.ellipsis,
-        maxLines: 1,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
-    final width = MediaQuery.of(context).size.width;
-    final colCount = isMobile ? 3 : 6;
-    final colWidth = width / colCount;
+    final int totalPages = ((filteredOrders.length - 1) / _itemsPerPage).ceil();
 
     return Card(
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header + Controls
-            Row(
-              children: [
-                const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                // Search
-                SizedBox(
-                  width: isMobile ? 140 : 220,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: "Tìm mã đơn...",
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
-                      isDense: true,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                // Filter
-                SizedBox(
-                  width: isMobile ? 130 : 180,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedFilter,
-                    decoration: InputDecoration(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    items: ["All", "Today", "Yesterday", "This Week", "This Month", "Custom"]
-                        .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
-                        .toList(),
-                    onChanged: (value) async {
-                      if (value == "Custom") {
-                        final picked = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(2020),
-                          lastDate: DateTime.now(),
-                          initialDateRange: _customDateRange,
-                        );
-                        if (picked != null && mounted) {
-                          setState(() {
-                            _customDateRange = picked;
-                            _selectedFilter = value!;
-                            _currentPage = 1;
-                          });
-                        }
-                      } else if (value != null) {
-                        setState(() {
-                          _selectedFilter = value;
-                          _customDateRange = null;
-                          _currentPage = 1;
-                        });
-                      }
-                    },
-                  ),
-                ),
-              ],
-            ),
+            _buildControls(isMobile),
+            const SizedBox(height: 20),
 
-            const SizedBox(height: 16),
-
-            // Table
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (filteredOrders.isEmpty)
-              const Center(child: Text("Không có đơn hàng nào", style: TextStyle(color: Colors.grey)))
+              const Center(heightFactor: 5, child: Text("Không có đơn hàng nào", style: TextStyle(color: Colors.grey)))
             else
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(minWidth: constraints.maxWidth),
-                      child: Column(
-                        children: [
-                          // Header Row
-                          Row(
-                            children: isMobile
-                                ? ["Mã đơn", "Ngày", "Tổng tiền"]
-                                    .map((h) => _buildHeader(h, colWidth, isMobile: true))
-                                    .toList()
-                                : ["Mã đơn", "Khách hàng", "Ngày", "Tổng tiền", "Giảm giá", "Trạng thái"]
-                                    .map((h) => _buildHeader(h, colWidth))
-                                    .toList(),
-                          ),
-                          // Data Rows
-                          ...paginatedOrders.map((order) {
-                            final id = (order['id'] as String?) ?? '';
-                            final shortId = id.length > 8 ? '${id.substring(0, 8)}...' : id;
-                            final date = DateTime.tryParse(order['orderDate'] ?? '') ?? DateTime.now();
-                            final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
-                            final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
-
-                            return InkWell(
-                              onTap: () => _showOrderDetail(order),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-                                  color: Colors.white,
-                                ),
-                                child: Row(
-                                  children: isMobile
-                                      ? [
-                                          _buildCell(shortId, colWidth, bold: true),
-                                          _buildCell(DateFormat('dd/MM/yyyy').format(date), colWidth),
-                                          _buildCell('${NumberFormat('#,##0', 'vi').format(total)}đ', colWidth, color: Colors.blue, bold: true),
-                                        ]
-                                      : [
-                                          _buildCell(shortId, colWidth, bold: true),
-                                          _buildCell(order['customerName'] ?? 'Khách lẻ', colWidth),
-                                          _buildCell(DateFormat('dd/MM/yyyy').format(date), colWidth),
-                                          _buildCell('${NumberFormat('#,##0', 'vi').format(total)}đ', colWidth, color: Colors.blue, bold: true),
-                                          _buildCell('-${NumberFormat('#,##0', 'vi').format(discount)}đ', colWidth, color: Colors.redAccent),
-                                          Container(
-                                            width: colWidth,
-                                            padding: const EdgeInsets.symmetric(vertical: 8),
-                                            child: Chip(
-                                              label: Text(
-                                                order['status']?.toString().toUpperCase() ?? 'PENDING',
-                                                style: const TextStyle(color: Colors.white, fontSize: 11),
-                                              ),
-                                              backgroundColor: _getStatusColor(order['status'] ?? 'PENDING'),
-                                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                                            ),
-                                          ),
-                                        ],
-                                ),
-                              ),
-                            );
-                          }),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  headingRowColor: WidgetStateProperty.all(Colors.grey.shade100),
+                  headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                  dataRowMinHeight: 60, // Tăng chiều cao hàng
+                  dataRowMaxHeight: 80,
+                  columnSpacing: 20, // Tăng khoảng cách cột
+                  columns: _buildTableColumns(isMobile),
+                  rows: paginatedOrders.map((order) => _buildDataRow(order, isMobile)).toList(),
+                ),
               ),
-
+            
             const SizedBox(height: 16),
 
-            // Pagination
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: _currentPage > 1
-                      ? () => setState(() => _currentPage--)
-                      : null,
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(8),
+            // --- Pagination ---
+            if (totalPages > 1)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    onPressed: _currentPage > 1
+                        ? () => setState(() => _currentPage--)
+                        : null,
                   ),
-                  child: Text("Trang $_currentPage / ${((filteredOrders.length - 1) / _itemsPerPage).ceil()}"),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: (_currentPage * _itemsPerPage) < filteredOrders.length
-                      ? () => setState(() => _currentPage++)
-                      : null,
-                ),
-              ],
-            ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text("Trang $_currentPage / $totalPages"),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    onPressed: (_currentPage * _itemsPerPage) < filteredOrders.length
+                        ? () => setState(() => _currentPage++)
+                        : null,
+                  ),
+                ],
+              ),
           ],
         ),
       ),
     );
+  }
+  
+  Widget _buildControls(bool isMobile) {
+    return isMobile
+      ? Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: _buildSearchField()),
+                const SizedBox(width: 12),
+                Expanded(child: _buildFilterDropdown()),
+              ],
+            )
+          ],
+        )
+      : Row(
+          children: [
+            const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Spacer(),
+            SizedBox(width: 220, child: _buildSearchField()),
+            const SizedBox(width: 12),
+            SizedBox(width: 180, child: _buildFilterDropdown()),
+          ],
+        );
+  }
+  
+  Widget _buildSearchField() {
+    return TextField(
+      controller: _searchController,
+      decoration: InputDecoration(
+        hintText: "Tìm mã đơn...",
+        prefixIcon: const Icon(Icons.search, size: 18),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        isDense: true,
+      ),
+    );
+  }
+
+  Widget _buildFilterDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedFilter,
+      decoration: InputDecoration(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        isDense: true,
+      ),
+      items: ["All", "Today", "Yesterday", "This Week", "This Month", "Custom"]
+          .map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13))))
+          .toList(),
+      onChanged: (value) async {
+        if (value == "Custom") {
+          final picked = await showDateRangePicker(
+            context: context,
+            firstDate: DateTime(2020),
+            lastDate: DateTime.now(),
+            initialDateRange: _customDateRange,
+          );
+          if (picked != null && mounted) {
+            setState(() {
+              _customDateRange = picked;
+              _selectedFilter = value!;
+              _currentPage = 1;
+            });
+          }
+        } else if (value != null) {
+          setState(() {
+            _selectedFilter = value;
+            _customDateRange = null;
+            _currentPage = 1;
+          });
+        }
+      },
+    );
+  }
+
+  List<DataColumn> _buildTableColumns(bool isMobile) {
+    if (isMobile) {
+      return const [
+        DataColumn(label: Text('Mã đơn')),
+        DataColumn(label: Text('Ngày')),
+        DataColumn(label: Text('Tổng tiền'), numeric: true),
+      ];
+    }
+    return const [
+      DataColumn(label: Text('Mã đơn')),
+      DataColumn(label: Text('Khách hàng')),
+      DataColumn(label: Text('Ngày')),
+      DataColumn(label: Text('Tổng tiền'), numeric: true),
+      DataColumn(label: Text('Giảm giá'), numeric: true),
+      DataColumn(label: Text('Trạng thái')),
+    ];
+  }
+
+  DataRow _buildDataRow(Map<String, dynamic> order, bool isMobile) {
+    final id = (order['id'] as String?) ?? '';
+    final shortId = id.length > 8 ? '${id.substring(0, 8)}...' : id;
+    final date = DateTime.tryParse(order['orderDate'] ?? '') ?? DateTime.now();
+    final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
+    final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
+    final status = order['status']?.toString().toUpperCase() ?? 'PENDING';
+    final customerName = order['customerName'] ?? 'Khách lẻ';
+    
+    DataCell _clickableCell(Widget child) {
+        return DataCell(child, onTap: () => _showOrderDetail(order));
+    }
+    
+    if (isMobile) {
+      return DataRow(cells: [
+        _clickableCell(Text(shortId, style: const TextStyle(fontWeight: FontWeight.bold))),
+        _clickableCell(Text(DateFormat('dd/MM/yyyy').format(date))),
+        _clickableCell(Text(
+          '${NumberFormat('#,##0', 'vi').format(total)}đ',
+          style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.end,
+        )),
+      ]);
+    }
+    
+    return DataRow(cells: [
+      _clickableCell(Text(shortId, style: const TextStyle(fontWeight: FontWeight.bold))),
+      _clickableCell(Text(customerName, overflow: TextOverflow.ellipsis)),
+      _clickableCell(Text(DateFormat('dd/MM/yyyy').format(date))),
+      _clickableCell(Text(
+        '${NumberFormat('#,##0', 'vi').format(total)}đ',
+        style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+        textAlign: TextAlign.end,
+      )),
+      _clickableCell(Text(
+        '-${NumberFormat('#,##0', 'vi').format(discount)}đ',
+        style: const TextStyle(color: Colors.redAccent),
+        textAlign: TextAlign.end,
+      )),
+      DataCell(
+        Chip(
+          label: Text(
+            status,
+            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: _getStatusColor(status),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          labelPadding: EdgeInsets.zero,
+        ),
+        onTap: () => _showOrderDetail(order),
+      ),
+    ]);
   }
 }

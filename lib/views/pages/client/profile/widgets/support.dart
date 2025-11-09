@@ -1,117 +1,224 @@
-import 'package:recomart/config/color.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:recomart/config/color.dart';
+import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 
-class ModernListTile extends StatelessWidget {
-  const ModernListTile({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.onTap,
-  });
+class _Message {
+  final String text;
+  final bool isUser;
+  final DateTime timestamp;
 
-  final IconData icon;
-  final String title;
-  final VoidCallback? onTap;
+  _Message(this.text, this.isUser, this.timestamp);
+}
+
+final List<_Message> _mockMessages = [
+  _Message(
+    "Xin chào! Tôi có thể giúp gì cho bạn hôm nay?",
+    false,
+    DateTime.now().subtract(const Duration(minutes: 5)),
+  ),
+  _Message(
+    "Tôi đang gặp sự cố với đơn hàng 12345 của mình.",
+    true,
+    DateTime.now().subtract(const Duration(minutes: 3)),
+  ),
+  _Message(
+    "Tôi hiểu rồi. Bạn vui lòng mô tả chi tiết sự cố bạn đang gặp phải được không?",
+    false,
+    DateTime.now().subtract(const Duration(minutes: 2)),
+  ),
+];
+
+class SupportChatScreen extends StatefulWidget {
+  const SupportChatScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 16.0),
-      leading: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.08), 
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          color: AppColors.primary,
-          size: 24,
-        ),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF333333), 
-        ),
-      ),
-      trailing: Icon(
-        CupertinoIcons.chevron_forward,
-        color: Colors.grey.shade400,
-        size: 20,
-      ),
-    );
+  State<SupportChatScreen> createState() => _SupportChatScreenState();
+}
+
+class _SupportChatScreenState extends State<SupportChatScreen> {
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final List<_Message> _messages = List.from(_mockMessages);
+
+  void _handleSendPressed() {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    setState(() {
+      _messages.add(_Message(text, true, DateTime.now()));
+    });
+    _messageController.clear();
+    _scrollToBottom();
+
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_Message(
+          "Xin chào bạn cần hỗ trợ gì đi",
+          false,
+          DateTime.now(),
+        ));
+      });
+      _scrollToBottom();
+    });
   }
-}
 
-class SupportAccount extends StatefulWidget {
-  const SupportAccount({super.key});
-
-  @override
-  State<SupportAccount> createState() => _SupportAccountState();
-}
-
-class _SupportAccountState extends State<SupportAccount> {
-  List<Map<String, dynamic>> supportItems = [
-    {'title': 'Contact & Support', 'icon': FeatherIcons.phoneCall},
-    {'title': 'Frequently Asked Questions', 'icon': FeatherIcons.messageCircle},
-    {'title': 'Send Feedback', 'icon': FeatherIcons.edit},
-  ];
-
-  void _handleTap(int index) {
-    if (index == 0) {
-      print('Navigate to Contact Us');
-    } else if (index == 1) {
-      print('Navigate to FAQ');
-    } else if (index == 2) {
-      print('Navigate to Feedback');
+  void _scrollToBottom() {
+    if (_scrollController.hasClients) {
+      Future.delayed(const Duration(milliseconds: 100), () {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Card(
-        elevation: 0,
-        margin: EdgeInsets.zero, 
-        color: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20), 
-          side: BorderSide(color: Colors.grey.shade200, width: 1.0) 
-        ),
-        clipBehavior: Clip.antiAlias, 
-        child: Column(
-          children: supportItems.asMap().entries.map((entry) {
-            int index = entry.key;
-            Map<String, dynamic> item = entry.value;
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
-            return Column(
-              children: [
-                ModernListTile(
-                  icon: item['icon'],
-                  title: item['title'],
-                  onTap: () => _handleTap(index),
-                ),
-                if (index < supportItems.length - 1)
-                  Padding(
-                    padding: const EdgeInsets.only(left: 72.0, right: 16.0),
-                    child: Divider(
-                      color: Colors.grey.shade200,
-                      height: 1,
-                      thickness: 1,
-                    ),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey.shade100,
+      appBar: const CustomAppBarMobile(
+        title: 'Trung tâm Hỗ trợ',
+        isBack: true,
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16.0),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                return _buildMessageBubble(_messages[index]);
+              },
+            ),
+          ),
+          _buildMessageInputBar(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageInputBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          )
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _messageController,
+                decoration: InputDecoration(
+                  hintText: 'Nhập tin nhắn của bạn...',
+                  fillColor: Colors.grey.shade100,
+                  filled: true,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30.0),
+                    borderSide: BorderSide.none,
                   ),
-              ],
-            );
-          }).toList(),
+                  contentPadding:
+                      const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
+                ),
+                // SỬA: onSubmitted xử lý phím Enter
+                onSubmitted: (_) => _handleSendPressed(),
+              ),
+            ),
+            const SizedBox(width: 12),
+            FloatingActionButton(
+              onPressed: _handleSendPressed,
+              backgroundColor: AppColors.primary,
+              elevation: 2,
+              mini: true,
+              child: const Icon(FeatherIcons.send, color: Colors.white, size: 20),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMessageBubble(_Message message) {
+    final bool isUser = message.isUser;
+    
+    final MainAxisAlignment alignment =
+        isUser ? MainAxisAlignment.end : MainAxisAlignment.start;
+        
+    final Color bubbleColor = isUser ? AppColors.primary : Colors.white;
+    final Color textColor = isUser ? Colors.white : Colors.black87;
+    
+    final BorderRadius borderRadius = isUser
+        ? const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            bottomLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+            topRight: Radius.circular(5), 
+          )
+        : const BorderRadius.only(
+            topLeft: Radius.circular(5), 
+            bottomLeft: Radius.circular(20),
+            bottomRight: Radius.circular(20),
+            topRight: Radius.circular(20),
+          );
+
+    return Row(
+      mainAxisAlignment: alignment,
+      children: [
+        Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.75 
+          ),
+          margin: const EdgeInsets.symmetric(vertical: 6.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+          decoration: BoxDecoration(
+              color: bubbleColor,
+              borderRadius: borderRadius,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 5,
+                  offset: const Offset(0, 2),
+                )
+              ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message.text,
+                style: TextStyle(color: textColor, fontSize: 15, height: 1.4),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
+                style: TextStyle(
+                  color: isUser ? Colors.white70 : Colors.grey,
+                  fontSize: 12
+                ),
+              )
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

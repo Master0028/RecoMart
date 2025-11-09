@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:recomart/utils/responsive.dart';
-import 'package:recomart/views/pages/admin/support/widgets/chat_area.dart'; 
+import 'package:recomart/views/pages/admin/support/widgets/chat_area.dart' hide Responsive; 
 import 'package:recomart/views/pages/admin/support/widgets/chat_list.dart';
 
 final List<Map<String, dynamic>> FE_CUSTOMERS_STUB = [
@@ -9,6 +9,9 @@ final List<Map<String, dynamic>> FE_CUSTOMERS_STUB = [
   {"id": 3, "name": "Alice Johnson", "lastMessage": "How to track my return.", "isOnline": true, "avatar": "https://placehold.co/60x60/8B5CF6/ffffff/png"},
   {"id": 4, "name": "Bob Williams", "lastMessage": "Pricing query on Laptop X.", "isOnline": false, "avatar": "https://placehold.co/60x60/34D399/ffffff/png"},
 ];
+const Color primaryColor = Color(0xFF1E88E5);
+const Color secondaryColor = Color(0xFFF5F5F5);
+
 
 class SupportScreen extends StatefulWidget {
   final ValueChanged<bool> onChatAreaVisibilityChanged;
@@ -42,9 +45,7 @@ class _SupportScreenState extends State<SupportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = Responsive.isMobile(context);
-    final primaryColor = const Color(0xFF1E88E5);
-    final secondaryColor = const Color(0xFFF5F5F5);
+    final isMobile = Responsive.isMobile(context); 
 
     return Container(
       color: secondaryColor,
@@ -59,7 +60,7 @@ class _SupportScreenState extends State<SupportScreen> {
                   customer: selectedCustomer!,
                   onBack: _onMobileBack, 
                 )
-          : // --- DESKTOP VIEW (Split Screen) ---
+          :
             Row(
               children: [
                 Container(
