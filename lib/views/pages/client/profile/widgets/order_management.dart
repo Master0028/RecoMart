@@ -16,19 +16,9 @@ class OrderManagement extends StatefulWidget {
 class _OrderManagementState extends State<OrderManagement> {
   List<Map<String, dynamic>> orderItems = [
     {
-      'title': 'Current Orders',
-      'icon': FeatherIcons.package,
-      'route': '/current'
-    },
-    {
       'title': 'Order History',
       'icon': FeatherIcons.archive,
       'route': '/history'
-    },
-    {
-      'title': 'Tracking Order',
-      'icon': FeatherIcons.truck,
-      'route': '/tracking'
     },
   ];
 

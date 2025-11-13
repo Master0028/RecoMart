@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
@@ -239,7 +240,14 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                         Expanded(
                           child: OutlinedButton(
                             onPressed: () {
-                              print('🛍️ Mua ngay ${product.name}');
+                              context.push('/checkout', extra: {
+                                'productId': product.id,
+                                'productName': product.name,
+                                'imageUrl': product.imageUrl,
+                                'unitPrice': product.price,
+                                'quantity': quantity,
+                                'discount': product.discount,
+                              });
                             },
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,

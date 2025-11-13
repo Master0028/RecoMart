@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import '../../../../../services/order.service.dart';
+
 class OrderDetailDialog extends StatefulWidget {
   final Map<String, dynamic> order;
   final void Function(String) onStatusChanged;
@@ -19,11 +21,14 @@ class OrderDetailDialog extends StatefulWidget {
 class _OrderDetailDialogState extends State<OrderDetailDialog> {
   late String _selectedStatus;
   final List<String> _orderStatuses = ['PENDING', 'SHIPPING', 'DELIVERED', 'CANCELLED'];
+  late TextEditingController _statusController;
+  final OrderService _orderService = OrderService();
 
   @override
   void initState() {
     super.initState();
     _selectedStatus = widget.order['status'] ?? 'PENDING';
+    _statusController = TextEditingController(text: _selectedStatus);
   }
 
   String _formatMoney(double amount) {
@@ -171,11 +176,16 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                         return Column(
                           children: [
                             ListTile(
-                              leading: const Icon(Icons.laptop, color: Colors.grey),
+                              leading: product['imageUrl'] != ''
+                                  ? Image.network(product['imageUrl'], width: 40, height: 40, fit: BoxFit.cover)
+                                  : const Icon(Icons.shopping_bag, color: Colors.grey),
                               title: Text(
-                                "${product['name'] ?? 'Unknown Product'} (x$quantity)",
+                                "${product['name']} (x$quantity)",
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                               ),
+                              subtitle: product['discount'] != 0
+                                  ? Text("Giảm: ${product['discount']}%", style: const TextStyle(color: Colors.redAccent))
+                                  : null,
                               trailing: Text(
                                 "${_formatMoney(unitPrice * quantity)}đ",
                                 style: const TextStyle(fontSize: 14, color: Colors.blue),
@@ -259,9 +269,31 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
           child: const Text("Close", style: TextStyle(color: Colors.grey)),
         ),
         ElevatedButton(
-          onPressed: () {
-            widget.onStatusChanged(_selectedStatus);
-            context.pop();
+          onPressed: () async {
+            final orderId = widget.order['id'];
+            if (orderId == null) return;
+
+            try {
+              await _orderService.updateOrderStatus(orderId, _selectedStatus);
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("✅ Cập nhật trạng thái đơn $orderId: $_selectedStatus"),
+                    backgroundColor: Colors.green,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+                context.pop();
+              }
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("❌ Lỗi khi cập nhật trạng thái: $e"),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.blue,

@@ -53,10 +53,9 @@ class UserService {
     return (data?['loyaltyPoints'] ?? 0).toDouble();
   }
 
-  Future<void> updateLoyaltyPoints(String uid, double newPoints) async {
-    await _db.collection('users').doc(uid).update({
-      'loyaltyPoints': newPoints
+  Future<void> updateUserPoints(String uid, double newPoints) async {
+    await FirebaseFirestore.instance.collection('users').doc(uid).update({
+      'loyaltyPoints': newPoints,
     });
   }
-
 }

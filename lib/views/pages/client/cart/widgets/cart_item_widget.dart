@@ -118,7 +118,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                             Text(
                               // Logic tính giá FE
                               formatMoney(
-                                widget.itemCart.unitPrice * (1 - widget.itemCart.discount),
+                                widget.itemCart.unitPrice - (widget.itemCart.unitPrice * widget.itemCart.discount / 100),
                               ),
                               style: const TextStyle(
                                 fontSize: 14,
@@ -188,7 +188,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                     flex: 1,
                     child: Text(
                       formatMoney(
-                        widget.itemCart.unitPrice * widget.itemCart.quantity,
+                        (widget.itemCart.unitPrice - (widget.itemCart.unitPrice * widget.itemCart.discount / 100)) * widget.itemCart.quantity,
                       ),
                       textAlign: TextAlign.start,
                       style: const TextStyle(

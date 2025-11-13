@@ -41,4 +41,19 @@ class CouponModel {
       'appliedOrders': appliedOrders,
     };
   }
+
+  CouponModel copyWith({
+    int? usedCount,
+    List<String>? appliedOrders,
+  }) {
+    return CouponModel(
+      id: id,
+      code: code,
+      discountValue: discountValue,
+      maxUsage: maxUsage,
+      usedCount: usedCount ?? this.usedCount,
+      createdAt: createdAt,
+      appliedOrders: appliedOrders ?? this.appliedOrders,
+    );
+  }
 }

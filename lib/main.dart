@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:recomart/provider/brand_provider.dart';
 import 'package:recomart/provider/category_provider.dart';
 import 'package:recomart/provider/cart_provider.dart';
+import 'package:recomart/provider/order_provider.dart';
 import 'package:recomart/provider/product_provider.dart';
 import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/provider/coupon_provider.dart';
@@ -30,6 +31,7 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => CategoryProvider()),
         ChangeNotifierProvider(create: (_) => BrandProvider()),
         ChangeNotifierProvider(create: (_) => CouponProvider()),
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
       ],
       child: const MyApp(),
     ),

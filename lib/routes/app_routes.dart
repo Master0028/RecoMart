@@ -7,14 +7,11 @@ import 'package:recomart/views/pages/client/login/changepassword.dart';
 import 'package:recomart/views/pages/client/login/passwordrecoverymethods.dart';
 import 'package:recomart/views/pages/client/login/signup_screen.dart';
 import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
-import 'package:recomart/views/pages/client/order/order_view.dart';
 import 'package:recomart/views/pages/client/profile/module/address.dart';
 import 'package:recomart/views/pages/client/profile/module/atm.dart';
-import 'package:recomart/views/pages/client/profile/module/currentorder.dart';
 import 'package:recomart/views/pages/client/profile/module/epay.dart';
 import 'package:recomart/views/pages/client/profile/module/history.dart';
 import 'package:recomart/views/pages/client/profile/module/personalinfor.dart';
-import 'package:recomart/views/pages/client/profile/module/tracking.dart';
 import 'package:recomart/views/pages/client/profile/module/utilities.dart';
 import 'package:recomart/views/pages/client/profile/widgets/support.dart';
 import 'package:recomart/views/pages/client/search/search_screen.dart';
@@ -25,12 +22,13 @@ import 'package:recomart/views/pages/client/cart/cart_view.dart';
 import 'package:recomart/views/pages/client/login/login_view.dart';
 import 'package:recomart/views/pages/client/login/newpass_view.dart';
 import 'package:recomart/views/pages/client/login/verifyotp_view.dart';
-import 'package:recomart/views/pages/client/payment/pament_view.dart';
 import 'package:recomart/views/pages/client/product/product_details_view.dart';
 import 'package:recomart/views/pages/client/product/product_page_view.dart';
 import 'package:recomart/views/pages/client/profile/profile_view.dart';
 import 'package:recomart/views/pages/client/splash/splash_view.dart';
-import 'package:recomart/views/pages/client/voucher/voucher_view.dart';
+
+import '../views/pages/client/order/ordercheckout.dart';
+import '../views/pages/client/profile/module/orderdetail.dart';
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/', 
@@ -146,7 +144,15 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    
+
+    GoRoute(
+      path: '/orders/:id',
+      builder: (context, state) {
+        final orderId = state.pathParameters['id']!;
+        return OrderDetailPage(orderId: orderId);
+      },
+    ),
+
     GoRoute(
       path: '/search',
       builder: (context, state) {
@@ -163,18 +169,6 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const CartView(),
     ),
     GoRoute(
-      path: '/orders',
-      builder: (context, state) => const OrderView(),
-    ),
-    GoRoute(
-      path: '/payment',
-      builder: (context, state) => const PaymentView(),
-    ),
-    GoRoute(
-      path: '/voucher',
-      builder: (context, state) => const VoucherView(),
-    ),
-    GoRoute(
       path: '/profile',
       builder: (context, state) => const ProfileView(),
     ),
@@ -183,21 +177,28 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const ChatView(),
     ),
 
-    //Orders
-    GoRoute(
-      path: '/current',
-      builder: (context, state) => const CurrentOrderPage(),
-    ),
-
     GoRoute(
       path: '/history',
       builder: (context, state) => const OrderHistoryPage(),
     ),
 
     GoRoute(
-      path: '/tracking',
-      builder: (context, state) => const OrderTrackingPage(),
+      path: '/checkout',
+      name: 'checkout',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>?;
+
+        return OrderCheckoutPage(
+          productId: extra?['productId'],
+          productName: extra?['productName'],
+          imageUrl: extra?['imageUrl'],
+          unitPrice: extra?['unitPrice'],
+          quantity: extra?['quantity'],
+          discount: extra?['discount'],
+        );
+      },
     ),
+
 
     GoRoute(
       path: '/admin',

@@ -106,7 +106,7 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
           break;
 
         case 'Support':
-          context.push('/support');
+          context.push('/chat');
           break;
 
         case 'Logout':

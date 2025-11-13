@@ -161,13 +161,7 @@ class _AdminScreenState extends State<AdminScreen> {
           _currentScreen = CouponManagementScreen();
           break;
         case "Support":
-          _currentScreen = SupportScreen(
-            onChatAreaVisibilityChanged: (isVisible) {
-              setState(() {
-                _hideAppBar = isVisible;
-              });
-            },
-          );
+          _currentScreen = SupportScreen();
           break;
         case "Logout":
           _logoutFE();

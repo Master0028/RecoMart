@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/cart.model.dart';
+import '../models/coupon.model.dart';
 import '../services/cart.service.dart';
 
 class CartProvider with ChangeNotifier {
@@ -8,8 +9,57 @@ class CartProvider with ChangeNotifier {
   CartModel? _cart;
   bool _loading = false;
 
+  double _couponDiscount = 0;
+  int _usedPoints = 0;
+  CouponModel? _selectedCoupon;
+
   CartModel? get cart => _cart;
   bool get isLoading => _loading;
+  double get couponDiscount => _couponDiscount;
+  int get usedPoints => _usedPoints;
+  CouponModel? get selectedCoupon => _selectedCoupon;
+
+  double get totalPrice {
+    if (_cart == null) return 0;
+    return _cart!.items.fold(
+      0,
+          (sum, item) =>
+      sum + (item.unitPrice - (item.unitPrice * item.discount / 100)) * item.quantity,
+    );
+  }
+
+  int get totalItems {
+    if (_cart == null) return 0;
+    return _cart!.items.fold(0, (sum, item) => sum + item.quantity);
+  }
+
+  /// 🧩 Áp dụng coupon (voucher)
+  void applyCoupon(CouponModel coupon) {
+    _selectedCoupon = coupon;
+    _couponDiscount = coupon.discountValue ?? 0;
+    notifyListeners();
+  }
+
+  /// 🧩 Sử dụng điểm KHTT
+  void setUsedPoints(int points) {
+    _usedPoints = points;
+    notifyListeners();
+  }
+
+  /// 🧩 Dùng nếu bạn muốn gọi 1 hàm chung (giống code cũ)
+  void setDiscounts({double? coupon, int? points}) {
+    if (coupon != null) _couponDiscount = coupon;
+    if (points != null) _usedPoints = points;
+    notifyListeners();
+  }
+
+  /// 🧩 Reset sau khi thanh toán
+  void clearDiscounts() {
+    _couponDiscount = 0;
+    _usedPoints = 0;
+    _selectedCoupon = null;
+    notifyListeners();
+  }
 
   Future<void> loadCart() async {
     _cart = await _cartService.getUserCart();
@@ -21,7 +71,6 @@ class CartProvider with ChangeNotifier {
     await loadCart();
   }
 
-// 🧩 Cập nhật số lượng
   Future<void> updateItemQuantity(
       String userId, String productId, int newQuantity) async {
     await _cartService.updateItemQuantity(
@@ -29,21 +78,21 @@ class CartProvider with ChangeNotifier {
       productId: productId,
       newQuantity: newQuantity,
     );
-    await fetchCartByUserId(userId); // refresh lại local
+    await fetchCartByUserId(userId);
   }
 
-  // 🧩 Xóa sản phẩm
   Future<void> removeItemFromCart(String userId, String productId) async {
     await _cartService.removeItemFromCart(
       userId: userId,
       productId: productId,
     );
-    await fetchCartByUserId(userId); // refresh lại local
+    await fetchCartByUserId(userId);
   }
 
   Future<void> clearCart() async {
     await _cartService.clearCart();
     _cart = null;
+    clearDiscounts();
     notifyListeners();
   }
 
@@ -54,23 +103,11 @@ class CartProvider with ChangeNotifier {
 
       final fetchedCart = await _cartService.getCartByUserId(userId);
       _cart = fetchedCart;
-
-      _loading = false;
-      notifyListeners();
     } catch (e) {
+      debugPrint('⚠️ Lỗi khi tải giỏ hàng: $e');
+    } finally {
       _loading = false;
       notifyListeners();
-      print('⚠️ Lỗi khi tải giỏ hàng: $e');
     }
   }
-
-  double get totalPrice {
-    if (_cart == null) return 0;
-    return _cart!.items.fold(
-        0,
-            (sum, item) =>
-        sum + (item.unitPrice - (item.unitPrice * item.discount / 100)) * item.quantity);
-  }
-
-  int get totalItems => _cart?.items.length ?? 0;
 }
