@@ -1,12 +1,9 @@
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
@@ -22,7 +19,6 @@ import 'package:recomart/views/pages/client/product/widgets/quantity.dart';
 import '../../../../models/cart.model.dart';
 import '../../../../models/review.model.dart';
 import '../../../../provider/cart_provider.dart';
-import '../../../../provider/user_provider.dart';
 import '../../../../services/review.service.dart';
 import '../../../../services/user.service.dart';
 
@@ -68,14 +64,14 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
         _isLoading = false;
       });
 
-      print('✅ Loaded product: ${product.name}');
-      print('📦 Related: ${_relatedProducts.length} items');
+      print('Loaded product: ${product.name}');
+      print('Related: ${_relatedProducts.length} items');
     } catch (e) {
       setState(() {
         _errorMessage = 'Không thể tải chi tiết sản phẩm.';
         _isLoading = false;
       });
-      print('❌ Lỗi khi tải chi tiết: $e');
+      print('Lỗi khi tải chi tiết: $e');
     }
   }
 
@@ -86,7 +82,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
     try {
       final newItem = ProductForCartModel(
-        productId: _product!.id ?? '', // ✅ ép an toàn
+        productId: _product!.id ?? '',
         productName: _product!.name ?? '',
         quantity: quantity,
         unitPrice: _product!.price,
@@ -98,11 +94,11 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
       showCustomSnackBar(
         context,
-        '🛒 Đã thêm "${_product!.name}" vào giỏ hàng',
+        'Đã thêm "${_product!.name}" vào giỏ hàng',
         type: SnackBarType.success,
       );
     } catch (e, s) {
-      print('❌ Lỗi khi thêm giỏ hàng: $e\n$s');
+      print('Lỗi khi thêm giỏ hàng: $e\n$s');
       showCustomSnackBar(
         context,
         'Lỗi khi thêm vào giỏ hàng: $e',
@@ -145,7 +141,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
             alignment: WrapAlignment.spaceBetween,
             crossAxisAlignment: WrapCrossAlignment.start,
             children: [
-              // ==================== HÌNH ẢNH ====================
               Container(
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                 height: isMobile ? 300 : 500,
@@ -164,7 +159,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 ),
               ),
 
-              // ==================== THÔNG TIN CHÍNH ====================
               Container(
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                 width: screenWidth < 1200 ? double.infinity : screenWidth * 0.43,
@@ -264,7 +258,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 ),
               ),
 
-              // ==================== MÔ TẢ ====================
               Container(
                 width: !isDesktop ? double.infinity : screenWidth * 0.43,
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
@@ -275,7 +268,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 ),
               ),
 
-              // ==================== THÔNG TIN CHI TIẾT ====================
               Container(
                 width: !isDesktop ? double.infinity : screenWidth * 0.43,
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
@@ -309,8 +301,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
               ),
 
 
-              // ==================== ĐÁNH GIÁ ====================
-// ==================== ĐÁNH GIÁ & NHẬN XÉT ====================
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                 child: Container(
@@ -324,7 +314,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ⭐ Tiêu đề
                       const Text(
                         'Đánh giá & Nhận xét',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -351,7 +340,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // ⭐ Tổng quan
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -373,7 +361,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                               ),
                               const Divider(height: 24),
 
-                              // 📜 Danh sách nhận xét
                               if (reviews.isEmpty)
                                 const Text('Chưa có nhận xét nào cho sản phẩm này.')
                               else
@@ -425,7 +412,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
                               const SizedBox(height: 16),
 
-                              // 📝 Form thêm đánh giá
                               const Text(
                                 'Viết đánh giá của bạn',
                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -457,7 +443,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                     final userName = userData['name'] ?? 'Người dùng';
                                     final userAvatar = userData['avatar'] ?? 'https://i.pravatar.cc/150?u=$userId';
 
-                                    // ✅ Tạo ReviewModel
                                     final newReview = ReviewModel(
                                       id: '',
                                       productId: product.id,
@@ -473,12 +458,11 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                       updatedAt: DateTime.now(),
                                     );
 
-                                    // ✅ Lưu lên Firestore
                                     await _reviewService.addReviewForProduct(product.id, newReview);
 
                                     showCustomSnackBar(
                                       context,
-                                      'Cảm ơn bạn đã đánh giá ⭐ $rating sao!',
+                                      'Cảm ơn bạn đã đánh giá $rating sao!',
                                       type: SnackBarType.success,
                                     );
                                   } catch (e) {
@@ -499,7 +483,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 ),
               ),
 
-              // ==================== SẢN PHẨM LIÊN QUAN ====================
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                 child: Column(

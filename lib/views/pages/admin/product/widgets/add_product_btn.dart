@@ -1,40 +1,53 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../../provider/product_provider.dart';
-import '../../../../../models/product.model.dart';
 import 'product_form.dart';
 
 class AddProductButton extends StatelessWidget {
-  final VoidCallback onProductAdded; // ✅ callback từ cha (ProductTable)
+  final VoidCallback onProductAdded;
 
   const AddProductButton({super.key, required this.onProductAdded});
 
   void _handleAddProduct(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
+      builder: (dialogContext) {
+        return Dialog(
           backgroundColor: Colors.white,
-          title: const Text(
-            "Add Product",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          content: ProductForm(
-            buttonLabel: "Add Product",
-            onSubmit: (productData) async {
-              print("Adding product: $productData");
-              // Sau khi thêm xong, gọi callback để cha reload data
-              onProductAdded();
+          child: Container(
+            width: 850, 
+            height: MediaQuery.of(context).size.height * 0.85, 
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              children: [
+                const Text(
+                  "Add Product",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Divider(height: 24, thickness: 1),
 
-              // Đóng dialog an toàn
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (Navigator.of(context).canPop()) Navigator.of(context).pop();
-              });
-            },
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: ProductForm(
+                      buttonLabel: "Add Product",
+                      onSubmit: (productData) async {
+                        print("Adding product: $productData");
+                        onProductAdded();
+                        // Đóng dialog
+                        if (Navigator.of(dialogContext).canPop()) {
+                          Navigator.of(dialogContext).pop();
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -49,13 +62,14 @@ class AddProductButton extends StatelessWidget {
         backgroundColor: Colors.green,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8), // Bo góc hiện đại hơn
         ),
+        elevation: 4, // Thêm đổ bóng
       ),
       icon: const Icon(Icons.add, color: Colors.white),
       label: const Text(
         "ADD PRODUCT",
-        style: TextStyle(color: Colors.white, fontSize: 16),
+        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
       ),
     );
   }

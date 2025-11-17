@@ -268,18 +268,6 @@ class _CategoryWidgetState extends State<CategoryWidget> {
   bool isLoading = false; 
   List<CategoryModel> categories = [];
 
-  // final List<CategoryModel> defaultCategories = [
-  //   CategoryModel(id: '1', name: 'PC', image: const CategoryImage(publicId: '', url: 'assets/images/pc.png'), isActive: true),
-  //   CategoryModel(id: '2', name: 'Monitor', image: const CategoryImage(publicId: '', url: 'assets/images/monitor.png'), isActive: true),
-  //   CategoryModel(id: '3', name: 'Laptop', image: const CategoryImage(publicId: '', url: 'assets/images/laptop.png'), isActive: true),
-  //   CategoryModel(id: '4', name: 'Best Seller', image: const CategoryImage(publicId: '', url: 'assets/images/best_seller.png'), isActive: true),
-  //   CategoryModel(id: '5', name: 'Keyboard', image: const CategoryImage(publicId: '', url: 'assets/images/keyboard.png'), isActive: true),
-  //   CategoryModel(id: '6', name: 'Mouse', image: const CategoryImage(publicId: '', url: 'assets/images/mouse.png'), isActive: true),
-  //   CategoryModel(id: '7', name: 'Desktop', image: const CategoryImage(publicId: '', url: 'assets/images/desktop.png'), isActive: true),
-  //   CategoryModel(id: '8', name: 'Headphone', image: const CategoryImage(publicId: '', url: 'assets/images/headphone.png'), isActive: true),
-  // ];
-  //
-
   final CategoryService _categoryService = CategoryService();
 
   final List<ProductPromotion> productsPromotion = [
@@ -299,10 +287,9 @@ class _CategoryWidgetState extends State<CategoryWidget> {
   Future<void> _fetchCategories() async {
     try {
       final data = await _categoryService.getCategories();
-      // 👇 Thêm log ở đây
-      print("✅ Đã tải ${data.length} danh mục");
+      print("Đã tải ${data.length} danh mục");
       for (var c in data) {
-        print("📦 ${c.name} - ${c.imageUrl}");
+        print("${c.name} - ${c.imageUrl}");
       }
       if (mounted) {
         setState(() {
@@ -311,7 +298,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
         });
       }
     } catch (e) {
-      print('❌ Lỗi tải categories: $e');
+      print('Lỗi tải categories: $e');
       setState(() => isLoading = false);
     }
   }
@@ -356,7 +343,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text(
-                    'Top Categories',
+                    'All Categories',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
@@ -391,15 +378,14 @@ class _CategoryWidgetState extends State<CategoryWidget> {
               ),
               const SizedBox(height: 20),
 
-              // Hiển thị data FE
               GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: crossAxisCount,
                       crossAxisSpacing: 10,
-                      mainAxisSpacing: 20,
-                      childAspectRatio: 0.6,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 0.9,
                     ),
                     itemCount: itemCount,
                     itemBuilder: (context, index) => ListCategoryWidget(

@@ -69,21 +69,20 @@ class ProductProvider with ChangeNotifier {
     try {
       _products = await _productService.getProducts();
     } catch (e) {
-      debugPrint('❌ Lỗi load sản phẩm: $e');
+      debugPrint('Lỗi load sản phẩm: $e');
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  /// ✅ Lấy sản phẩm theo trang
   Future<void> fetchProductsPaginated({int page = 1, int limit = 10}) async {
     _loading = true;
     notifyListeners();
     try {
       _products = await _productService.getProductsPaginated(page: page, limit: limit);
     } catch (e) {
-      debugPrint('⚠️ Lỗi load sản phẩm: $e');
+      debugPrint('Lỗi load sản phẩm: $e');
     } finally {
       _loading = false;
       notifyListeners();
@@ -112,7 +111,7 @@ class ProductProvider with ChangeNotifier {
       _categoriesMap = await _productService.getCategories();
       notifyListeners();
     } catch (e) {
-      debugPrint('⚠️ Lỗi tải categories: $e');
+      debugPrint('Lỗi tải categories: $e');
     }
   }
 
@@ -121,7 +120,7 @@ class ProductProvider with ChangeNotifier {
       _brandsMap = await _productService.getBrands();
       notifyListeners();
     } catch (e) {
-      debugPrint('⚠️ Lỗi tải brands: $e');
+      debugPrint('Lỗi tải brands: $e');
     }
   }
 
@@ -168,7 +167,7 @@ class ProductProvider with ChangeNotifier {
     } catch (e) {
       _loading = false;
       _hasMore = false;
-      print("❌ Lỗi fetchProductsFilter: $e");
+      print("Lỗi fetchProductsFilter: $e");
       notifyListeners();
     }
   }

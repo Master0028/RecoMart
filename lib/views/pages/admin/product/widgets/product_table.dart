@@ -82,7 +82,7 @@ class _ProductTableState extends State<ProductTable> {
     setState(() {
       _page = page;
       _productsData = provider.products;
-      _hasNextPage = _productsData.length == _limit; // ✅ Nếu ít hơn 10 => hết trang
+      _hasNextPage = _productsData.length == _limit; 
     });
   }
 

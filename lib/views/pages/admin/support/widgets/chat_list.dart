@@ -26,7 +26,7 @@ class ChatList extends StatelessWidget {
         };
       }
     } catch (e) {
-      debugPrint("❌ Lỗi load user info: $e");
+      debugPrint("Lỗi load user info: $e");
     }
     return null;
   }

@@ -48,7 +48,7 @@ class _CartViewState extends State<CartView> {
     Future.microtask(() async {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       await cartProvider.loadCart();
-      await _loadUserInfo(); // 🆕 gọi hàm lấy thông tin user
+      await _loadUserInfo();
     });
   }
 
@@ -75,7 +75,7 @@ class _CartViewState extends State<CartView> {
             userData['phone'] ?? 'Chưa có số điện thoại';
       }
     } catch (e) {
-      debugPrint('❌ Lỗi khi lấy thông tin user: $e');
+      debugPrint('Lỗi khi lấy thông tin user: $e');
     }
   }
 
@@ -152,10 +152,9 @@ class _CartViewState extends State<CartView> {
       // Lưu đơn hàng vào Firestore
       await _orderService.createOrder(order);
 
-      // Cập nhật coupon usage và lưu id đơn hàng đã áp dụng
       if (provider.selectedCoupon != null) {
         final coupon = provider.selectedCoupon!;
-        final orderId = order.id; // lấy id của order vừa tạo
+        final orderId = order.id;
 
         if (orderId != null) {
           final isUpdated = await CouponService()
@@ -164,7 +163,7 @@ class _CartViewState extends State<CartView> {
           if (isUpdated) {
             showCustomSnackBar(
               context,
-              '✅ Coupon ${coupon.code} đã được áp dụng cho đơn $orderId',
+              'Coupon ${coupon.code} đã được áp dụng cho đơn $orderId',
               type: SnackBarType.success,
             );
           }
@@ -180,15 +179,15 @@ class _CartViewState extends State<CartView> {
       // Dọn giỏ hàng
       await provider.clearCart();
 
-      showCustomSnackBar(context, '🎉 Đặt hàng thành công!',
+      showCustomSnackBar(context, 'Đặt hàng thành công!',
           type: SnackBarType.success);
 
       if (mounted) {
         context.go('/home');
       }
     } catch (e) {
-      debugPrint('❌ Lỗi khi tạo đơn hàng: $e');
-      showCustomSnackBar(context, '❌ Lỗi khi tạo đơn hàng: $e',
+      debugPrint('Lỗi khi tạo đơn hàng: $e');
+      showCustomSnackBar(context, 'Lỗi khi tạo đơn hàng: $e',
           type: SnackBarType.error);
     }
   }

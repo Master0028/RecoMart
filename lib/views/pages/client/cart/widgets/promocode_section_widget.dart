@@ -63,12 +63,12 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
       // 🔹 Tìm coupon khớp mã
       final coupon = coupons.firstWhere(
             (c) => c.code.toLowerCase() == code.toLowerCase(),
-        orElse: () => throw Exception('❌ Mã giảm giá không hợp lệ'),
+        orElse: () => throw Exception('Mã giảm giá không hợp lệ'),
       );
 
       // 🔹 Kiểm tra số lượt dùng
       if (coupon.usedCount >= coupon.maxUsage) {
-        throw Exception('⚠️ Mã giảm giá "$code" đã hết lượt sử dụng');
+        throw Exception('Mã giảm giá "$code" đã hết lượt sử dụng');
       }
 
       // 🔹 Áp dụng giảm giá
@@ -77,11 +77,11 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
         _isApplyingCoupon = false;
       });
 
-      provider.applyCoupon(coupon); // 🟢 Lưu coupon vào CartProvider
+      provider.applyCoupon(coupon);
 
       showCustomSnackBar(
         context,
-        '🎟️ Áp dụng mã $code thành công (-${formatMoney(coupon.discountValue)})',
+        'Áp dụng mã $code thành công (-${formatMoney(coupon.discountValue)})',
         type: SnackBarType.success,
       );
     } catch (e) {
@@ -111,7 +111,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
 
     showCustomSnackBar(
       context,
-      '🎁 Dùng $_usedPoints điểm (-${formatMoney(_usedPoints * 1000)})',
+      'Dùng $_usedPoints điểm (-${formatMoney(_usedPoints * 1000)})',
       type: SnackBarType.success,
     );
   }
@@ -174,7 +174,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  '✅ Giảm ${formatMoney(_couponDiscountMoney)} được áp dụng',
+                  'Giảm ${formatMoney(_couponDiscountMoney)} được áp dụng',
                   style: const TextStyle(color: Colors.green, fontSize: 13),
                 ),
               ),

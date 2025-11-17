@@ -3,10 +3,7 @@ import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
-// import 'package:recomart/components/custom/snackbar.dart';
-// import 'package:recomart/provider/product_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/models/product.model.dart';
@@ -53,19 +50,17 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
         _isLoading = false;
         errorMessage = '';
 
-        // ✅ Nếu append = true thì nối thêm vào danh sách hiện tại
         if (append) {
           mockProducts.addAll(provider.products);
         } else {
           mockProducts = provider.products;
         }
 
-        // ✅ Nếu trả về ít hơn 10 => hết dữ liệu
         _hasMore = provider.products.length == 10;
         _currentPage = page;
       });
     } catch (e) {
-      debugPrint('⚠️ Lỗi tải sản phẩm: $e');
+      debugPrint('Lỗi tải sản phẩm: $e');
       setState(() {
         errorMessage = 'Không thể tải danh sách sản phẩm.';
         _isLoading = false;
@@ -193,7 +188,7 @@ class ProductView extends StatelessWidget {
     return GestureDetector(
 
       onTap: () {
-        print('🛒 Đang mở chi tiết sản phẩm có ID: $id'); // 👉 In ra ID trong log
+        print('🛒 Đang mở chi tiết sản phẩm có ID: $id');
 
         context.push(
           '/product-details/$id',

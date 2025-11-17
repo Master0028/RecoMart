@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:provider/provider.dart';
 import '../../../../../models/product.model.dart';
 import '../../../../../provider/product_provider.dart';
@@ -78,7 +77,6 @@ class _ProductFormState extends State<ProductForm> {
     _loadDropdownData();
   }
 
-  /// 🔹 Lấy danh sách Category và Brand từ Firestore
   Future<void> _loadDropdownData() async {
     try {
       final categorySnapshot = await FirebaseFirestore.instance.collection('categories').get();
@@ -93,7 +91,7 @@ class _ProductFormState extends State<ProductForm> {
             .toList();
       });
     } catch (e) {
-      debugPrint("⚠️ Lỗi load category/brand: $e");
+      debugPrint("Lỗi load category/brand: $e");
     }
   }
 
@@ -132,7 +130,7 @@ class _ProductFormState extends State<ProductForm> {
         throw Exception("Upload failed: ${data['error']}");
       }
     } catch (e) {
-      debugPrint("❌ Upload Cloudinary failed: $e");
+      debugPrint("Upload Cloudinary failed: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)

@@ -9,7 +9,7 @@ import '../../../../../models/brand.model.dart';
 import '../../../../../provider/brand_provider.dart';
 
 class BrandForm extends StatefulWidget {
-  final BrandModel? initialBrand; // null = thêm mới, có giá trị = sửa
+  final BrandModel? initialBrand;
 
   const BrandForm({super.key, this.initialBrand});
 
@@ -94,7 +94,7 @@ class _BrandFormState extends State<BrandForm> {
 
     try {
       final newBrand = BrandModel(
-        id: widget.initialBrand?.id ?? '', // Firestore tự tạo nếu thêm mới
+        id: widget.initialBrand?.id ?? '',
         name: name,
         isActive: isActive,
         imageUrl: imageUrl ?? '',
@@ -103,23 +103,22 @@ class _BrandFormState extends State<BrandForm> {
       if (widget.initialBrand == null) {
         await brandProvider.addBrand(newBrand);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('✅ Thêm thương hiệu thành công')));
+            .showSnackBar(const SnackBar(content: Text('Thêm thương hiệu thành công')));
       } else {
         await brandProvider.updateBrand(newBrand);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('✅ Cập nhật thương hiệu thành công')));
+            .showSnackBar(const SnackBar(content: Text('Cập nhật thương hiệu thành công')));
       }
 
-      Navigator.pop(context); // Đóng dialog sau khi submit
+      Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ Lỗi: $e')));
+          .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
     } finally {
       setState(() => isLoading = false);
     }
   }
 
-  /// 🟢 Xoá thương hiệu
   Future<void> _handleDelete() async {
     if (widget.initialBrand == null) return;
 
@@ -129,11 +128,11 @@ class _BrandFormState extends State<BrandForm> {
     try {
       await brandProvider.deleteBrand(widget.initialBrand!.id);
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('🗑️ Xoá thương hiệu thành công')));
+          .showSnackBar(const SnackBar(content: Text('Xoá thương hiệu thành công')));
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('❌ Lỗi xoá: $e')));
+          .showSnackBar(SnackBar(content: Text('Lỗi xoá: $e')));
     } finally {
       setState(() => isLoading = false);
     }

@@ -43,7 +43,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
 
       showCustomSnackBar(
         context,
-        '🗑️ Đã xóa sản phẩm khỏi giỏ hàng!',
+        'Đã xóa sản phẩm khỏi giỏ hàng!',
         type: SnackBarType.success,
       );
     } catch (e) {
@@ -155,7 +155,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
 
                             showCustomSnackBar(
                               context,
-                              '✅ Đã cập nhật số lượng!',
+                              'Đã cập nhật số lượng!',
                               type: SnackBarType.success,
                             );
 
@@ -163,7 +163,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                           } catch (e) {
                             showCustomSnackBar(
                               context,
-                              '⚠️ Lỗi khi cập nhật: $e',
+                              'Lỗi khi cập nhật: $e',
                               type: SnackBarType.error,
                             );
                           } finally {

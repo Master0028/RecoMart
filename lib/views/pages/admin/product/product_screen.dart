@@ -1,9 +1,7 @@
-import 'package:recomart/provider/product_provider.dart';
+import '../../../../../provider/product_provider.dart';
 import 'package:recomart/views/pages/admin/product/widgets/product_table.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../provider/product_provider.dart';
-import 'widgets/product_table.dart';
 
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
@@ -16,8 +14,13 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() =>
-        Provider.of<ProductProvider>(context, listen: false).fetchProducts());
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) { 
+        Provider.of<ProductProvider>(context, listen: false).fetchProducts();
+      }
+    });
+    
   }
 
   @override
@@ -33,7 +36,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const ProductTable(),
+                const ProductTable(), 
               ],
             ),
           ),

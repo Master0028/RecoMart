@@ -1,7 +1,7 @@
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/footer.dart';
 import 'package:recomart/views/pages/client/home/widgets/banner_widget.dart';
-import 'package:recomart/views/pages/client/home/widgets/category_widget.dart' hide Responsive; // <<< KHẮC PHỤC LỖI TRÙNG TÊN BẰNG CÁCH ẨN
+import 'package:recomart/views/pages/client/home/widgets/category_widget.dart' hide Responsive;
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/search_widget.dart';
 

@@ -1,7 +1,7 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
-class AdvancedChart extends StatelessWidget {
+class AdvancedChart extends StatefulWidget {
   final String timeFrame;
   final List<Map<String, dynamic>> data; 
   final DateTime? startDate;
@@ -14,6 +14,29 @@ class AdvancedChart extends StatelessWidget {
     this.startDate,
     this.endDate,
   });
+
+  @override
+  State<AdvancedChart> createState() => _AdvancedChartState();
+}
+
+class _AdvancedChartState extends State<AdvancedChart> {
+  late BarChartData _chartData;
+
+  @override
+  void initState() {
+    super.initState();
+    _chartData = _buildChartData(false); 
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 50), () {
+          if (mounted) {
+            setState(() {
+              _chartData = _buildChartData(true); 
+            });
+          }
+      });
+    });
+  }
 
   double _getFixedMaxY() {
     return 100.0; 
@@ -47,6 +70,71 @@ class AdvancedChart extends StatelessWidget {
       }
   }
 
+  BarChartData _buildChartData(bool showData) {
+    return BarChartData( 
+      alignment: BarChartAlignment.spaceAround,
+      maxY: _getFixedMaxY(), 
+      minY: 0,
+      barTouchData: BarTouchData(
+        enabled: true,
+        touchTooltipData: BarTouchTooltipData(
+          tooltipPadding: const EdgeInsets.all(8),
+          tooltipMargin: 8,
+          getTooltipItem: (group, groupIndex, rod, rodIndex) {
+            final period = widget.data.isNotEmpty && groupIndex < widget.data.length 
+                ? widget.data[groupIndex]['period'] 
+                : 'Period';
+            final metric = _getMetricName(rodIndex);
+            final value = rod.toY.toInt();
+            return BarTooltipItem(
+              '$period\n$metric: $value',
+              const TextStyle(color: Colors.black, fontSize: 12),
+            );
+          },
+        ),
+      ),
+      titlesData: FlTitlesData(
+        bottomTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            getTitlesWidget: (value, meta) {
+              if (value.toInt() >= widget.data.length) return const Text('');
+              return Text(widget.data[value.toInt()]['period'] ?? '', style: const TextStyle(fontSize: 12));
+            },
+          ),
+        ),
+        leftTitles: AxisTitles(
+          sideTitles: SideTitles(
+            showTitles: true,
+            reservedSize: 40,
+            getTitlesWidget: (value, meta) => Text(
+              value.toInt().toString(),
+              style: const TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
+        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      ),
+      borderData: FlBorderData(show: false),
+      
+      barGroups: List.generate(widget.data.length, (index) {
+        final item = widget.data[index];
+        
+        return BarChartGroupData(
+          x: index,
+          barRods: [
+            _buildAnimatedRod(showData ? _getRodValue(item, 0) : 0, Colors.blue),
+            _buildAnimatedRod(showData ? _getRodValue(item, 1) : 0, Colors.green),
+            _buildAnimatedRod(showData ? _getRodValue(item, 2) : 0, Colors.purple),
+            _buildAnimatedRod(showData ? _getRodValue(item, 3) : 0, Colors.orange),
+            _buildAnimatedRod(showData ? _getRodValue(item, 4) : 0, Colors.red),
+          ],
+        );
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -67,71 +155,17 @@ class AdvancedChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Performance Comparison ($timeFrame)',
+            'Performance Comparison (${widget.timeFrame})',
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
           SizedBox(
             height: 300,
             child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: _getFixedMaxY(), 
-                minY: 0,
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    tooltipPadding: const EdgeInsets.all(8),
-                    tooltipMargin: 8,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      final period = data.isNotEmpty && groupIndex < data.length ? data[groupIndex]['period'] : 'Period';
-                      final metric = _getMetricName(rodIndex);
-                      final value = rod.toY.toInt();
-                      return BarTooltipItem(
-                        '$period\n$metric: $value',
-                        const TextStyle(color: Colors.black, fontSize: 12),
-                      );
-                    },
-                  ),
-                ),
-                titlesData: FlTitlesData(
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        if (value.toInt() >= data.length) return const Text('');
-                        return Text(data[value.toInt()]['period'] ?? '', style: const TextStyle(fontSize: 12));
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) => Text(
-                        value.toInt().toString(),
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                barGroups: List.generate(data.length, (index) {
-                  final item = data[index];
-                  return BarChartGroupData(
-                    x: index,
-                    barRods: [
-                      BarChartRodData(toY: _getRodValue(item, 0), color: Colors.blue, width: 10),
-                      BarChartRodData(toY: _getRodValue(item, 1), color: Colors.green, width: 10),
-                      BarChartRodData(toY: _getRodValue(item, 2), color: Colors.purple, width: 10),
-                      BarChartRodData(toY: _getRodValue(item, 3), color: Colors.orange, width: 10),
-                      BarChartRodData(toY: _getRodValue(item, 4), color: Colors.red, width: 10),
-                    ],
-                  );
-                }),
-              ),
+              _chartData, 
+              
+              swapAnimationDuration: const Duration(milliseconds: 750),
+              swapAnimationCurve: Curves.easeInOutCubic,
             ),
           ),
           const SizedBox(height: 16),
@@ -141,9 +175,22 @@ class AdvancedChart extends StatelessWidget {
     );
   }
 
+  BarChartRodData _buildAnimatedRod(double toY, Color color) {
+    return BarChartRodData(
+      toY: toY, // Chỉ cần 'toY'
+      color: color,
+      width: 10,
+      borderRadius: const BorderRadius.only( 
+          topLeft: Radius.circular(3), 
+          topRight: Radius.circular(3),
+      ),
+    );
+  }
+
   Widget _buildLegend() {
     return Wrap(
       spacing: 16,
+      runSpacing: 8,
       children: [
         _buildLegendItem('Orders', Colors.blue),
         _buildLegendItem('Revenue (x10k)', Colors.green),
