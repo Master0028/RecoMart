@@ -15,7 +15,7 @@ class OrderManagementScreen extends StatelessWidget {
       height: double.infinity,
       padding: const EdgeInsets.all(16),
       child: StreamBuilder<List<Map<String, dynamic>>>(
-        stream: orderService.streamAllOrders(), // 👈 dùng stream realtime
+        stream: orderService.streamAllOrders(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -24,7 +24,7 @@ class OrderManagementScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                "❌ Lỗi tải dữ liệu: ${snapshot.error}",
+                "Lỗi tải dữ liệu: ${snapshot.error}",
                 style: const TextStyle(color: Colors.red),
               ),
             );

@@ -5,7 +5,6 @@ class CategoryService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final String collection = 'categories';
 
-  /// 🟢 Lấy danh sách danh mục
   Future<List<CategoryModel>> getCategories() async {
     final snapshot = await _db.collection(collection).orderBy('name').get();
     return snapshot.docs
@@ -13,7 +12,6 @@ class CategoryService {
         .toList();
   }
 
-  /// 🔍 Tìm kiếm danh mục theo tên
   Future<List<CategoryModel>> searchCategories(String keyword) async {
     if (keyword.trim().isEmpty) return getCategories();
 
@@ -28,7 +26,6 @@ class CategoryService {
         .toList();
   }
 
-  /// 🔍 Lấy Firestore docId (string) theo id số
   Future<String?> getDocIdByNumericId(int numericId) async {
     final snapshot = await _db
         .collection(collection)
@@ -42,9 +39,7 @@ class CategoryService {
     return null;
   }
 
-  /// ➕ Thêm danh mục (id tự tăng)
   Future<void> addCategory(CategoryModel category) async {
-    // Lấy id lớn nhất hiện có
     final snapshot = await _db
         .collection(collection)
         .orderBy('id', descending: true)
@@ -57,7 +52,6 @@ class CategoryService {
       newId = (lastId as int) + 1;
     }
 
-    // Tạo category mới với id kế tiếp
     final newCategory = CategoryModel(
       id: newId,
       name: category.name,
@@ -69,17 +63,14 @@ class CategoryService {
     await _db.collection(collection).add(newCategory.toMap());
   }
 
-  /// ✏️ Cập nhật danh mục
   Future<void> updateCategory(CategoryModel category, String docId) async {
     await _db.collection(collection).doc(docId).update(category.toMap());
   }
 
-  /// 🔹 Xoá danh mục theo docId thực tế trong Firestore
   Future<void> deleteCategoryByDocId(String docId) async {
     await _db.collection(collection).doc(docId).delete();
   }
 
-  /// 🔹 Xoá theo id số
   Future<void> deleteCategoryByNumericId(int numericId) async {
     final docId = await getDocIdByNumericId(numericId);
     if (docId != null) {

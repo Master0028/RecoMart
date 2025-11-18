@@ -44,35 +44,32 @@ class _ProductTableState extends State<ProductTable> {
     ]);
   }
 
-  /// Lấy danh mục từ Firebase thông qua Provider
   Future<void> _fetchCategories() async {
     try {
       final provider = Provider.of<ProductProvider>(context, listen: false);
-      await provider.fetchCategories(); // gọi hàm trong provider
+      await provider.fetchCategories();
       if (!mounted) return;
       setState(() {
         _categoryMap = provider.categoriesMap;
       });
     } catch (e) {
-      debugPrint('⚠️ Lỗi tải danh mục: $e');
+      debugPrint('Lỗi tải danh mục: $e');
     }
   }
 
-  /// Lấy thương hiệu từ Firebase thông qua Provider
   Future<void> _fetchBrands() async {
     try {
       final provider = Provider.of<ProductProvider>(context, listen: false);
-      await provider.fetchBrands(); // gọi hàm trong provider
+      await provider.fetchBrands();
       if (!mounted) return;
       setState(() {
         _brandMap = provider.brandsMap;
       });
     } catch (e) {
-      debugPrint('⚠️ Lỗi tải thương hiệu: $e');
+      debugPrint('Lỗi tải thương hiệu: $e');
     }
   }
 
-  /// Lấy dữ liệu sản phẩm thực từ Firebase thông qua Provider
   Future<void> _fetchFromFirebase({int page = 1}) async {
     final provider = Provider.of<ProductProvider>(context, listen: false);
     await provider.fetchProductsPaginated(page: page, limit: _limit);
@@ -86,11 +83,10 @@ class _ProductTableState extends State<ProductTable> {
     });
   }
 
-  /// 🔹 Lọc sản phẩm theo tên
   void _onSearchChanged() {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
-      if (!mounted) return; // ✅ Tránh gọi setState sau dispose
+      if (!mounted) return;
 
       final text = _searchController.text.toLowerCase();
       final provider = Provider.of<ProductProvider>(context, listen: false);
@@ -130,9 +126,8 @@ class _ProductTableState extends State<ProductTable> {
             buttonLabel: 'Save',
             initialProduct: product.toJson(),
             onSubmit: (updatedData) async {
-              print('✅ Cập nhật sản phẩm: $updatedData');
+              print('Cập nhật sản phẩm: $updatedData');
 
-              // ✅ Pop dialog an toàn, không pop router
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
                   Navigator.of(dialogContext).pop();
@@ -372,7 +367,6 @@ class _ProductTableState extends State<ProductTable> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      // ✅ Gọi AddProductButton, truyền callback reload
                       AddProductButton(onProductAdded: _fetchFromFirebase),
                     ],
                   ),

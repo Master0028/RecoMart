@@ -92,7 +92,6 @@ class _BrandTableState extends State<BrandTable> {
 
   TableRow buildBrandRow(int index, BrandModel brand, List<double> colWidths) {
     String getShortId(String id) {
-      // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.id)
       return brand.id.length > 5 ? brand.id.substring(0, 5) : brand.id; 
     }
 
@@ -153,7 +152,6 @@ class _BrandTableState extends State<BrandTable> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
             ),
-            // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.image)
             child: brand.imageUrl != null && brand.imageUrl.isNotEmpty
                 ? Image.network(
               brand.imageUrl,
@@ -185,7 +183,6 @@ class _BrandTableState extends State<BrandTable> {
                   overflow: TextOverflow.ellipsis,
                   maxLines: 2,
                 ),
-                // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.id)
                 Text(
                   'ID: ${getShortId(brand.id)}',
                   style: TextStyle(

@@ -52,7 +52,6 @@ class _CustomerFormState extends State<CustomerForm> {
     addressController = TextEditingController(text: user.address ?? '');
   }
 
-  /// 🔹 Upload ảnh mới lên Cloudinary
   Future<void> _pickImage() async {
     final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
@@ -87,7 +86,7 @@ class _CustomerFormState extends State<CustomerForm> {
         throw Exception("Upload failed: ${data['error']}");
       }
     } catch (e) {
-      debugPrint("❌ Upload Cloudinary failed: $e");
+      debugPrint("Upload Cloudinary failed: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)

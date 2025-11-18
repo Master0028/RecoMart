@@ -23,34 +23,28 @@ class UserProvider with ChangeNotifier {
   UserModel? get userInfo => _userInfo;
 
   UserProvider() {
-    // Lắng nghe sự thay đổi đăng nhập
     _auth.authStateChanges().listen((user) {
       _currentUser = user;
       notifyListeners();
     });
   }
 
-  /// Trả về user hiện tại (nếu đã đăng nhập)
   User? get currentUser => _currentUser;
 
-  /// Kiểm tra xem đã đăng nhập chưa
   bool get isLoggedIn => _currentUser != null;
 
-  /// Đăng xuất
   Future<void> signOut() async {
     await _auth.signOut();
     _currentUser = null;
     notifyListeners();
   }
 
-  /// Reload user (nếu cần cập nhật avatar, displayName,...)
   Future<void> reloadUser() async {
     await _currentUser?.reload();
     _currentUser = _auth.currentUser;
     notifyListeners();
   }
 
-  /// 🔹 Lấy danh sách người dùng
   Future<void> fetchUsers() async {
     try {
       _loading = true;
@@ -72,7 +66,7 @@ class UserProvider with ChangeNotifier {
 
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
-        print("⚠️ No Firebase user logged in");
+        print("No Firebase user logged in");
         _currentUser = null;
         _loading = false;
         notifyListeners();
@@ -82,19 +76,18 @@ class UserProvider with ChangeNotifier {
       final userData = await _service.getUserById(user.uid);
       if (userData != null) {
         _userInfo = userData;
-        print("✅ User info fetched: ${_userInfo!.fullName}");
+        print("User info fetched: ${_userInfo!.fullName}");
       } else {
-        print("⚠️ No user data found for UID ${user.uid}");
+        print("No user data found for UID ${user.uid}");
       }
     } catch (e) {
-      print('❌ fetchUserInfo error: $e');
+      print('fetchUserInfo error: $e');
     } finally {
       _loading = false;
       notifyListeners();
     }
   }
 
-  /// 🔹 Cập nhật thông tin người dùng
   Future<void> updateUser(UserModel user) async {
     try {
       await _service.updateUser(user);
@@ -105,7 +98,6 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// 🔹 Cập nhật thông tin người dùng hiện tại
   Future<void> updateUserInfo({
     required String name,
     String? phone,
@@ -130,15 +122,14 @@ class UserProvider with ChangeNotifier {
       );
 
       notifyListeners();
-      print("✅ User info updated successfully");
+      print("User info updated successfully");
     } catch (e) {
-      print("❌ Error updating user info: $e");
+      print("Error updating user info: $e");
       _error = e.toString();
     }
   }
 
 
-  /// 🔹 Cấm / mở khóa người dùng
   Future<void> toggleUserStatus(String id, bool isActive) async {
     try {
       await _service.toggleUserStatus(id, isActive);
@@ -149,7 +140,6 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  /// 🔹 Xóa người dùng
   Future<void> deleteUser(String id) async {
     try {
       await _service.deleteUser(id);
@@ -167,9 +157,9 @@ class UserProvider with ChangeNotifier {
       final points = await _service.getLoyaltyPoints(user.uid);
       _loyaltyPoints = points;
       notifyListeners();
-      print("✅ Loyalty points fetched: $_loyaltyPoints");
+      print("Loyalty points fetched: $_loyaltyPoints");
     } catch (e) {
-      print("❌ Error fetching loyalty points: $e");
+      print("Error fetching loyalty points: $e");
     }
   }
 }

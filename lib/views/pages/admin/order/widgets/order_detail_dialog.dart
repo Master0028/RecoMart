@@ -279,7 +279,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("✅ Cập nhật trạng thái đơn $orderId: $_selectedStatus"),
+                    content: Text("Cập nhật trạng thái đơn $orderId: $_selectedStatus"),
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -289,7 +289,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
             } catch (e) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("❌ Lỗi khi cập nhật trạng thái: $e"),
+                  content: Text("Lỗi khi cập nhật trạng thái: $e"),
                   backgroundColor: Colors.red,
                 ),
               );

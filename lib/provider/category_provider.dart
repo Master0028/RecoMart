@@ -14,7 +14,6 @@ class CategoryProvider with ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  /// 🧠 Lấy tất cả danh mục
   Future<void> fetchCategories() async {
     try {
       _isLoading = true;
@@ -29,7 +28,6 @@ class CategoryProvider with ChangeNotifier {
     }
   }
 
-  /// 🔍 Tìm kiếm danh mục
   Future<void> searchCategories(String keyword) async {
     try {
       _isLoading = true;
@@ -44,7 +42,6 @@ class CategoryProvider with ChangeNotifier {
     }
   }
 
-  /// ➕ Thêm danh mục
   Future<void> addCategory(CategoryModel category) async {
     try {
       await _service.addCategory(category);
@@ -55,7 +52,6 @@ class CategoryProvider with ChangeNotifier {
     }
   }
 
-  /// ✏️ Cập nhật danh mục
   Future<void> updateCategory(CategoryModel category) async {
     try {
       final docId = await _service.getDocIdByNumericId(category.id);
@@ -73,14 +69,11 @@ class CategoryProvider with ChangeNotifier {
     }
   }
 
-  /// xóa danh mục
   Future<void> deleteCategory(String id) async {
     try {
-      // ép kiểu an toàn từ String → int
       final numericId = int.tryParse(id) ?? 0;
       await _service.deleteCategoryByNumericId(numericId);
 
-      // Cập nhật lại danh sách sau khi xóa
       await fetchCategories();
 
       _error = null;
@@ -88,7 +81,7 @@ class CategoryProvider with ChangeNotifier {
     } catch (e) {
       _error = e.toString();
       notifyListeners();
-      print('❌ Lỗi khi xoá danh mục: $e');
+      print('Lỗi khi xoá danh mục: $e');
     }
   }
 }

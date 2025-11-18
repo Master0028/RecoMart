@@ -16,7 +16,6 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
   @override
   void initState() {
     super.initState();
-    // 🔹 Lấy dữ liệu ngay khi mở trang
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CouponProvider>(context, listen: false).fetchCoupons();
     });

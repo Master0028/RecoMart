@@ -16,11 +16,10 @@ class OrderProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// 🔹 Lấy danh sách đơn hàng của user hiện tại
   Future<void> fetchOrders() async {
     final user = _auth.currentUser;
     if (user == null) {
-      debugPrint('⚠️ Không có user đăng nhập!');
+      debugPrint('Không có user đăng nhập!');
       return;
     }
 
@@ -28,19 +27,18 @@ class OrderProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      // ✅ Ghi log UID ra console
-      debugPrint('🧾 [OrderProvider] Đang tải đơn hàng cho user.uid = ${user.uid}');
+      debugPrint('[OrderProvider] Đang tải đơn hàng cho user.uid = ${user.uid}');
 
       _orders = await _orderService.fetchOrdersByUser(user.uid);
 
-      debugPrint('✅ [OrderProvider] Tải thành công ${_orders.length} đơn hàng.');
+      debugPrint('[OrderProvider] Tải thành công ${_orders.length} đơn hàng.');
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
       _isLoading = false;
       _errorMessage = e.toString();
-      debugPrint('❌ [OrderProvider] Lỗi khi tải đơn hàng: $e');
+      debugPrint('[OrderProvider] Lỗi khi tải đơn hàng: $e');
       notifyListeners();
     }
   }

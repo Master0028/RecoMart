@@ -68,7 +68,6 @@ class _CouponFormState extends State<CouponForm> {
     return null;
   }
 
-  /// ✅ Gửi dữ liệu lên Firestore (Tạo hoặc Cập nhật)
   Future<void> _handleSubmit() async {
     if (!_isValidCode(codeController.text) ||
         _validateDiscount(discountController.text) != null ||
@@ -81,7 +80,6 @@ class _CouponFormState extends State<CouponForm> {
     try {
       final provider = Provider.of<CouponProvider>(context, listen: false);
 
-      // 🔹 Nếu đang chỉnh sửa → cập nhật
       if (widget.initialCoupon != null && widget.initialCoupon!.id != null) {
         final updatedCoupon = CouponModel(
           id: widget.initialCoupon!.id,
@@ -102,7 +100,6 @@ class _CouponFormState extends State<CouponForm> {
           ),
         );
       } else {
-        // 🔹 Nếu tạo mới
         final newCoupon = CouponModel(
           id: '',
           code: codeController.text.trim(),
@@ -132,7 +129,6 @@ class _CouponFormState extends State<CouponForm> {
     }
   }
 
-  /// ✅ Xóa coupon
   Future<void> _handleDelete() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -237,7 +233,6 @@ class _CouponFormState extends State<CouponForm> {
             ),
             const SizedBox(height: 20),
 
-            // ✅ Nút thao tác
             Center(
               child: Column(
                 children: [

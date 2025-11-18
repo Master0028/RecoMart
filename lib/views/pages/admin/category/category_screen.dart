@@ -36,13 +36,11 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             const AddCategoryButton(),
             const SizedBox(height: 16),
 
-            /// 🔹 Nếu đang tải thì hiển thị loading
             if (categoryProvider.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (categoryProvider.categories.isEmpty)
               const Text("Không có danh mục nào trong Firestore.")
             else
-            /// 🔹 Giữ nguyên CategoryTable (chỉ truyền dữ liệu thật)
               CategoryTable(categories: categoryProvider.categories),
           ],
         ),

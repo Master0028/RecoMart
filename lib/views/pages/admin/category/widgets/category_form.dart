@@ -49,7 +49,6 @@ class _CategoryFormState extends State<CategoryForm> {
     imageUrl = widget.initialCategory?.imageUrl;
   }
 
-  /// 🔹 Chọn và upload ảnh thật lên Cloudinary
   Future<void> _pickImage() async {
     final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
@@ -84,7 +83,7 @@ class _CategoryFormState extends State<CategoryForm> {
         throw Exception("Upload failed: ${data['error']}");
       }
     } catch (e) {
-      debugPrint("❌ Upload Cloudinary failed: $e");
+      debugPrint("Upload Cloudinary failed: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)
@@ -139,7 +138,6 @@ class _CategoryFormState extends State<CategoryForm> {
     }
   }
 
-  // ❌ Xóa khỏi Firestore
   Future<void> _handleDelete() async {
     if (widget.initialCategory == null) return;
 

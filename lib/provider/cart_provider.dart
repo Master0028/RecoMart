@@ -33,27 +33,23 @@ class CartProvider with ChangeNotifier {
     return _cart!.items.fold(0, (sum, item) => sum + item.quantity);
   }
 
-  /// 🧩 Áp dụng coupon (voucher)
   void applyCoupon(CouponModel coupon) {
     _selectedCoupon = coupon;
     _couponDiscount = coupon.discountValue ?? 0;
     notifyListeners();
   }
 
-  /// 🧩 Sử dụng điểm KHTT
   void setUsedPoints(int points) {
     _usedPoints = points;
     notifyListeners();
   }
 
-  /// 🧩 Dùng nếu bạn muốn gọi 1 hàm chung (giống code cũ)
   void setDiscounts({double? coupon, int? points}) {
     if (coupon != null) _couponDiscount = coupon;
     if (points != null) _usedPoints = points;
     notifyListeners();
   }
 
-  /// 🧩 Reset sau khi thanh toán
   void clearDiscounts() {
     _couponDiscount = 0;
     _usedPoints = 0;
@@ -104,7 +100,7 @@ class CartProvider with ChangeNotifier {
       final fetchedCart = await _cartService.getCartByUserId(userId);
       _cart = fetchedCart;
     } catch (e) {
-      debugPrint('⚠️ Lỗi khi tải giỏ hàng: $e');
+      debugPrint('Lỗi khi tải giỏ hàng: $e');
     } finally {
       _loading = false;
       notifyListeners();

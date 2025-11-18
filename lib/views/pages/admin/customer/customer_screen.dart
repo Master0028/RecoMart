@@ -16,7 +16,6 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
   @override
   void initState() {
     super.initState();
-    // Lấy dữ liệu khách hàng từ Firestore khi khởi tạo màn hình
     Future.microtask(() =>
         Provider.of<UserProvider>(context, listen: false).fetchUsers());
   }

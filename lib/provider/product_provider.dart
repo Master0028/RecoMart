@@ -1,20 +1,14 @@
 import 'dart:core';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:recomart/consts/index.dart';
-import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/models/brand.model.dart';
 import 'package:recomart/models/category.model.dart';
 import 'package:recomart/models/product.model.dart';
-import 'package:recomart/services/app_exceptions.dart';
-import 'package:recomart/services/brand.service.dart';
-import 'package:recomart/services/category.service.dart';
 import 'package:recomart/services/product.service.dart';
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
 
 import '../models/review.model.dart';
 import '../services/review.service.dart';
-import '../views/pages/admin/brand/widgets/brand_table.dart';
 
 class ProductProvider with ChangeNotifier {
   List<ProductModel> _products = [];
@@ -39,7 +33,6 @@ class ProductProvider with ChangeNotifier {
   bool _hasMore = true;
   bool get hasMore => _hasMore;
 
-  // --- Filter values ---
   String? _categoryId;
   String? _brandId;
   double? _minPrice;
@@ -62,7 +55,6 @@ class ProductProvider with ChangeNotifier {
   Map<String, List<ReviewModel>> get productReviews => _productReviews;
 
 
-  /// 🔹 Lấy danh sách sản phẩm
   Future<void> fetchProducts() async {
     _loading = true;
     notifyListeners();
@@ -94,13 +86,11 @@ class ProductProvider with ChangeNotifier {
     await fetchProducts();
   }
 
-  /// 🔹 Cập nhật sản phẩm
   Future<void> updateProduct(String id, ProductModel data) async {
     await _productService.updateProduct(id, data);
     await fetchProducts();
   }
 
-  /// 🔹 Xóa sản phẩm
   Future<void> deleteProduct(String id) async {
     await _productService.deleteProduct(id);
     await fetchProducts();
@@ -172,7 +162,6 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  /// Cập nhật filter và refetch
   void updateFilters({
     String? categoryId,
     String? brandId,
@@ -189,7 +178,6 @@ class ProductProvider with ChangeNotifier {
     fetchProductsFilter(reset: true);
   }
 
-  /// Chuyển trang
   Future<void> nextPage() async {
     if (_hasMore) {
       _currentPage++;
@@ -206,7 +194,6 @@ class ProductProvider with ChangeNotifier {
     await fetchProductsFilter(reset: true);
   }
 
-  /// 🟩 Thêm đánh giá cho sản phẩm
   Future<void> addReview({
     required String productId,
     required String userId,
@@ -241,7 +228,7 @@ class ProductProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print("❌ Failed to add review: $e");
+      print("Failed to add review: $e");
       rethrow;
     }
   }
@@ -265,10 +252,10 @@ class ProductProvider with ChangeNotifier {
         _products.sort((a, b) => b.price.compareTo(a.price));
         break;
       default:
-        break; // "All Products" hoặc chưa chọn gì
+        break;
     }
 
     notifyListeners();
-    print('✅ Sorted products by $sortOption');
+    print('Sorted products by $sortOption');
   }
 }

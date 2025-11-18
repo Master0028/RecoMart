@@ -12,7 +12,6 @@ class CouponProvider with ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
 
-  /// 🔹 Lấy danh sách phiếu giảm giá
   Future<void> fetchCoupons() async {
     _loading = true;
     notifyListeners();
@@ -27,7 +26,6 @@ class CouponProvider with ChangeNotifier {
     }
   }
 
-  /// 🔹 Thêm phiếu giảm giá
   Future<void> addCoupon(CouponModel coupon) async {
     try {
       await _service.createCoupon(coupon);
@@ -49,7 +47,6 @@ class CouponProvider with ChangeNotifier {
     }
   }
 
-  /// 🔹 Cập nhật phiếu giảm giá
   Future<void> updateCoupon(CouponModel coupon) async {
     try {
       await _service.updateCoupon(coupon);

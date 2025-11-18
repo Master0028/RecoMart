@@ -14,7 +14,6 @@ class BrandProvider with ChangeNotifier {
   String? _error;
   String? get error => _error;
 
-  /// 🟢 Lấy danh sách thương hiệu
   Future<void> fetchBrands() async {
     try {
       _isLoading = true;
@@ -30,7 +29,6 @@ class BrandProvider with ChangeNotifier {
     }
   }
 
-  /// 🟢 Thêm thương hiệu
   Future<void> addBrand(BrandModel brand) async {
     try {
       await _service.addBrand(brand);
@@ -41,7 +39,6 @@ class BrandProvider with ChangeNotifier {
     }
   }
 
-  /// 🟢 Cập nhật thương hiệu
   Future<void> updateBrand(BrandModel brand) async {
     try {
       await _service.updateBrand(brand);
@@ -52,7 +49,6 @@ class BrandProvider with ChangeNotifier {
     }
   }
 
-  /// 🟢 Xoá thương hiệu
   Future<void> deleteBrand(String id) async {
     try {
       await _service.deleteBrand(id);
@@ -63,7 +59,6 @@ class BrandProvider with ChangeNotifier {
     }
   }
 
-  /// 🟢 Tìm kiếm thương hiệu
   Future<void> searchBrands(String keyword) async {
     try {
       _isLoading = true;
