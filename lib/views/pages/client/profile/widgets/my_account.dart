@@ -1,17 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
-
-final Map<String, dynamic> FE_USER_INFO = {
-  'fullName': 'FE User Name',
-  'email': 'fe.user@email.com',
-  'phone': '0123456789',
-  'address': 'District 1, HCM City',
-  'avatar': {'url': 'https://picsum.photos/200'},
-};
-
 
 class ModernAccountListTile extends StatelessWidget {
   const ModernAccountListTile({
@@ -19,10 +12,12 @@ class ModernAccountListTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.onTap,
+    this.subtitle,
   });
 
   final IconData icon;
   final String title;
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -45,6 +40,7 @@ class ModernAccountListTile extends StatelessWidget {
           title,
           style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
         ),
+        subtitle: subtitle != null ? Text(subtitle!) : null,
         trailing: Icon(
           CupertinoIcons.chevron_forward,
           color: Colors.grey.shade400,
@@ -64,74 +60,162 @@ class MyAccountView extends StatefulWidget {
 }
 
 class _MyAccountView extends State<MyAccountView> {
-  final bool isExistUser = true; 
-  final Map<String, dynamic>? userInfo = FE_USER_INFO;
-  
-  List<Map<String, dynamic>> myAccountItems = [
-    {'title': 'Personal Information', 'icon': CupertinoIcons.person, 'type': 'auth'},
-    {'title': 'Loyalty Points', 'icon': CupertinoIcons.square_grid_2x2, 'type': 'general'},
-    {'title': 'Change Password', 'icon': CupertinoIcons.lock, 'type': 'auth'},
-    {'title': 'Switch Account/Logout', 'icon': CupertinoIcons.arrow_right_square, 'type': 'auth'},
-  ];
-  
-  Future<void> _handleLogout() async {
-    showCustomSnackBar(context, 'Logged out successfully!', type: SnackBarType.success);
-    context.go('/login');
-  }
+  Map<String, dynamic>? userInfo;
+  bool isLoading = true;
+  bool isExistUser = false;
 
   @override
   void initState() {
     super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null) {
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser.email)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              userInfo = querySnapshot.docs.first.data();
+              isExistUser = true;
+              isLoading = false;
+            });
+          }
+        } else {
+          if (mounted) {
+            setState(() {
+              userInfo = {
+                'fullName': currentUser.displayName ?? 'No Name',
+                'email': currentUser.email,
+                'avatar': currentUser.photoURL ?? 'https://placehold.co/200',
+              };
+              isExistUser = true;
+              isLoading = false;
+            });
+          }
+        }
+      } catch (e) {
+        print("Lỗi tải user: $e");
+        if (mounted) setState(() => isLoading = false);
+      }
+    } else {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _handleLogout() async {
+    await FirebaseAuth.instance.signOut(); // Đăng xuất thật
+    if (mounted) {
+      showCustomSnackBar(context, 'Đăng xuất thành công!', type: SnackBarType.success);
+      context.go('/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    
-    final visibleItems = List<Map<String, dynamic>>.from(myAccountItems).where((item) {
-      if (item['title'] == 'Personal Information' || item['title'] == 'Change Password') {
-        return isExistUser;
-      }
-      if (item['title'] == 'Switch Account/Logout') {
-        return true;
-      }
-      return true;
-    }).toList();
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ...visibleItems.map((item) {
-            return ModernAccountListTile(
-              icon: item['icon'],
-              title: item['title'] == 'Switch Account/Logout' 
-                  ? (isExistUser ? 'Đăng Xuất' : 'Switch Account/Logout') 
-                  : item['title'],
-              onTap: () {
-                switch (item['title']) {
-                  case 'Personal Information':
-                    context.push('/personal-information');
-                    break; 
-                  case 'Loyalty Points':
-                    context.push('/utilities');
-                    showCustomSnackBar(context, 'Chuyển đến trang Tiện ích của tôi', type: SnackBarType.info);
-                    break;
-                  case 'Change Password':
-                    context.push('/change-password'); 
-                    break;
-                  case 'Switch Account/Logout':
-                    if (isExistUser) {
-                      _handleLogout();
-                    } else {
-                      showCustomSnackBar(context, 'Chuyển đến màn hình Đăng nhập', type: SnackBarType.info);
-                      context.push('/login');
-                    }
-                    break;
-                }
+    Widget buildUserHeader() {
+      if (!isExistUser || userInfo == null) {
+        return const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text("Bạn chưa đăng nhập."),
+        );
+      }
+      
+      String avatarUrl = "https://placehold.co/200";
+      
+      final dynamic avatarData = userInfo!['avatar'];
+      
+      if (avatarData is Map) {
+        avatarUrl = avatarData['url'] ?? avatarUrl;
+      } else if (avatarData is String) {
+        if (avatarData.isNotEmpty) {
+          avatarUrl = avatarData;
+        }
+      }
+
+      return Container(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 40,
+              backgroundImage: NetworkImage(avatarUrl),
+              onBackgroundImageError: (_, __) {
               },
-            );
-          }).toList(),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userInfo?['fullName'] ?? userInfo?['name'] ?? 'Người dùng',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(userInfo?['email'] ?? '', style: const TextStyle(color: Colors.grey)),
+                  
+                  if (userInfo?['phone'] != null && userInfo!['phone'].toString().isNotEmpty)
+                    Text(userInfo!['phone'], style: const TextStyle(color: Colors.grey)),
+                ],
+              ),
+            )
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          buildUserHeader(),
+          const Divider(),
+          
+          // Menu Items
+          if (isExistUser) ...[
+            ModernAccountListTile(
+              icon: CupertinoIcons.person,
+              title: 'Thông tin cá nhân',
+              onTap: () => context.push('/personal-information'),
+            ),
+            ModernAccountListTile(
+              icon: CupertinoIcons.square_grid_2x2,
+              title: 'Điểm thưởng & Tiện ích',
+              onTap: () {
+                context.push('/utilities');
+                showCustomSnackBar(context, 'Điểm tích lũy: ${userInfo?['loyaltyPoints'] ?? 0}', type: SnackBarType.info);
+              },
+            ),
+            ModernAccountListTile(
+              icon: CupertinoIcons.lock,
+              title: 'Đổi mật khẩu',
+              onTap: () => context.push('/change-password'),
+            ),
+          ],
+
+          ModernAccountListTile(
+            icon: isExistUser ? CupertinoIcons.arrow_right_square : CupertinoIcons.arrow_left_square,
+            title: isExistUser ? 'Đăng xuất' : 'Đăng nhập ngay',
+            onTap: () {
+              if (isExistUser) {
+                _handleLogout();
+              } else {
+                context.push('/login');
+              }
+            },
+          ),
         ],
       ),
     );

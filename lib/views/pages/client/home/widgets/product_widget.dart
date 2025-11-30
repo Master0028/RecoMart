@@ -188,10 +188,10 @@ class ProductView extends StatelessWidget {
     return GestureDetector(
 
       onTap: () {
-        print('🛒 Đang mở chi tiết sản phẩm có ID: $id');
+        print('Đang mở chi tiết sản phẩm có ID: $id');
 
         context.push(
-          '/product-details/$id',
+          '/product-detail/$id',
           extra: {
             'categoryId': categoryId,
           },

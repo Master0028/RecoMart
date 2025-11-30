@@ -133,13 +133,29 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: '/product-details/:productId',
+      // Bên ProductView đang là: '/product-detail/$id'
+      path: '/product-detail/:id', 
+      
       builder: (context, state) {
-        final productId = state.pathParameters['productId'] ?? '';
-        final categoryId = state.uri.queryParameters['categoryId'] ?? '';
+        // Lấy ID từ đường dẫn
+        final productId = state.pathParameters['id'] ?? '';
+        
+        final extra = state.extra as Map<String, dynamic>?;
+        final categoryId = extra?['categoryId'] ?? ''; 
         
         return ProductDetailsView(
           productId: productId,
+          categoryId: categoryId,
+        );
+      },
+    ),
+
+    GoRoute(
+      path: '/product-page-view/:categoryId', // Định nghĩa tham số :categoryId
+      builder: (context, state) {
+        final categoryId = state.pathParameters['categoryId'];
+        
+        return ProductPageView(
           categoryId: categoryId,
         );
       },

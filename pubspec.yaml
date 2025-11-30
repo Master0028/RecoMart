@@ -53,6 +53,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   fl_chart: ^0.68.0
   cloudinary_public: ^0.23.1
+  add_to_cart_animation: ^2.0.3
 
   google_fonts: ^6.2.1
   shared_preferences: ^2.5.3

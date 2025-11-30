@@ -5,6 +5,7 @@ import 'package:recomart/views/pages/admin/dashboard/widgets/revenue_chart.dart'
 import 'package:recomart/views/pages/admin/dashboard/widgets/advanced_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:recomart/views/pages/admin/dashboard/widgets/recommendation_monitor.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});

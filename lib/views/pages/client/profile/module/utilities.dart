@@ -95,24 +95,35 @@ class MyUtilitiesPage extends StatelessWidget {
   }
 
   Widget _buildUtilityGrid(BuildContext context, List<Map<String, dynamic>> items) {
-    return GridView.builder(
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 350, 
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        childAspectRatio: 1.2, 
-      ),
-      itemCount: items.length,
-      shrinkWrap: true, 
-      physics: const NeverScrollableScrollPhysics(),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _UtilityCard(
-          title: item['title'] as String,
-          subtitle: item['subtitle'] as String,
-          icon: item['icon'] as IconData,
-          onTap: () {
-            showCustomSnackBar(context, 'Navigating to ${item['title']}', type: SnackBarType.info);
+    // 🌟 FIX OVERFLOW: Dùng LayoutBuilder để tính toán tỉ lệ khung hình
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Nếu màn hình nhỏ (< 600px), dùng 2 cột. Lớn hơn dùng nhiều cột hơn.
+        int crossAxisCount = constraints.maxWidth < 600 ? 2 : 4;
+        
+        // Tỉ lệ khung hình: Mobile cần cao hơn (ratio nhỏ hơn) để chứa chữ
+        double childAspectRatio = constraints.maxWidth < 600 ? 0.85 : 1.2;
+
+        return GridView.builder(
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            childAspectRatio: childAspectRatio,
+          ),
+          itemCount: items.length,
+          shrinkWrap: true, 
+          physics: const NeverScrollableScrollPhysics(),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _UtilityCard(
+              title: item['title'] as String,
+              subtitle: item['subtitle'] as String,
+              icon: item['icon'] as IconData,
+              onTap: () {
+                showCustomSnackBar(context, 'Navigating to ${item['title']}', type: SnackBarType.info);
+              },
+            );
           },
         );
       },
@@ -146,46 +157,50 @@ class _UtilityCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(20.0),
+          padding: const EdgeInsets.all(16.0), // Giảm padding chút cho mobile
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.start, // Đẩy lên trên cùng
             children: [
               // Icon
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(icon, color: AppColors.primary, size: 28),
+                child: Icon(icon, color: AppColors.primary, size: 24),
               ),
-              const SizedBox(height: 16),
-              // Text
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+              
+              // Dùng Spacer hoặc Expanded để đẩy text xuống dưới nếu cần
+              // Nhưng ở đây ta dùng SizedBox cố định để tránh lỗi layout
+              const SizedBox(height: 12),
+              
+              // Text Title (Cho phép xuống dòng nếu dài quá)
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+                maxLines: 2, // Cho phép 2 dòng
+                overflow: TextOverflow.ellipsis,
+              ),
+              
+              const SizedBox(height: 4),
+              
+              // Text Subtitle
+              Expanded( // Dùng Expanded để text con tự chiếm phần còn lại
+                child: Text(
+                  subtitle,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.black54,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: Colors.black54,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),

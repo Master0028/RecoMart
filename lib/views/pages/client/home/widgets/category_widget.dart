@@ -86,10 +86,6 @@ class ListCategoryWidget extends StatefulWidget {
 class _ListCategoryWidgetState extends State<ListCategoryWidget> {
   bool _isHovering = false;
 
-  Future<void> _mockFetchProducts() async {
-    await Future.delayed(const Duration(milliseconds: 10)); 
-  }
-
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
@@ -121,21 +117,21 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                 child: ClipOval(
                   child: widget.icon.endsWith('.svg')
                       ? SvgPicture.network(
-                    widget.icon,
-                    fit: BoxFit.cover,
-                    placeholderBuilder: (_) =>
-                    const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-                    width: 60,
-                    height: 60,
-                  )
+                          widget.icon,
+                          fit: BoxFit.cover,
+                          placeholderBuilder: (_) =>
+                              const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          width: 60,
+                          height: 60,
+                        )
                       : Image.network(
-                    widget.icon,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) =>
-                    const Icon(Icons.broken_image, color: Colors.grey),
-                    width: 60,
-                    height: 60,
-                  ),
+                          widget.icon,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              const Icon(Icons.broken_image, color: Colors.grey),
+                          width: 60,
+                          height: 60,
+                        ),
                 ),
               ),
               const SizedBox(height: 6), 
@@ -238,8 +234,7 @@ class ProductCardWidget extends StatelessWidget {
                         height: 40,
                         decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
                         child: IconButton(
-                          onPressed: () {
-                          },
+                          onPressed: () {},
                           icon: const Icon(Icons.add, color: Colors.white, size: 20),
                           padding: EdgeInsets.zero,
                         ),
@@ -265,7 +260,7 @@ class CategoryWidget extends StatefulWidget {
 
 class _CategoryWidgetState extends State<CategoryWidget> {
   bool isSeeAll = false;
-  bool isLoading = false; 
+  bool isLoading = true; // Bắt đầu là true để hiện loading
   List<CategoryModel> categories = [];
 
   final CategoryService _categoryService = CategoryService();
@@ -287,10 +282,6 @@ class _CategoryWidgetState extends State<CategoryWidget> {
   Future<void> _fetchCategories() async {
     try {
       final data = await _categoryService.getCategories();
-      print("Đã tải ${data.length} danh mục");
-      for (var c in data) {
-        print("${c.name} - ${c.imageUrl}");
-      }
       if (mounted) {
         setState(() {
           categories = data;
@@ -299,24 +290,29 @@ class _CategoryWidgetState extends State<CategoryWidget> {
       }
     } catch (e) {
       print('Lỗi tải categories: $e');
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxVisible = Responsive.isDesktop(context)
-        ? categories.length
-        : (Responsive.isTablet(context) ? 6 : 4);
-    final itemCount = isSeeAll
-        ? categories.length
-        : (categories.length > maxVisible ? maxVisible : categories.length);
-
+    // 1. Xác định số cột
     int crossAxisCount = Responsive.isDesktop(context)
         ? 8 
         : Responsive.isTablet(context)
             ? 6 
             : 4; 
+
+    // 2. Xác định số lượng hiển thị mặc định (1 hàng)
+    final int defaultVisibleCount = crossAxisCount * 1; 
+
+    // 3. Tính toán số lượng item thực tế sẽ render
+    final int itemCount = isSeeAll 
+        ? categories.length 
+        : (categories.length > defaultVisibleCount ? defaultVisibleCount : categories.length);
+
+    // Kiểm tra xem có cần hiện nút See All không
+    final bool showSeeAllButton = categories.length > defaultVisibleCount;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +334,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header + See All Button
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -350,7 +346,8 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                       color: AppColors.darkText,
                     ),
                   ),
-                  if (!Responsive.isDesktop(context))
+                  
+                  if (showSeeAllButton)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       child: TextButton(
@@ -366,7 +363,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                         ),
                         child: Text(
                           isSeeAll ? 'See less' : 'See all',
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
@@ -378,21 +375,24 @@ class _CategoryWidgetState extends State<CategoryWidget> {
               ),
               const SizedBox(height: 20),
 
-              GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                      childAspectRatio: 0.9,
-                    ),
-                    itemCount: itemCount,
-                    itemBuilder: (context, index) => ListCategoryWidget(
-                      icon: categories[index].imageUrl,
-                      text: categories[index].name,
-                    ),
+              if (isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.9,
                   ),
+                  itemCount: itemCount,
+                  itemBuilder: (context, index) => ListCategoryWidget(
+                    icon: categories[index].imageUrl,
+                    text: categories[index].name,
+                  ),
+                ),
             ],
           ),
         ),
@@ -403,7 +403,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: EdgeInsets.symmetric(horizontal: 12),
               child: Text(
                 'Popular Products',
                 style: TextStyle(

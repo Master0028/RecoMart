@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart'; // 1. Import Firebase Auth
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import 'package:add_to_cart_animation/add_to_cart_animation.dart';
 
 const Color _primaryColor = Colors.blue; 
 const Color _secondaryColor = Colors.orange;
@@ -13,19 +15,24 @@ class Responsive {
   }
 }
 
+// --- WIDGET LOCATION ---
 class _MockLocationWidget extends StatelessWidget {
   const _MockLocationWidget();
   @override
   Widget build(BuildContext context) {
     return const Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      padding: EdgeInsets.only(left: 16.0),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.location_on, color: _primaryColor, size: 20),
+          Icon(Icons.location_on, color: _primaryColor, size: 18),
           SizedBox(width: 4),
-          Text(
-            'Phường A, Quận B, TP HCM',
-            style: TextStyle(fontSize: 14, color: Colors.black87),
+          Flexible(
+            child: Text(
+              'Phường A, TP HCM',
+              style: TextStyle(fontSize: 13, color: Colors.black87),
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       ),
@@ -33,11 +40,18 @@ class _MockLocationWidget extends StatelessWidget {
   }
 }
 
+// --- WIDGET AVATAR (Đã sửa để nhận thông tin động) ---
 class InteractiveGuestAvatar extends StatefulWidget {
   final String userName;
   final String? userId;
+  final String? avatarUrl; // Thêm URL avatar
 
-  const InteractiveGuestAvatar({super.key, required this.userName, this.userId});
+  const InteractiveGuestAvatar({
+    super.key, 
+    required this.userName, 
+    this.userId,
+    this.avatarUrl
+  });
 
   @override
   State<InteractiveGuestAvatar> createState() => _InteractiveGuestAvatarState();
@@ -46,23 +60,16 @@ class InteractiveGuestAvatar extends StatefulWidget {
 class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
   final GlobalKey _menuKey = GlobalKey();
 
-  void _handleMenuAction(String action) {
-    if (action == 'Home') {
-      print('FE Action: Navigating to Home');
-    } else if (action == 'Logout') {
-      print('FE Action: Logging out Guest user');
-    } else if (action == 'Cart') {
-      print('FE Action: Navigating to Cart from Dropdown');
-    }
-  }
-
   void _showDropdown() {
+    final bool isLoggedIn = widget.userId != null;
+
     final List<Map<String, dynamic>> items = [
       {'text': 'Home', 'icon': Icons.home_outlined, 'value': 'Home'},
-      {'text': 'Profile', 'icon': Icons.person, 'value': 'Profile'},
+      if (isLoggedIn) {'text': 'Profile', 'icon': Icons.person, 'value': 'Profile'}, // Chỉ hiện khi login
       {'text': "Cart", 'icon': Icons.shopping_cart, 'value': "Cart"},
       {'text': "Support", 'icon': Icons.support, 'value': "Support"},
-      {'text': 'Logout', 'icon': Icons.logout, 'value': 'Logout'},
+      // Đổi text Logout/Login tùy trạng thái
+      {'text': isLoggedIn ? 'Logout' : 'Login', 'icon': isLoggedIn ? Icons.logout : Icons.login, 'value': isLoggedIn ? 'Logout' : 'Login'},
     ];
 
     final RenderBox renderBox = _menuKey.currentContext!.findRenderObject() as RenderBox;
@@ -71,7 +78,7 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
     showMenu<String>(
       context: context,
       position: RelativeRect.fromLTRB(
-        offset.dx,
+        offset.dx - 100,
         offset.dy + renderBox.size.height,
         offset.dx + renderBox.size.width,
         offset.dy + renderBox.size.height,
@@ -79,51 +86,56 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
       items: items.map((item) {
         return PopupMenuItem<String>(
           value: item['value'],
-          child: Row(
-            children: [
-              Icon(item['icon'] as IconData, color: _primaryColor, size: 20),
-              const SizedBox(width: 8),
-              Text(item['text'] as String),
-            ],
-          ),
+          child: Row(children: [Icon(item['icon'], color: _primaryColor, size: 20), const SizedBox(width: 8), Text(item['text'])]),
         );
       }).toList(),
-      elevation: 8,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-    ).then((selectedValue) {
-      if (selectedValue != null) {
-        switch (selectedValue) {
-        case 'Home':
-          context.push('/home');
-          break;
-
-        case 'Profile':
-          context.push('/profile');
-          break;
-
-        case 'Cart':
-          context.push('/cart');
-          break;
-
-        case 'Support':
-          context.push('/chat');
-          break;
-
-        case 'Logout':
-          context.go('/login');
-          break;
-        }
+    ).then((val) async {
+      if (val == null) return;
+      if (val == 'Home') context.go('/home');
+      if (val == 'Profile') context.push('/profile');
+      if (val == 'Cart') context.push('/cart');
+      if (val == 'Support') context.push('/chat');
+      if (val == 'Login') context.go('/login');
+      if (val == 'Logout') {
+        await FirebaseAuth.instance.signOut();
+        if (mounted) context.go('/login');
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    Widget avatarCircle;
+    if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty) {
+       avatarCircle = CircleAvatar(
+          radius: Responsive.isDesktop(context) ? 15 : 18,
+          backgroundImage: NetworkImage(widget.avatarUrl!),
+          backgroundColor: Colors.grey[200],
+       );
+    } else {
+       avatarCircle = CircleAvatar(
+          radius: Responsive.isDesktop(context) ? 15 : 18,
+          backgroundColor: _secondaryColor,
+          child: Text(
+            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'G', 
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+          ),
+       );
+    }
+
+    if (!Responsive.isDesktop(context)) {
+      return GestureDetector(
+        key: _menuKey,
+        onTap: _showDropdown,
+        child: avatarCircle,
+      );
+    }
+
     return GestureDetector(
       key: _menuKey,
       onTap: _showDropdown,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: _primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(30),
@@ -132,15 +144,11 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircleAvatar(
-              radius: 15,
-              backgroundColor: _secondaryColor,
-              child: Text('G', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
-            ),
+            avatarCircle,
             const SizedBox(width: 8),
             Text(widget.userName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
             const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.black54, size: 20),
+            const Icon(Icons.keyboard_arrow_down, color: Colors.black54, size: 18),
           ],
         ),
       ),
@@ -148,147 +156,122 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
   }
 }
 
+// --- DESKTOP SEARCH (Giữ nguyên) ---
 class _DesktopSearchAndCart extends StatelessWidget {
-  const _DesktopSearchAndCart();
-
-  void _handleSearch() {
-    print('FE Action: Search Button clicked');
-  }
-
+  final GlobalKey<CartIconKey> cartKey;
+  const _DesktopSearchAndCart({required this.cartKey});
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
         Expanded(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 600),
-            decoration: BoxDecoration(
-              color: _searchBarBackground,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Tìm sản phẩm, thương hiệu, và tên shop',
-                      hintStyle: TextStyle(color: Colors.grey.shade600, fontSize: 14),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12),
-                    ),
-                    onSubmitted: (_) => context.push('/search'),
-                  ),
-                ),
-                Container(
-                  decoration: BoxDecoration(
-                    color: _actionButtonColor,
-                    borderRadius: BorderRadius.circular(5),
-                  ),
-                  height: 48, 
-                  width: 60,
-                  child: IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white, size: 24),
-                    onPressed: _handleSearch,
-                    tooltip: 'Tìm kiếm',
-                  ),
-                ),
-              ],
-            ),
+            decoration: BoxDecoration(color: _searchBarBackground, borderRadius: BorderRadius.circular(5)),
+            child: Row(children: [
+              Expanded(child: TextField(
+                decoration: InputDecoration(hintText: 'Tìm sản phẩm...', border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12)),
+                onSubmitted: (_) => context.push('/search'),
+              )),
+              Container(
+                decoration: BoxDecoration(color: _actionButtonColor, borderRadius: BorderRadius.circular(5)),
+                width: 50, height: 48,
+                child: IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () => print('Search')),
+              ),
+            ]),
           ),
         ),
-        
-        const SizedBox(width: 30),
-        IconButton(
-          onPressed: () => context.push('/cart'),
+        const SizedBox(width: 20),
+        AddToCartIcon(
+          key: cartKey,
           icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87, size: 28),
-          tooltip: 'Giỏ hàng',
+          badgeOptions: const BadgeOptions(active: true, backgroundColor: Colors.red),
         ),
       ],
     );
   }
 }
 
-// --- APP BAR CUSTOM ĐÃ CẬP NHẬT HOÀN TOÀN ---
-
+// --- MAIN APP BAR (ĐÃ SỬA STREAMBUILDER) ---
 class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
-  const AppBarHomeCustom({super.key});
+  final GlobalKey<CartIconKey> cartKey;
+  const AppBarHomeCustom({super.key, required this.cartKey});
 
   @override
   Size get preferredSize => const Size.fromHeight(60);
 
   @override
   Widget build(BuildContext context) {
-    const String defaultUserName = 'Guest'; 
+    final bool isDesktop = Responsive.isDesktop(context);
 
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: Colors.white,
       titleSpacing: 0,
-      scrolledUnderElevation: 0,
-      toolbarHeight: Responsive.isDesktop(context) ? 90 : preferredSize.height,
-      title: Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          // LOGO Section
-          Responsive.isDesktop(context)
-              ? Padding(
-                  padding: const EdgeInsets.only(left: 32),
-                  child: Row(
-                    children: [
-                      SvgPicture.asset('assets/logo/logo.png'), 
-                      const Icon(Icons.shopping_bag_outlined, color: _primaryColor, size: 30), 
-                      const SizedBox(width: 5),
-                      const Text.rich(
-                        TextSpan(
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          children: <TextSpan>[
-                            TextSpan(
-                              text: 'Reco',
-                              style: TextStyle(color: _primaryColor),
-                            ),
-                            TextSpan(
-                              text: 'Mart',
-                              style: TextStyle(color: _secondaryColor),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : const _MockLocationWidget(), // Mobile: Hiển thị Vị trí
-          
-          // Thanh tìm kiếm lớn (Desktop)
-          Responsive.isDesktop(context)
-              ? const Expanded(
-                  child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 40),
-                      child: _DesktopSearchAndCart(), // Thanh tìm kiếm và Icon Cart
-                  ),
-                )
-              : const SizedBox(),
-        ],
-      ),
+      elevation: 0,
+      toolbarHeight: isDesktop ? 80 : 60,
+      
+      title: isDesktop
+          ? Padding(
+              padding: const EdgeInsets.only(left: 32),
+              child: Row(
+                children: [
+                  SvgPicture.asset('assets/logo/logo.png', height: 30, width: 30),
+                  const SizedBox(width: 8),
+                  const Text.rich(TextSpan(children: [
+                    TextSpan(text: 'Reco', style: TextStyle(color: _primaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                    TextSpan(text: 'Mart', style: TextStyle(color: _secondaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                  ])),
+                  Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 40), child: _DesktopSearchAndCart(cartKey: cartKey))),
+                ],
+              ),
+            )
+          : const _MockLocationWidget(), 
+
       actions: [
-        // CART ICON (CHỈ HIỂN THỊ KHI MOBILE)
-        if (!Responsive.isDesktop(context))
+        if (!isDesktop) ...[
           IconButton(
-            onPressed: () => print('FE Action: Mobile Cart clicked'),
-            icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
+            onPressed: () => context.push('/search'),
+            icon: const Icon(Icons.search, color: Colors.black87),
           ),
-          
-        // GUEST/AVATAR DROPDOWN
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: AddToCartIcon(
+              key: cartKey,
+              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
+              badgeOptions: const BadgeOptions(active: true, backgroundColor: Colors.red),
+            ),
+          ),
+        ],
+
+        // 👇 ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT ĐỂ HIỂN THỊ TÊN THẬT
         Padding(
-          padding: Responsive.isDesktop(context)
-              ? const EdgeInsets.only(right: 32)
-              : const EdgeInsets.only(right: 16),
-          child: const InteractiveGuestAvatar(
-            userName: defaultUserName,
-            userId: null,
+          padding: EdgeInsets.only(right: isDesktop ? 32 : 16),
+          // Dùng StreamBuilder lắng nghe thay đổi User
+          child: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.userChanges(), 
+            builder: (context, snapshot) {
+              final user = snapshot.data;
+              final isLoggedIn = user != null;
+              
+              // Logic lấy tên hiển thị
+              String displayName = 'Guest';
+              String? photoUrl;
+              String? uid;
+
+              if (isLoggedIn) {
+                // Ưu tiên Display Name -> Email -> 'User'
+                displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
+                photoUrl = user.photoURL;
+                uid = user.uid;
+              }
+
+              return InteractiveGuestAvatar(
+                userName: displayName,
+                userId: uid,
+                avatarUrl: photoUrl,
+              );
+            },
           ),
         ),
       ],

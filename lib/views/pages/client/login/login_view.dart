@@ -112,6 +112,7 @@ class _LoginViewState extends State<LoginView> {
       controller: _emailController,
       focusNode: _emailFocus,
       keyboardType: TextInputType.emailAddress,
+      textInputAction: TextInputAction.next,
       decoration: InputDecoration(
         hintText: 'Email',
         prefixIcon: Icon(Icons.email, color: primaryBlue.withOpacity(0.7)),
@@ -132,6 +133,10 @@ class _LoginViewState extends State<LoginView> {
       focusNode: _passwordFocus,
       obscureText: !_isPasswordVisible,
       keyboardType: TextInputType.visiblePassword,
+      textInputAction: TextInputAction.done,
+      onFieldSubmitted: (_) {
+        if (!_loading) signIn();
+      },
       decoration: InputDecoration(
         hintText: 'Password',
         prefixIcon: Icon(Icons.lock, color: primaryBlue.withOpacity(0.7)),

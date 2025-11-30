@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:flutter/cupertino.dart';
@@ -18,7 +19,7 @@ class _MockCartWidget extends StatelessWidget {
       icon: const Icon(FeatherIcons.shoppingCart, size: 25),
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chuyển đến giỏ hàng (Mock)'))
+          const SnackBar(content: Text('Chuyển đến giỏ hàng'))
         );
       },
     );
@@ -26,124 +27,110 @@ class _MockCartWidget extends StatelessWidget {
 }
 
 class AvatarWidget extends StatelessWidget {
-  const AvatarWidget({
-    super.key,
-    this.userName,
-    this.userId,
-  });
-
-  final String? userName;
-  final String? userId;
+  const AvatarWidget({super.key});
 
   final List<String> recentSearches = const [ 
-    "Macbook",
-    "Lenovo",
-    "Asus",
-    "Chuột không dây",
-    "Bàn phím cơ",
-    "Màn hình ",
-    "Tai nghe Gaming"
+    "Macbook", "Lenovo", "Asus", "Chuột không dây", 
+    "Bàn phím cơ", "Màn hình", "Tai nghe Gaming"
   ];
 
   @override
   Widget build(BuildContext context) {
-    const String mockAvatarUrl = "https://placehold.co/100x100/A0C0E0/ffffff?text=U";
-    final bool isUserLoggedIn = userId != null; 
-    
-    return Padding(
-      padding: const EdgeInsets.only(right: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [              
-              Responsive.isDesktop(context)
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        IconButton(
-                          icon: const Icon(
-                            FeatherIcons.search,
-                            size: 25,
-                          ),
-                          onPressed: () {
-                            context.push('/search', extra: recentSearches);
-                          },
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        final User? currentUser = snapshot.data;
+        final bool isUserLoggedIn = currentUser != null;
+        
+        final String avatarUrl = currentUser?.photoURL ?? 
+            "https://placehold.co/100x100/A0C0E0/ffffff?text=${isUserLoggedIn ? 'U' : 'G'}";
+
+        return Padding(
+          padding: const EdgeInsets.only(right: 20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [              
+                  // ... (Các widget search, cart giữ nguyên) ...
+                  Responsive.isDesktop(context)
+                      ? Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(FeatherIcons.search, size: 25),
+                              onPressed: () => context.push('/search', extra: recentSearches),
+                            ),
+                            const SizedBox(width: 10),
+                            const _MockCartWidget(),
+                            const SizedBox(width: 10),
+                          ],
+                        )
+                      : const Padding(
+                          padding: EdgeInsets.only(right: 10.0),
+                          child: _MockCartWidget(),
                         ),
-                        const SizedBox(width: 10),
-                        const _MockCartWidget(),
-                        const SizedBox(width: 10),
-                      ],
-                    )
-                  : const Padding(
-                      padding: EdgeInsets.only(right: 10.0),
-                      child: _MockCartWidget(),
+                        
+                  SizedBox(
+                    height: 50,
+                    child: PopupMenuButton<String>(
+                      color: Colors.white,
+                      onSelected: (value) => _handleMenuSelection(value, context),
+                      offset: const Offset(0, 50),
+                      itemBuilder: (BuildContext context) {
+                        return [
+                          if (isUserLoggedIn) 
+                            const PopupMenuItem<String>(
+                              value: 'profile',
+                              child: Row(
+                                children: [
+                                  Icon(CupertinoIcons.person),
+                                  SizedBox(width: 8),
+                                  // 🔥 HIỂN THỊ TÊN HOẶC EMAIL THAY VÌ CHỮ "PROFILE" CHUNG CHUNG
+                                  Text('Profile'), 
+                                ],
+                              ),
+                            ),
+                          // ... (Các menu item khác giữ nguyên) ...
+                          const PopupMenuItem<String>(
+                            value: 'home',
+                            child: Row( 
+                              children: [
+                                Icon(CupertinoIcons.square_grid_2x2),
+                                SizedBox(width: 8),
+                                Text('Home'),
+                              ],
+                            ),
+                          ),
+                          PopupMenuItem<String>(
+                            value: isUserLoggedIn ? 'logout' : 'login',
+                            child: Row(
+                              children: [
+                                Icon(isUserLoggedIn ? Icons.logout_rounded : CupertinoIcons.arrow_right_circle),
+                                const SizedBox(width: 8), 
+                                Text(isUserLoggedIn ? 'Logout' : 'Login'),
+                              ],
+                            ),
+                          ),
+                        ];
+                      },
+                      child: CircleAvatar(
+                        backgroundImage: NetworkImage(avatarUrl),
+                        radius: Responsive.isDesktop(context) ? 25 : 20,
+                      ),
                     ),
-                    
-              SizedBox(
-                height: 50,
-                child: PopupMenuButton<String>(
-                  color: Colors.white,
-                  onSelected: (value) {
-                    _handleMenuSelection(value, context);
-                  },
-                  offset: const Offset(0, 50),
-                  itemBuilder: (BuildContext context) {
-                    return [
-                      if (isUserLoggedIn && Responsive.isDesktop(context))
-                        const PopupMenuItem<String>(
-                          value: 'profile',
-                          child: Row(
-                            children: [
-                              Icon(CupertinoIcons.person),
-                              SizedBox(width: 8),
-                              Text('Profile'),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuItem<String>(
-                        value: 'home',
-                        child: Row( 
-                          children: [
-                            Icon(CupertinoIcons.square_grid_2x2),
-                            SizedBox(width: 8),
-                            Text('Home'),
-                          ],
-                        ),
-                      ),
-                      PopupMenuItem<String>(
-                        value: isUserLoggedIn ? 'logout' : 'login',
-                        child: Row(
-                          children: [
-                            Icon(
-                              isUserLoggedIn
-                                  ? Icons.logout_rounded
-                                  : CupertinoIcons.arrow_right_circle,
-                            ),
-                            const SizedBox(width: 8), 
-                            Text(
-                              isUserLoggedIn ? 'Logout' : 'Login',
-                            ),
-                          ],
-                        ),
-                      ),
-                    ];
-                  },
-                  child: CircleAvatar(
-                    backgroundImage: NetworkImage(mockAvatarUrl) as ImageProvider,
-                    radius: Responsive.isDesktop(context) ? 25 : 20,
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  void _handleMenuSelection(String value, BuildContext context) {
+  void _handleMenuSelection(String value, BuildContext context) async {
+    // ... (Giữ nguyên logic xử lý menu) ...
     switch (value) {
       case 'profile':
         context.go('/profile');
@@ -155,8 +142,9 @@ class AvatarWidget extends StatelessWidget {
         context.go('/login');
         break;
       case 'logout':
+        await FirebaseAuth.instance.signOut();
         context.go('/login');
-        showCustomSnackBar(context, 'Đăng xuất thành công (Mock)');
+        showCustomSnackBar(context, 'Đăng xuất thành công');
         break;
       default:
         break;

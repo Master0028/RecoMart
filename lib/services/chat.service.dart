@@ -1,16 +1,48 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
+import 'recommendation_service.dart';
 
 class ChatService {
   final _firestore = FirebaseFirestore.instance;
   final _auth = FirebaseAuth.instance;
 
-  static const String adminId = "pvIwRP6zV8cSfcH7rqGe6bbfzNz1"; // id mặc định của admin
+  static const String adminId = "pvIwRP6zV8cSfcH7rqGe6bbfzNz1";
+  
+  Future<Map<String, dynamic>> sendMessageToAI(String query) async {
+    final String baseUrl = RecommendationService.baseUrl; 
+    final String url = '$baseUrl/api/chat?query=$query';
+
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          "ngrok-skip-browser-warning": "true",
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          "reply": "Xin lỗi, AI đang bận (Lỗi ${response.statusCode}).",
+          "products": []
+        };
+      }
+    } catch (e) {
+      return {
+        "reply": "Lỗi kết nối AI: $e. Vui lòng kiểm tra lại Server.",
+        "products": []
+      };
+    }
+  }
+
   FirebaseAuth get auth => _auth;
 
-  /// 🔹 Gửi tin nhắn văn bản
   Future<void> sendMessage(String text, String receiverId) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -67,11 +99,10 @@ class ChatService {
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("❌ Lỗi upload ảnh: $e");
+      print("Lỗi upload ảnh: $e");
     }
   }
 
-  /// 🔹 Stream danh sách các cuộc chat (dành cho admin)
   Stream<QuerySnapshot<Map<String, dynamic>>> getChatList() {
     return _firestore
         .collection('chats')
@@ -79,7 +110,6 @@ class ChatService {
         .snapshots();
   }
 
-  /// 🔹 Stream tin nhắn giữa 2 người (realtime)
   Stream<QuerySnapshot<Map<String, dynamic>>> getMessages(String otherUserId) {
     final user = _auth.currentUser;
     if (user == null) return const Stream.empty();
@@ -94,7 +124,6 @@ class ChatService {
         .snapshots();
   }
 
-  /// 🔹 Sinh id chat thống nhất
   String _generateChatId(String uid1, String uid2) {
     return uid1.hashCode <= uid2.hashCode ? "${uid1}_$uid2" : "${uid2}_$uid1";
   }

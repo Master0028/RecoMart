@@ -1,11 +1,13 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/footer.dart';
 import 'package:recomart/views/pages/client/home/widgets/banner_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/category_widget.dart' hide Responsive;
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
+import 'package:recomart/views/pages/client/home/widgets/recommendation_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/search_widget.dart';
-
-import 'package:flutter/material.dart';
 
 class HomeBody extends StatefulWidget {
   const HomeBody({super.key});
@@ -15,9 +17,57 @@ class HomeBody extends StatefulWidget {
 }
 
 class _HomeBodyState extends State<HomeBody> {
+  int aiModelUserId = 0;
+  bool isLoadingUser = true;
+
   @override
   void initState() {
     super.initState();
+    _fetchCurrentUserId();
+  }
+
+  Future<void> _fetchCurrentUserId() async {
+    User? currentUser = FirebaseAuth.instance.currentUser;
+
+    if (currentUser != null) {
+      try {
+        final querySnapshot = await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: currentUser.email)
+            .limit(1)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          final userData = querySnapshot.docs.first.data();
+          
+          if (userData.containsKey('user_id')) {
+            if (mounted) {
+              setState(() {
+                aiModelUserId = userData['user_id'];
+                isLoadingUser = false;
+              });
+            }
+            print("Đã tìm thấy User ID cho AI: $aiModelUserId");
+          } else {
+            if (mounted) {
+              setState(() {
+                aiModelUserId = 0; 
+                isLoadingUser = false;
+              });
+            }
+            print("User mới (Chưa có ID model) -> Fallback Popular Items");
+          }
+        } else {
+          if (mounted) setState(() => isLoadingUser = false);
+        }
+      } catch (e) {
+        print("Lỗi lấy User ID: $e");
+        if (mounted) setState(() => isLoadingUser = false);
+      }
+    } else {
+      print("Khách vãng lai -> Fallback Popular Items");
+      if (mounted) setState(() => isLoadingUser = false);
+    }
   }
   
   @override
@@ -33,22 +83,23 @@ class _HomeBodyState extends State<HomeBody> {
             child: Column(
               children: [
                 Responsive.isTablet(context) || Responsive.isMobile(context)
-                    ? SearchWidget()
-                    : SizedBox(),
+                    ? const SearchWidget()
+                    : const SizedBox(),               
                 BannerWidget(),
-                CategoryWidget(),
-                SizedBox(
-                  height: 16,
-                ),
-                FilterHomeProduct(), 
-                SizedBox(
-                  height: 16,
-                ),
-                ProductListViewWidget(),
+                const CategoryWidget(),               
+                const SizedBox(height: 16),
+                isLoadingUser 
+                    ? const Center(child: CircularProgressIndicator())
+                    : RecommendationWidget(userId: aiModelUserId),
+
+                const SizedBox(height: 16),               
+                const FilterHomeProduct(),              
+                const SizedBox(height: 16),             
+                const ProductListViewWidget(),
               ],
             ),
           ),
-          if (Responsive.isDesktop(context)) FooterWidget(),
+          if (Responsive.isDesktop(context)) const FooterWidget(),
         ],
       ),
     );
