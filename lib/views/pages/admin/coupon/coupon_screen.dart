@@ -45,7 +45,7 @@ class _CouponManagementScreenState extends State<CouponManagementScreen> {
             else if (errorMessage != null)
               Center(child: Text(errorMessage))
             else if (coupons.isEmpty)
-                const Center(child: Text('Không có mã giảm giá nào'))
+                const Center(child: Text('There are not any coupons here!'))
               else
                 CouponTable(coupons: coupons),
           ],

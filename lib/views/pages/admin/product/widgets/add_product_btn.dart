@@ -62,9 +62,9 @@ class AddProductButton extends StatelessWidget {
         backgroundColor: Colors.green,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8), // Bo góc hiện đại hơn
+          borderRadius: BorderRadius.circular(8),
         ),
-        elevation: 4, // Thêm đổ bóng
+        elevation: 4,
       ),
       icon: const Icon(Icons.add, color: Colors.white),
       label: const Text(

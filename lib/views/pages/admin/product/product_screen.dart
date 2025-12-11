@@ -32,11 +32,11 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           width: double.infinity,
           height: double.infinity,
           padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
+          child: const SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const ProductTable(), 
+                ProductTable(), 
               ],
             ),
           ),

@@ -14,13 +14,13 @@ import '../../../../../provider/cart_provider.dart';
 
 class CartItemWidget extends StatefulWidget {
   final bool isRemove;
-  final dynamic itemCart; 
+  final dynamic itemCart;
   final ValueChanged<int>? onQuantityChanged;
   final int? maxQuantity;
 
   const CartItemWidget({
     super.key,
-    required this.itemCart, 
+    required this.itemCart,
     this.onQuantityChanged,
     this.isRemove = false,
     this.maxQuantity,
@@ -43,22 +43,20 @@ class _CartItemWidgetState extends State<CartItemWidget> {
 
       showCustomSnackBar(
         context,
-        'Đã xóa sản phẩm khỏi giỏ hàng!',
+        'Item removed from cart!',
         type: SnackBarType.success,
       );
     } catch (e) {
       showCustomSnackBar(
         context,
-        'Lỗi khi xóa sản phẩm: $e',
+        'Error removing item: $e',
         type: SnackBarType.error,
       );
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     return Stack(
       children: [
         Container(
@@ -70,12 +68,12 @@ class _CartItemWidgetState extends State<CartItemWidget> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // PRODUCT
+                // PRODUCT COLUMN
                 Expanded(
                   flex: 2,
                   child: Row(
                     children: [
-                      // Hiển thị ảnh
+                      // Display Image
                       Container(
                         width: 80,
                         height: 80,
@@ -86,7 +84,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                           imageUrl: widget.itemCart.image ?? 'default_url',
                           fit: BoxFit.cover,
                           width: double.infinity,
-                          height: 350, 
+                          height: 350,
                           placeholder: (context, url) => const SkeletonImage(
                             imageHeight: 80,
                           ),
@@ -97,7 +95,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Tên và giá
+                      // Name and Price
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,9 +114,12 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                               ),
                             ),
                             Text(
-                              // Logic tính giá FE
+                              // Price calculation logic
                               formatMoney(
-                                widget.itemCart.unitPrice - (widget.itemCart.unitPrice * widget.itemCart.discount / 100),
+                                widget.itemCart.unitPrice -
+                                    (widget.itemCart.unitPrice *
+                                        widget.itemCart.discount /
+                                        100),
                               ),
                               style: const TextStyle(
                                 fontSize: 14,
@@ -133,7 +134,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                   ),
                 ),
 
-                // QUANTITY
+                // QUANTITY COLUMN
                 Expanded(
                   flex: 1,
                   child: Row(
@@ -151,11 +152,12 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                           setState(() => isProcessing = true);
                           try {
                             await Provider.of<CartProvider>(context, listen: false)
-                                .updateItemQuantity(user.uid, widget.itemCart.productId ?? '', newQuantity);
+                                .updateItemQuantity(user.uid,
+                                    widget.itemCart.productId ?? '', newQuantity);
 
                             showCustomSnackBar(
                               context,
-                              'Đã cập nhật số lượng!',
+                              'Quantity updated!',
                               type: SnackBarType.success,
                             );
 
@@ -163,7 +165,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                           } catch (e) {
                             showCustomSnackBar(
                               context,
-                              'Lỗi khi cập nhật: $e',
+                              'Error updating quantity: $e',
                               type: SnackBarType.error,
                             );
                           } finally {
@@ -182,13 +184,17 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                   ),
                 ),
 
-                // TOTAL
+                // TOTAL PRICE COLUMN (Hidden on Mobile)
                 if (!Responsive.isMobile(context))
                   Expanded(
                     flex: 1,
                     child: Text(
                       formatMoney(
-                        (widget.itemCart.unitPrice - (widget.itemCart.unitPrice * widget.itemCart.discount / 100)) * widget.itemCart.quantity,
+                        (widget.itemCart.unitPrice -
+                                (widget.itemCart.unitPrice *
+                                    widget.itemCart.discount /
+                                    100)) *
+                            widget.itemCart.quantity,
                       ),
                       textAlign: TextAlign.start,
                       style: const TextStyle(
@@ -199,10 +205,11 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                     ),
                   ),
 
-                // REMOVE
+                // REMOVE BUTTON (Hidden on Mobile)
                 if (!Responsive.isMobile(context))
                   IconButton(
-                    onPressed: () => _handleRemoveItem(widget.itemCart.productId ?? ''),
+                    onPressed: () =>
+                        _handleRemoveItem(widget.itemCart.productId ?? ''),
                     icon: const Icon(
                       Icons.delete,
                       color: Colors.red,

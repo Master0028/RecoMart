@@ -15,7 +15,6 @@ import 'package:recomart/utils/responsive.dart' as utils;
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/product/widgets/description_product.dart';
 import 'package:recomart/views/pages/client/product/widgets/quantity.dart';
-
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
 import 'package:recomart/views/pages/client/product/widgets/similar_product_widget.dart';
 
@@ -25,6 +24,7 @@ import '../../../../provider/cart_provider.dart';
 import '../../../../services/review.service.dart';
 import '../../../../services/user.service.dart';
 
+// --- Helper Widget for Info Table ---
 TableRow _buildInfoRow(String label, String value) {
   return TableRow(
     children: [
@@ -40,6 +40,7 @@ TableRow _buildInfoRow(String label, String value) {
   );
 }
 
+// --- Review Form Widget ---
 class _ReviewForm extends StatefulWidget {
   final Function(int rating, String comment) onSubmit;
   const _ReviewForm({required this.onSubmit});
@@ -67,7 +68,7 @@ class _ReviewFormState extends State<_ReviewForm> {
         TextField(
           controller: _controller,
           decoration: const InputDecoration(
-            hintText: 'Nhập nhận xét của bạn...',
+            hintText: 'Enter your review...', // Translated
             border: OutlineInputBorder(),
           ),
           maxLines: 3,
@@ -87,7 +88,7 @@ class _ReviewFormState extends State<_ReviewForm> {
               backgroundColor: AppColors.primary,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: const Text('Gửi đánh giá', style: TextStyle(color: Colors.white)),
+            child: const Text('Submit Review', style: TextStyle(color: Colors.white)), // Translated
           ),
         ),
       ],
@@ -122,7 +123,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
   GlobalKey<CartIconKey> cartKey = GlobalKey<CartIconKey>();
   late Function(GlobalKey) runAddToCartAnimation;
-  final GlobalKey _imageKey = GlobalKey(); 
+  final GlobalKey _imageKey = GlobalKey();
 
   @override
   void initState() {
@@ -145,7 +146,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = 'Không thể tải chi tiết sản phẩm.';
+          _errorMessage = 'Failed to load product details.'; // Translated
           _isLoading = false;
         });
       }
@@ -174,7 +175,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
     } catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, 'Lỗi: $e', type: SnackBarType.error);
+        showCustomSnackBar(context, 'Error: $e', type: SnackBarType.error); // Translated
       }
     }
   }
@@ -191,7 +192,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
     if (_errorMessage.isNotEmpty || _product == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Chi tiết sản phẩm')),
+        appBar: AppBar(title: const Text('Product Details')), // Translated
         body: Center(child: Text(_errorMessage, style: const TextStyle(color: Colors.red))),
       );
     }
@@ -199,7 +200,6 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     final product = _product!;
     final double discountedPrice = product.price - (product.price * (product.discount / 100));
 
-    // Bọc Scaffold bằng AddToCartAnimation
     return AddToCartAnimation(
       cartKey: cartKey,
       height: 30,
@@ -224,7 +224,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
                   onPressed: () => context.pop(),
                 ),
-                title: const Text('Chi tiết', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                title: const Text('Details', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)), // Translated
                 centerTitle: true,
                 actions: [
                   Padding(
@@ -251,7 +251,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                     child: ElevatedButton.icon(
                       onPressed: () => _handleAddToCart(_imageKey),
                       icon: const Icon(FeatherIcons.shoppingCart, color: Colors.white, size: 18),
-                      label: const Text('Thêm giỏ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      label: const Text('Add to Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), // Translated
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -278,7 +278,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
-                      child: const Text('Mua ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+                      child: const Text('Buy Now', style: TextStyle(fontWeight: FontWeight.bold)), // Translated
                     ),
                   ),
                 ],
@@ -295,7 +295,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
               crossAxisAlignment: WrapCrossAlignment.start,
               children: [
                 Container(
-                  key: _imageKey, // Gán Key để Animation biết vị trí bắt đầu
+                  key: _imageKey, 
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                   height: isMobile ? 300 : 500,
                   width: screenWidth < 1200 ? double.infinity : screenWidth * 0.52,
@@ -342,7 +342,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       ),
                       const SizedBox(height: 15),
                       
-                      // Chọn số lượng
+                      // Quantity
                       Quantity(
                         quantity: quantity,
                         onIncrease: () {
@@ -353,7 +353,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                         },
                       ),
                       
-                      // Nút bấm (Chỉ hiện trên Desktop, Mobile đã có ở BottomBar)
+                      // Desktop Buttons
                       if (!isMobile) ...[
                         const SizedBox(height: 20),
                         Row(
@@ -362,7 +362,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                               child: ElevatedButton.icon(
                                 onPressed: () => _handleAddToCart(_imageKey),
                                 icon: const Icon(FeatherIcons.shoppingCart, color: Colors.white, size: 20),
-                                label: const Text('Thêm vào giỏ', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                label: const Text('Add to Cart', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)), // Translated
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   padding: const EdgeInsets.symmetric(vertical: 14),
@@ -389,7 +389,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
-                                child: const Text('Mua ngay', style: TextStyle(fontWeight: FontWeight.bold)),
+                                child: const Text('Buy Now', style: TextStyle(fontWeight: FontWeight.bold)), // Translated
                               ),
                             ),
                           ],
@@ -399,16 +399,16 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   ),
                 ),
 
-                // --- MÔ TẢ SẢN PHẨM ---
+                // --- PRODUCT DESCRIPTION ---
                 Container(
                   width: !isDesktop ? double.infinity : screenWidth * 0.43,
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                   child: DescriptionProduct(
-                    description: product.description.isNotEmpty ? product.description : 'Không có mô tả chi tiết cho sản phẩm này.',
+                    description: product.description.isNotEmpty ? product.description : 'No detailed description available for this product.', // Translated
                   ),
                 ),
                 
-                // --- BẢNG THÔNG SỐ KỸ THUẬT ---
+                // --- SPECIFICATIONS TABLE ---
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                   child: Container(
@@ -417,7 +417,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Thông tin sản phẩm',
+                          'Product Specifications', // Translated
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                         const SizedBox(height: 10),
@@ -427,11 +427,11 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                             1: FlexColumnWidth(),
                           },
                           children: [
-                            _buildInfoRow('Thương hiệu', product.brandName ?? 'Không xác định'),
-                            _buildInfoRow('Danh mục', product.categoryName ?? 'Không xác định'),
-                            _buildInfoRow('Mã sản phẩm', product.id ?? '-'),
-                            _buildInfoRow('Tình trạng', product.stock > 0 ? 'Còn hàng' : 'Hết hàng'),
-                            _buildInfoRow('Số lượng còn lại', '${product.stock}'),
+                            _buildInfoRow('Brand', product.brandName ?? 'Unknown'), // Translated
+                            _buildInfoRow('Category', product.categoryName ?? 'Unknown'), // Translated
+                            _buildInfoRow('SKU', product.id ?? '-'), // Translated
+                            _buildInfoRow('Status', product.stock > 0 ? 'In Stock' : 'Out of Stock'), // Translated
+                            _buildInfoRow('Stock', '${product.stock}'), // Translated
                           ],
                         ),
                       ],
@@ -439,7 +439,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   ),
                 ),
 
-                // --- PHẦN ĐÁNH GIÁ (REVIEWS) ---
+                // --- REVIEWS SECTION ---
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                   child: Container(
@@ -454,7 +454,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Đánh giá & Nhận xét',
+                          'Reviews & Ratings', // Translated
                           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                         ),
                         const SizedBox(height: 10),
@@ -488,13 +488,13 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                         ),
                                       ],
                                     ),
-                                    Text('${reviews.length} lượt đánh giá'),
+                                    Text('${reviews.length} reviews'), // Translated
                                   ],
                                 ),
                                 const Divider(height: 24),
 
                                 if (reviews.isEmpty)
-                                  const Text('Chưa có nhận xét nào cho sản phẩm này.')
+                                  const Text('No reviews for this product yet.') // Translated
                                 else
                                   ...reviews.map((r) => Padding(
                                     padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -519,7 +519,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              r.user?.name ?? 'Người dùng ẩn danh',
+                                              r.user?.name ?? 'Anonymous', // Translated
                                               style: const TextStyle(fontWeight: FontWeight.bold),
                                             ),
                                           ],
@@ -537,7 +537,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                 const SizedBox(height: 16),
 
                                 const Text(
-                                  'Viết đánh giá của bạn',
+                                  'Write your review', // Translated
                                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 const SizedBox(height: 8),
@@ -546,18 +546,18 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                     try {
                                       final currentUser = FirebaseAuth.instance.currentUser;
                                       if (currentUser == null) {
-                                        showCustomSnackBar(context, 'Vui lòng đăng nhập để gửi đánh giá!', type: SnackBarType.error);
+                                        showCustomSnackBar(context, 'Please login to submit a review!', type: SnackBarType.error); // Translated
                                         return;
                                       }
                                       final userId = currentUser.uid;
                                       final userData = await _userService.getUserInfo(userId);
 
                                       if (userData == null) {
-                                        showCustomSnackBar(context, 'Không tìm thấy thông tin người dùng!', type: SnackBarType.error);
+                                        showCustomSnackBar(context, 'User info not found!', type: SnackBarType.error); // Translated
                                         return;
                                       }
 
-                                      final userName = userData['name'] ?? 'Người dùng';
+                                      final userName = userData['name'] ?? 'User'; // Translated
                                       final userAvatar = userData['avatar'] ?? 'https://i.pravatar.cc/150?u=$userId';
 
                                       final newReview = ReviewModel(
@@ -572,9 +572,9 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                                       );
 
                                       await _reviewService.addReviewForProduct(product.id, newReview);
-                                      showCustomSnackBar(context, 'Cảm ơn bạn đã đánh giá $rating sao!', type: SnackBarType.success);
+                                      showCustomSnackBar(context, 'Thank you for rating $rating stars!', type: SnackBarType.success); // Translated
                                     } catch (e) {
-                                      showCustomSnackBar(context, 'Không thể gửi đánh giá: $e', type: SnackBarType.error);
+                                      showCustomSnackBar(context, 'Failed to submit review: $e', type: SnackBarType.error); // Translated
                                     }
                                   },
                                 ),
@@ -592,19 +592,19 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                   child: SimilarProductWidget(productId: product.id ?? '0'),
                 ),
 
-                // --- SẢN PHẨM CÙNG DANH MỤC ---
+                // --- RELATED PRODUCTS ---
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 64, vertical: 16),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sản phẩm cùng danh mục',
+                        'Related Products', // Translated
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.black),
                       ),
                       const SizedBox(height: 20),
                       _relatedProducts.isEmpty
-                          ? const Center(child: Text('Không có sản phẩm liên quan'))
+                          ? const Center(child: Text('No related products found')) // Translated
                           : GridView.builder(
                               itemCount: _relatedProducts.length,
                               physics: const NeverScrollableScrollPhysics(),

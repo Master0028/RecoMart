@@ -4,9 +4,8 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 final Color primaryBlue = Colors.blue.shade700;
-const Color inputFillColor = Color(0xFFF0F0F0); 
+const Color inputFillColor = Color(0xFFF0F0F0);
 const Color largeButtonColor = Color(0xFFEEEEEE);
 const Color cancelTextColor = Colors.white;
 const double largeRadius = 32.0;
@@ -23,14 +22,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmedPasswordController = TextEditingController();
-  final _addressController = TextEditingController(); 
+  final _addressController = TextEditingController();
 
   final _nameFocus = FocusNode();
   final _emailFocus = FocusNode();
   final _passwordFocus = FocusNode();
   final _confirmFocus = FocusNode();
-  final _phoneFocus = FocusNode();
-  
+  final _addressFocus = FocusNode();
+
   bool _loading = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
@@ -47,15 +46,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailFocus.dispose();
     _passwordFocus.dispose();
     _confirmFocus.dispose();
-    _phoneFocus.dispose();
-    
+    _addressFocus.dispose();
+
     super.dispose();
   }
 
   void _focusAndShowError(FocusNode node, String message) {
     FocusScope.of(context).requestFocus(node);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message), 
+      content: Text(message),
       backgroundColor: Colors.red,
       duration: const Duration(seconds: 3),
     ));
@@ -65,7 +64,26 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final name = _userNameController.text.trim();
     final email = _emailController.text.trim();
     final pass = _passwordController.text.trim();
+    final confirmPass = _confirmedPasswordController.text.trim();
     final address = _addressController.text.trim();
+
+    // Basic Validation
+    if (name.isEmpty) {
+      _focusAndShowError(_nameFocus, 'Please enter your full name');
+      return;
+    }
+    if (email.isEmpty) {
+      _focusAndShowError(_emailFocus, 'Please enter your email');
+      return;
+    }
+    if (pass.isEmpty || pass.length < 6) {
+      _focusAndShowError(_passwordFocus, 'Password must be at least 6 characters');
+      return;
+    }
+    if (pass != confirmPass) {
+      _focusAndShowError(_confirmFocus, 'Passwords do not match');
+      return;
+    }
 
     try {
       setState(() => _loading = true);
@@ -75,27 +93,35 @@ class _SignUpScreenState extends State<SignUpScreen> {
         password: pass,
       );
 
-      // Lưu thêm thông tin vào Firestore
       await FirebaseFirestore.instance.collection('users').doc(authResult.user!.uid).set({
         'fullName': name,
         'email': email,
         'address': address,
+        'role': 'customer', // Default role
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Sign up successful! Redirecting...'),
-        backgroundColor: Colors.green,
-      ));
-
-      context.go('/login');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Sign up successful! Redirecting...'),
+          backgroundColor: Colors.green,
+        ));
+        context.go('/login');
+      }
     } on FirebaseAuthException catch (e) {
-      _focusAndShowError(_emailFocus,"lor" ?? 'Sign up failed');
+      String errorMessage = 'Sign up failed';
+      if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'The account already exists for that email.';
+      }
+      if (mounted) _focusAndShowError(_emailFocus, errorMessage);
+    } catch (e) {
+      if (mounted) _focusAndShowError(_emailFocus, 'An error occurred. Please try again.');
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
-
 
   Widget buildHeader() {
     return const Text(
@@ -132,6 +158,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
+  // --- ANIMATED INPUT FIELD ---
   Widget buildInputField({
     required String hintText,
     required IconData icon,
@@ -141,22 +168,33 @@ class _SignUpScreenState extends State<SignUpScreen> {
     bool obscureText = false,
     Widget? suffixIcon,
   }) {
-    return TextFormField(
-      controller: controller,
+    return AnimatedInputContainer(
       focusNode: focusNode,
-      keyboardType: keyboardType,
-      obscureText: obscureText,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: Icon(icon, color: primaryBlue.withOpacity(0.7)),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: inputFillColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(largeRadius),
-          borderSide: BorderSide.none,
+      child: TextFormField(
+        controller: controller,
+        focusNode: focusNode,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        decoration: InputDecoration(
+          hintText: hintText,
+          prefixIcon: Icon(icon, color: primaryBlue.withOpacity(0.7)),
+          suffixIcon: suffixIcon,
+          filled: true,
+          fillColor: inputFillColor,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(largeRadius),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(largeRadius),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(largeRadius),
+            borderSide: BorderSide(color: primaryBlue, width: 2), // Highlight border on focus
+          ),
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
         ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
       ),
     );
   }
@@ -181,7 +219,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
       ),
     );
   }
-  
+
   Widget buildConfirmPasswordField() {
     return buildInputField(
       hintText: 'Confirm Password',
@@ -233,10 +271,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget buildCancelButton(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-        context.pop(); 
+        context.pop();
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.grey, 
+        backgroundColor: Colors.grey,
         foregroundColor: cancelTextColor,
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(largeRadius)),
@@ -245,7 +283,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
       child: const Text('Cancel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
     );
   }
-
 
   Widget buildSignInButton(BuildContext context) {
     return TextButton(
@@ -273,7 +310,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -295,8 +331,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: IntrinsicHeight(
                   child: Stack(
                     children: [
+                      // Decorative Shape 1
                       Positioned(
-                        top: -size.height * 0.15, 
+                        top: -size.height * 0.15,
                         left: -size.width * 0.5,
                         child: Container(
                           width: size.width * 1.5,
@@ -307,7 +344,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
-                      // Hình khối trang trí 2
+                      // Decorative Shape 2
                       Positioned(
                         top: size.height * 0.0,
                         right: -size.width * 0.3,
@@ -320,7 +357,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
-                      
+
                       SafeArea(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -332,48 +369,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const SizedBox(height: 30),
                               buildProfilePicturePlaceholder(),
                               const SizedBox(height: 30),
-                              
+
                               // Name
                               buildInputField(
-                                hintText: 'Full Name', 
-                                icon: Icons.person_outline, 
-                                controller: _userNameController, 
-                                focusNode: _nameFocus
-                              ),
+                                  hintText: 'Full Name',
+                                  icon: Icons.person_outline,
+                                  controller: _userNameController,
+                                  focusNode: _nameFocus),
                               const SizedBox(height: 20),
-                              
+
                               // Email
                               buildInputField(
-                                hintText: 'Email', 
-                                icon: Icons.email_outlined, 
-                                controller: _emailController, 
+                                hintText: 'Email',
+                                icon: Icons.email_outlined,
+                                controller: _emailController,
                                 focusNode: _emailFocus,
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 20),
 
+                              // Address
                               buildInputField(
-                                hintText: 'Address (Optional)', 
-                                icon: Icons.home_outlined, 
-                                controller: _addressController, 
-                                focusNode: _phoneFocus, // Tạm dùng FocusNode này
+                                hintText: 'Address (Optional)',
+                                icon: Icons.home_outlined,
+                                controller: _addressController,
+                                focusNode: _addressFocus,
                               ),
                               const SizedBox(height: 20),
 
+                              // Password
                               buildPasswordField(),
                               const SizedBox(height: 20),
-                              
+
+                              // Confirm Password
                               buildConfirmPasswordField(),
                               const SizedBox(height: 40),
-                              
+
+                              // Buttons
                               buildDoneButton(),
                               const SizedBox(height: 20),
 
                               buildCancelButton(context),
                               const SizedBox(height: 20),
-                                                            
+
                               buildSignInButton(context),
-                              
+
                               const SizedBox(height: 40),
                             ],
                           ),
@@ -391,6 +431,68 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 }
 
+class AnimatedInputContainer extends StatefulWidget {
+  final Widget child;
+  final FocusNode focusNode;
+
+  const AnimatedInputContainer({
+    super.key,
+    required this.child,
+    required this.focusNode,
+  });
+
+  @override
+  State<AnimatedInputContainer> createState() => _AnimatedInputContainerState();
+}
+
+class _AnimatedInputContainerState extends State<AnimatedInputContainer> {
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
+    super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _isFocused ? 1.02 : 1.0, // Scale up slightly on focus
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeInOut,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(largeRadius),
+          boxShadow: _isFocused
+              ? [
+                  BoxShadow(
+                    color: primaryBlue.withOpacity(0.3),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  )
+                ]
+              : [],
+        ),
+        child: widget.child,
+      ),
+    );
+  }
+}
 
 class DashedCirclePainter extends CustomPainter {
   final Color color;
@@ -411,10 +513,13 @@ class DashedCirclePainter extends CustomPainter {
 
     final Path path = Path();
     for (int i = 0; i < dashCount; i++) {
-      final double startAngle = (i * (dashWidth + dashSpace)) / (size.width / 2);
+      final double startAngle =
+          (i * (dashWidth + dashSpace)) / (size.width / 2);
       final double sweepAngle = dashWidth / (size.width / 2);
       path.addArc(
-        Rect.fromCircle(center: Offset(size.width / 2, size.height / 2), radius: size.width / 2),
+        Rect.fromCircle(
+            center: Offset(size.width / 2, size.height / 2),
+            radius: size.width / 2),
         startAngle,
         sweepAngle,
       );

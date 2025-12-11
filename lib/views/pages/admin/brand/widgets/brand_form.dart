@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io' show File;
-import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
+import 'package:flutter/foundation.dart' show Uint8List;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -74,18 +74,17 @@ class _BrandFormState extends State<BrandForm> {
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+            .showSnackBar(const SnackBar(content: Text('Image upload failed')));
       }
     }
   }
 
-  /// 🟢 Submit thêm hoặc cập nhật
   Future<void> _handleSubmit() async {
     final brandProvider = Provider.of<BrandProvider>(context, listen: false);
     final name = nameController.text.trim();
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Tên thương hiệu không được trống')));
+          .showSnackBar(const SnackBar(content: Text('Brand name cannot be empty')));
       return;
     }
 
@@ -102,19 +101,21 @@ class _BrandFormState extends State<BrandForm> {
       if (widget.initialBrand == null) {
         await brandProvider.addBrand(newBrand);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Thêm thương hiệu thành công')));
+            .showSnackBar(const SnackBar(content: Text('Brand added successfully')));
       } else {
         await brandProvider.updateBrand(newBrand);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Cập nhật thương hiệu thành công')));
+            .showSnackBar(const SnackBar(content: Text('Brand updated successfully')));
       }
 
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+          .showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -127,13 +128,15 @@ class _BrandFormState extends State<BrandForm> {
     try {
       await brandProvider.deleteBrand(widget.initialBrand!.id);
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Xoá thương hiệu thành công')));
+          .showSnackBar(const SnackBar(content: Text('Brand deleted successfully')));
       Navigator.pop(context);
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi xoá: $e')));
+          .showSnackBar(SnackBar(content: Text('Delete error: $e')));
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -158,10 +161,12 @@ class _BrandFormState extends State<BrandForm> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: imageUrl != null && imageUrl!.isNotEmpty
-                          ? Image.network(imageUrl!, fit: BoxFit.cover)
+                          ? Image.network(imageUrl!, fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Center(child: Icon(Icons.broken_image)))
                           : imageBytes != null
-                          ? Image.memory(imageBytes!, fit: BoxFit.cover)
-                          : const Center(child: Text('No Image')),
+                              ? Image.memory(imageBytes!, fit: BoxFit.cover)
+                              : const Center(child: Text('No Image')),
                     ),
                     const SizedBox(height: 20),
                     ElevatedButton(
@@ -214,8 +219,7 @@ class _BrandFormState extends State<BrandForm> {
                                 widget.initialBrand == null
                                     ? 'Add Brand'
                                     : 'Update Brand',
-                                style:
-                                const TextStyle(color: Colors.white),
+                                style: const TextStyle(color: Colors.white),
                               ),
                             ),
                           ),
@@ -226,8 +230,7 @@ class _BrandFormState extends State<BrandForm> {
                                 onPressed: isLoading ? null : _handleDelete,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.red,
-                                  minimumSize:
-                                  const Size(double.infinity, 48),
+                                  minimumSize: const Size(double.infinity, 48),
                                 ),
                                 child: const Text('Delete',
                                     style: TextStyle(color: Colors.white)),
@@ -243,7 +246,12 @@ class _BrandFormState extends State<BrandForm> {
             ],
           ),
           if (isLoading)
-            const Center(child: CircularProgressIndicator()),
+            Positioned.fill(
+              child: Container(
+                color: Colors.black12,
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );

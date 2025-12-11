@@ -28,8 +28,11 @@ class CategoryForm extends StatefulWidget {
 }
 
 class _CategoryFormState extends State<CategoryForm> {
+  // Controllers
   late TextEditingController nameController;
   late TextEditingController descriptionController;
+
+  // State Variables
   File? imageFile;
   Uint8List? imageBytes;
   String? imageUrl;
@@ -41,12 +44,19 @@ class _CategoryFormState extends State<CategoryForm> {
   @override
   void initState() {
     super.initState();
-
     nameController =
         TextEditingController(text: widget.initialCategory?.name ?? '');
     descriptionController =
         TextEditingController(text: widget.initialCategory?.description ?? '');
     imageUrl = widget.initialCategory?.imageUrl;
+    isActive = widget.initialCategory?.isActive ?? true;
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _pickImage() async {
@@ -57,6 +67,7 @@ class _CategoryFormState extends State<CategoryForm> {
 
     try {
       final bytes = await picked.readAsBytes();
+      
       final uri = Uri.parse("https://api.cloudinary.com/v1_1/dqiclelb9/image/upload");
       final uploadPreset = "dacntt";
 
@@ -73,33 +84,34 @@ class _CategoryFormState extends State<CategoryForm> {
       final data = jsonDecode(resBody);
 
       if (response.statusCode == 200 && data['secure_url'] != null) {
-        setState(() {
-          imageBytes = bytes;
-          imageUrl = data['secure_url'];
-          imageFile = null;
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            imageBytes = bytes;
+            imageUrl = data['secure_url'];
+            imageFile = null;
+            isLoading = false;
+          });
+        }
       } else {
-        throw Exception("Upload failed: ${data['error']}");
+        throw Exception("Upload failed: ${data['error']?['message'] ?? 'Unknown error'}");
       }
     } catch (e) {
-      debugPrint("Upload Cloudinary failed: $e");
+      debugPrint("Cloudinary upload error: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+            .showSnackBar(SnackBar(content: Text('Image upload failed: $e')));
       }
     }
   }
 
-  // 💾 Lưu lên Firebase qua Provider
   Future<void> _handleSubmit() async {
     final name = nameController.text.trim();
     final desc = descriptionController.text.trim();
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Tên không được để trống')));
+          .showSnackBar(const SnackBar(content: Text('Category Name cannot be empty')));
       return;
     }
 
@@ -125,21 +137,43 @@ class _CategoryFormState extends State<CategoryForm> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(widget.initialCategory == null
-              ? 'Thêm danh mục thành công!'
-              : 'Cập nhật danh mục thành công!')),
+              ? 'Category added successfully!'
+              : 'Category updated successfully!')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi lưu danh mục: $e')),
+        SnackBar(content: Text('Error saving category: $e')),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   Future<void> _handleDelete() async {
     if (widget.initialCategory == null) return;
+
+    // Show Confirmation Dialog
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Category"),
+        content: const Text("Are you sure you want to delete this category?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
 
     final provider = Provider.of<CategoryProvider>(context, listen: false);
     setState(() => isLoading = true);
@@ -149,15 +183,15 @@ class _CategoryFormState extends State<CategoryForm> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã xóa danh mục')),
+          const SnackBar(content: Text('Category deleted successfully')),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi khi xóa: $e')),
+        SnackBar(content: Text('Error deleting category: $e')),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -178,131 +212,115 @@ class _CategoryFormState extends State<CategoryForm> {
                       width: double.infinity,
                       height: 200,
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade50,
                       ),
-                      child: Builder(
-                        builder: (context) {
-                          // Ưu tiên URL ảnh
-                          if (imageUrl != null && imageUrl!.isNotEmpty) {
-                            return Image.network(
-                              imageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(child: Text('Invalid Image URL')),
-                            );
-                          }
-
-                          // Nếu có bytes — kiểm tra định dạng
-                          if (imageBytes != null && imageBytes!.isNotEmpty) {
-                            // Kiểm tra header (8 byte đầu)
-                            final header = imageBytes!.take(8).toList();
-                            // Header XML/SVG: [0x3c, 0x3f, 0x78, 0x6d, 0x6c] = "<?xml"
-                            final isXml = header.length >= 5 &&
-                                header[0] == 0x3c &&
-                                header[1] == 0x3f &&
-                                header[2] == 0x78 &&
-                                header[3] == 0x6d &&
-                                header[4] == 0x6c;
-
-                            if (isXml) {
-                              return SvgPicture.memory(imageBytes!);
-                            }
-
-                            try {
-                              return Image.memory(
-                                imageBytes!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Center(child: Text('Invalid image data')),
-                              );
-                            } catch (_) {
-                              return const Center(child: Text('Invalid image data'));
-                            }
-                          }
-
-                          // Nếu không có ảnh
-                          return const Center(child: Text('No Image'));
-                        },
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: _buildImageWidget(),
                       ),
-
                     ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
                       onPressed: isLoading ? null : _pickImage,
+                      icon: const Icon(Icons.upload_file, size: 18),
+                      label: const Text('Choose Image'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        minimumSize: const Size(double.infinity, 48),
+                        backgroundColor: Colors.blueAccent,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 45),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
-                      child: const Text('Choose Image',
-                          style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 24),
+              
+              // --- Form Fields Section (Right) ---
               Expanded(
                 flex: 2,
                 child: SingleChildScrollView(
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextField(
+                      TextFormField(
                         controller: nameController,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           labelText: 'Category Name',
-                          border: OutlineInputBorder(),
+                          hintText: 'e.g., Electronics',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 20),
-                      TextField(
+                      const SizedBox(height: 16),
+                      TextFormField(
                         controller: descriptionController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description (optional)',
-                          border: OutlineInputBorder(),
+                        decoration: InputDecoration(
+                          labelText: 'Description (Optional)',
+                          hintText: 'Brief description of the category...',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
                         ),
                         maxLines: 3,
                       ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: isActive,
-                            onChanged: (v) => setState(() => isActive = v!),
-                          ),
-                          const Text('Active'),
-                        ],
+                      const SizedBox(height: 16),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Is Active'),
+                        subtitle: const Text('Visible to customers'),
+                        value: isActive,
+                        onChanged: (val) => setState(() => isActive = val),
+                        activeColor: Colors.green,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 24),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
                             child: ElevatedButton(
                               onPressed: isLoading ? null : _handleSubmit,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
-                                minimumSize:
-                                const Size(double.infinity, 48),
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size(0, 50),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                               child: Text(
                                 widget.initialCategory == null
                                     ? 'Add Category'
-                                    : 'Update',
-                                style:
-                                const TextStyle(color: Colors.white),
+                                    : 'Save Changes',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                               ),
                             ),
                           ),
                           if (widget.initialCategory != null) ...[
                             const SizedBox(width: 16),
-                            Expanded(
+                            SizedBox(
+                              width: 100,
                               child: ElevatedButton(
                                 onPressed: isLoading ? null : _handleDelete,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red,
-                                  minimumSize:
-                                  const Size(double.infinity, 48),
+                                  backgroundColor: Colors.red.shade50,
+                                  foregroundColor: Colors.red,
+                                  elevation: 0,
+                                  minimumSize: const Size(0, 50),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                    side: BorderSide(color: Colors.red.shade200),
+                                  ),
                                 ),
-                                child: const Text('Delete',
-                                    style: TextStyle(color: Colors.white)),
+                                child: const Text('Delete'),
                               ),
                             ),
                           ]
@@ -314,19 +332,73 @@ class _CategoryFormState extends State<CategoryForm> {
               ),
             ],
           ),
+          
+          // --- Loading Overlay ---
           if (isLoading)
-            const Center(
-              child: CircularProgressIndicator(),
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.7),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
             ),
         ],
       ),
     );
   }
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    descriptionController.dispose();
-    super.dispose();
+  Widget _buildImageWidget() {
+    // 1. Show Network Image if available
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      if (imageUrl!.endsWith('.svg')) {
+        return SvgPicture.network(
+          imageUrl!,
+          fit: BoxFit.contain,
+          placeholderBuilder: (_) => const Center(child: CircularProgressIndicator()),
+        );
+      }
+      return Image.network(
+        imageUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.broken_image, color: Colors.grey, size: 40),
+              Text("Image Error", style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (imageBytes != null && imageBytes!.isNotEmpty) {
+      try {
+        final header = imageBytes!.take(5).toList();
+        if (header.length >= 2 && header[0] == 0x3C && header[1] == 0x3F) {
+           return SvgPicture.memory(imageBytes!, fit: BoxFit.contain);
+        }
+        
+        return Image.memory(
+          imageBytes!,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => const Center(child: Text('Invalid Data')),
+        );
+      } catch (_) {
+        return const Center(child: Text('Preview Error'));
+      }
+    }
+
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.image_outlined, color: Colors.grey, size: 48),
+          SizedBox(height: 8),
+          Text("No Image Selected", style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
   }
 }

@@ -51,7 +51,7 @@ class ReviewModel {
     return ReviewModel(
       id: json['_id'] as String,
       productId: json['product_variant_id'] as String,
-      userId: json['user_id'] as String?, // ✅ sửa ở đây
+      userId: json['user_id'] as String?,
       content: json['content'] as String,
       rating: json['rating'] as int? ?? 0,
       user: json['user'] != null

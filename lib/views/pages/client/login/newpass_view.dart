@@ -83,8 +83,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
   final _formKey = GlobalKey<FormState>();
 
   bool _isLoading = false;
-  bool _isNewPasswordVisible = false;
-  bool _isRepeatPasswordVisible = false;
 
   @override
   void dispose() {
@@ -97,7 +95,9 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_newPasswordCtrl.text != _repeatPasswordCtrl.text) {
-      if (mounted) showCustomSnackBar(context, 'Mật khẩu nhập lại không khớp.');
+      if (mounted) {
+        showCustomSnackBar(context, 'Passwords do not match.', type: SnackBarType.error);
+      }
       return;
     }
 
@@ -105,45 +105,11 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
     await Future.delayed(const Duration(seconds: 1));
 
     if (mounted) {
-      showCustomSnackBar(context, 'Đổi mật khẩu thành công! Vui lòng đăng nhập lại.');
+      showCustomSnackBar(context, 'Password changed successfully! Please login again.', type: SnackBarType.success);
       context.go('/login');
     }
 
     if (mounted) setState(() => _isLoading = false);
-  }
-
-  Widget buildPasswordField(
-    String hint,
-    TextEditingController controller,
-    bool isVisible,
-    Function(bool) toggleVisibility,
-  ) {
-    return TextFormField(
-      controller: controller,
-      obscureText: !isVisible,
-      validator: (value) {
-        if (value == null || value.isEmpty) return 'Mật khẩu không được để trống.';
-        if (value.length < 6) return 'Mật khẩu phải có ít nhất 6 ký tự.';
-        return null;
-      },
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: Colors.grey.shade100,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        suffixIcon: IconButton(
-          icon: Icon(
-            isVisible ? Icons.visibility : Icons.visibility_off,
-            color: Colors.grey.shade600,
-          ),
-          onPressed: () => toggleVisibility(!isVisible),
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-      ),
-    );
   }
 
   @override
@@ -162,7 +128,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                   children: [
                     const SizedBox(height: 16),
                     const Text(
-                      'Thiết Lập Mật Khẩu Mới',
+                      'Set New Password',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 26,
@@ -172,24 +138,24 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Vui lòng thiết lập mật khẩu mới cho tài khoản của bạn.',
+                      'Please create a new password for your account.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.black54),
                     ),
                     const SizedBox(height: 40),
-                    buildPasswordField(
-                      'Mật khẩu mới',
-                      _newPasswordCtrl,
-                      _isNewPasswordVisible,
-                      (value) => setState(() => _isNewPasswordVisible = value),
+                    
+                    AnimatedPasswordField(
+                      controller: _newPasswordCtrl,
+                      hintText: 'New Password',
                     ),
+                    
                     const SizedBox(height: 20),
-                    buildPasswordField(
-                      'Nhập lại mật khẩu mới',
-                      _repeatPasswordCtrl,
-                      _isRepeatPasswordVisible,
-                      (value) => setState(() => _isRepeatPasswordVisible = value),
+                    
+                    AnimatedPasswordField(
+                      controller: _repeatPasswordCtrl,
+                      hintText: 'Confirm New Password',
                     ),
+                    
                     const SizedBox(height: 40),
                     SizedBox(
                       width: double.infinity,
@@ -201,6 +167,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 5,
                         ),
                         child: _isLoading
                             ? const SizedBox(
@@ -212,7 +179,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                                 ),
                               )
                             : const Text(
-                                'Lưu Mật Khẩu',
+                                'Save Password',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -225,7 +192,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                     TextButton(
                       onPressed: () => context.pop(),
                       child: const Text(
-                        'Hủy Bỏ',
+                        'Cancel',
                         style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
                     ),
@@ -236,6 +203,103 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AnimatedPasswordField extends StatefulWidget {
+  final TextEditingController controller;
+  final String hintText;
+
+  const AnimatedPasswordField({
+    super.key,
+    required this.controller,
+    required this.hintText,
+  });
+
+  @override
+  State<AnimatedPasswordField> createState() => _AnimatedPasswordFieldState();
+}
+
+class _AnimatedPasswordFieldState extends State<AnimatedPasswordField> {
+  final FocusNode _focusNode = FocusNode();
+  bool _isFocused = false;
+  bool _isVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: _isFocused ? Colors.white : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: _isFocused ? primaryBlue : Colors.transparent,
+          width: 1.5,
+        ),
+        boxShadow: _isFocused
+            ? [
+                BoxShadow(
+                  color: primaryBlue.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : [],
+      ),
+      child: TextFormField(
+        controller: widget.controller,
+        focusNode: _focusNode,
+        obscureText: !_isVisible,
+        validator: (value) {
+          if (value == null || value.isEmpty) return 'Password cannot be empty.';
+          if (value.length < 6) return 'Password must be at least 6 characters.';
+          return null;
+        },
+        style: const TextStyle(fontWeight: FontWeight.w500),
+        decoration: InputDecoration(
+          hintText: widget.hintText,
+          hintStyle: TextStyle(
+            color: _isFocused ? primaryBlue.withOpacity(0.7) : Colors.grey,
+          ),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          suffixIcon: IconButton(
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, anim) => RotationTransition(
+                turns: child.key == const ValueKey('icon1')
+                    ? Tween<double>(begin: 1, end: 0.75).animate(anim)
+                    : Tween<double>(begin: 0.75, end: 1).animate(anim),
+                child: FadeTransition(opacity: anim, child: child),
+              ),
+              child: Icon(
+                _isVisible ? Icons.visibility : Icons.visibility_off,
+                key: ValueKey(_isVisible ? 'icon1' : 'icon2'),
+                color: _isFocused ? primaryBlue : Colors.grey.shade600,
+              ),
+            ),
+            onPressed: () => setState(() => _isVisible = !_isVisible),
+          ),
+        ),
       ),
     );
   }

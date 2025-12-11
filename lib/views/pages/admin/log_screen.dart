@@ -154,8 +154,8 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   Widget _buildTableHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      child: Row(
-        children: const [
+      child: const Row(
+        children: [
           Expanded(flex: 2, child: Text('TIMESTAMP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
           Expanded(flex: 1, child: Text('LEVEL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
           Expanded(flex: 4, child: Text('MESSAGE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),

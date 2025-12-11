@@ -24,7 +24,7 @@ class OrderManagementScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                "Lỗi tải dữ liệu: ${snapshot.error}",
+                "Error loading data: ${snapshot.error}",
                 style: const TextStyle(color: Colors.red),
               ),
             );
@@ -33,7 +33,7 @@ class OrderManagementScreen extends StatelessWidget {
           final orders = snapshot.data ?? [];
 
           if (orders.isEmpty) {
-            return const Center(child: Text("Không có đơn hàng nào"));
+            return const Center(child: Text("No orders found"));
           }
 
           return SingleChildScrollView(

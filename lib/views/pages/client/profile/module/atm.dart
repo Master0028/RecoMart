@@ -131,7 +131,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
               bool isDesktop = constraints.maxWidth > 700;
               int crossAxisCount = constraints.maxWidth > 1000 ? 3 : 2;
 
-              // SỬA LỖI: Sử dụng CustomScrollView để xử lý Responsive
               return CustomScrollView(
                 slivers: [
                   SliverPadding(
@@ -335,7 +334,7 @@ class _AddCardTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
-        child: Center(
+        child: const Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [

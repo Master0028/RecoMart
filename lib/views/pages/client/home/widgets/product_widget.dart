@@ -60,14 +60,13 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
         _currentPage = page;
       });
     } catch (e) {
-      debugPrint('Lỗi tải sản phẩm: $e');
+      debugPrint('Error loading products: $e');
       setState(() {
-        errorMessage = 'Không thể tải danh sách sản phẩm.';
+        errorMessage = 'Unable to load product list.';
         _isLoading = false;
       });
     }
   }
-
 
   @override
   void dispose() {
@@ -152,11 +151,12 @@ class _ProductListViewWidgetState extends State<ProductListViewWidget> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
               minimumSize: const Size(180, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Xem thêm', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('Load More', style: TextStyle(color: Colors.white)),
           ),
-
         const SizedBox(
           height: 20,
         ),
@@ -186,9 +186,8 @@ class ProductView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-
       onTap: () {
-        print('Đang mở chi tiết sản phẩm có ID: $id');
+        debugPrint('Opening product details with ID: $id');
 
         context.push(
           '/product-detail/$id',
@@ -197,7 +196,6 @@ class ProductView extends StatelessWidget {
           },
         );
       },
-
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -216,14 +214,14 @@ class ProductView extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
                   child: CachedNetworkImage(
-                          imageUrl: image,
-                          placeholder: (context, url) => const SkeletonImage(
-                            imageHeight: 160,
-                          ),
-                          errorWidget: (context, url, error) => Image.asset(
-                              'assets/images/image_default_error.png'),
-                          fit: BoxFit.cover,
-                        ),
+                    imageUrl: image,
+                    placeholder: (context, url) => const SkeletonImage(
+                      imageHeight: 160,
+                    ),
+                    errorWidget: (context, url, error) =>
+                        Image.asset('assets/images/image_default_error.png'),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
             ),
@@ -244,7 +242,7 @@ class ProductView extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     formatMoney(price.toDouble()),
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       color: AppColors.secondary,
                       fontSize: FontSizes.medium,
@@ -318,7 +316,7 @@ class _FilterHomeProductState extends State<FilterHomeProduct> {
                 onTap: () {
                   setState(() {
                     isSelectedList = filtersList[index];
-                    debugPrint('Lọc theo: ${filtersList[index]}');
+                    debugPrint('Filtering by: ${filtersList[index]}');
                   });
                 },
                 child: Container(

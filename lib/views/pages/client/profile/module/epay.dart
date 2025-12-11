@@ -24,14 +24,14 @@ final List<EWallet> _mockWallets = [
   EWallet(
     id: '1',
     type: 'MOMO',
-    accountName: 'Nguyễn Văn Đạt',
+    accountName: 'Nguyen Van Dat',
     accountNumber: '0901234567',
     isDefault: true,
   ),
   EWallet(
     id: '2',
     type: 'ZALOPAY',
-    accountName: 'Nguyễn Văn Đạt',
+    accountName: 'Nguyen Van Dat',
     accountNumber: '0901234567',
   ),
 ];
@@ -59,8 +59,11 @@ class _EWalletPageState extends State<EWalletPage> {
       }
       _wallets[index].isDefault = true;
     });
-    showCustomSnackBar(context, 'Đã đặt ${_wallets[index].type} làm mặc định',
-        type: SnackBarType.success);
+    showCustomSnackBar(
+      context,
+      'Set ${_wallets[index].type} as default',
+      type: SnackBarType.success,
+    );
   }
 
   void _handleDelete(int index) {
@@ -68,59 +71,66 @@ class _EWalletPageState extends State<EWalletPage> {
     setState(() {
       _wallets.removeAt(index);
     });
-    showCustomSnackBar(context, 'Đã xóa ví ${removedWallet.type}',
-        type: SnackBarType.error);
+    showCustomSnackBar(
+      context,
+      'Removed ${removedWallet.type} wallet',
+      type: SnackBarType.error,
+    );
   }
 
-  void _handleSaveWallet(EWallet? wallet, String type, String name, String phone) {
-  if (name.isEmpty || phone.isEmpty) {
-    showCustomSnackBar(context, 'Vui lòng nhập đầy đủ thông tin',
-        type: SnackBarType.error);
-    return;
-  }
-
-  setState(() {
-    if (wallet == null) {
-      _wallets.add(EWallet(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        type: type,
-        accountName: name,
-        accountNumber: phone,
-      ));
-    } else {
-      final updatedWallet = EWallet(
-        id: wallet.id,
-        type: type,
-        accountName: name,
-        accountNumber: phone,
-        isDefault: wallet.isDefault,
-      );
-      
-      final index = _wallets.indexWhere((w) => w.id == wallet.id);
-      if (index != -1) {
-        _wallets[index] = updatedWallet;
-      }
+  void _handleSaveWallet(
+      EWallet? wallet, String type, String name, String phone) {
+    if (name.isEmpty || phone.isEmpty) {
+      showCustomSnackBar(context, 'Please fill in all information',
+          type: SnackBarType.error);
+      return;
     }
-  });
 
-  Navigator.of(context).pop();
-}
+    setState(() {
+      if (wallet == null) {
+        _wallets.add(EWallet(
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+          type: type,
+          accountName: name,
+          accountNumber: phone,
+        ));
+      } else {
+        final updatedWallet = EWallet(
+          id: wallet.id,
+          type: type,
+          accountName: name,
+          accountNumber: phone,
+          isDefault: wallet.isDefault,
+        );
+
+        final index = _wallets.indexWhere((w) => w.id == wallet.id);
+        if (index != -1) {
+          _wallets[index] = updatedWallet;
+        }
+      }
+    });
+
+    Navigator.of(context).pop();
+  }
 
   void _showWalletFormDialog({EWallet? initialWallet}) {
     final isEditing = initialWallet != null;
-    String _selectedType = initialWallet?.type ?? 'MOMO';
-    final _nameController = TextEditingController(text: initialWallet?.accountName ?? '');
-    final _phoneController = TextEditingController(text: initialWallet?.accountNumber ?? '');
+    String selectedType = initialWallet?.type ?? 'MOMO';
+    final nameController =
+        TextEditingController(text: initialWallet?.accountName ?? '');
+    final phoneController =
+        TextEditingController(text: initialWallet?.accountNumber ?? '');
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           backgroundColor: Colors.white,
           title: Center(
             child: Text(
-              isEditing ? 'Chỉnh Sửa Ví' : 'Liên Kết Ví Mới',
+              isEditing ? 'Edit Wallet' : 'Link New Wallet',
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
             ),
           ),
@@ -129,10 +139,10 @@ class _EWalletPageState extends State<EWalletPage> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // 1. Chọn loại ví
+                  // 1. Select Wallet Type
                   DropdownButtonFormField<String>(
-                    value: _selectedType,
-                    decoration: _buildInputDecoration(label: 'Loại ví'),
+                    value: selectedType,
+                    decoration: _buildInputDecoration(label: 'Wallet Type'),
                     items: ['MOMO', 'ZALOPAY', 'VNPAY']
                         .map((type) => DropdownMenuItem(
                               value: type,
@@ -142,25 +152,27 @@ class _EWalletPageState extends State<EWalletPage> {
                     onChanged: (value) {
                       if (value != null) {
                         setStateDialog(() {
-                          _selectedType = value;
+                          selectedType = value;
                         });
                       }
                     },
                   ),
                   const SizedBox(height: 16),
-                  
-                  // 2. Tên chủ ví
+
+                  // 2. Account Name
                   TextFormField(
-                    controller: _nameController,
-                    decoration: _buildInputDecoration(label: 'Tên chủ ví', icon: FeatherIcons.user),
+                    controller: nameController,
+                    decoration: _buildInputDecoration(
+                        label: 'Account Name', icon: FeatherIcons.user),
                   ),
                   const SizedBox(height: 16),
-                  
-                  // 3. Số điện thoại
+
+                  // 3. Phone Number
                   TextFormField(
-                    controller: _phoneController,
+                    controller: phoneController,
                     keyboardType: TextInputType.phone,
-                    decoration: _buildInputDecoration(label: 'Số điện thoại', icon: FeatherIcons.phone),
+                    decoration: _buildInputDecoration(
+                        label: 'Phone Number', icon: FeatherIcons.phone),
                   ),
                 ],
               );
@@ -169,33 +181,37 @@ class _EWalletPageState extends State<EWalletPage> {
           actionsAlignment: MainAxisAlignment.center,
           actionsPadding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
           actions: [
-            // Nút Hủy
+            // Cancel Button
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
-                'Hủy Bỏ',
-                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.bold),
+                'Cancel',
+                style: TextStyle(
+                    color: Colors.grey.shade700, fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(width: 10),
-            // Nút Lưu
+            // Save Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               ),
               onPressed: () {
                 _handleSaveWallet(
                   initialWallet,
-                  _selectedType,
-                  _nameController.text,
-                  _phoneController.text,
+                  selectedType,
+                  nameController.text,
+                  phoneController.text,
                 );
               },
               child: const Text(
-                'Lưu',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                'Save',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -204,11 +220,14 @@ class _EWalletPageState extends State<EWalletPage> {
     );
   }
 
-  // Helper cho InputDecoration
-  InputDecoration _buildInputDecoration({required String label, IconData? icon}) {
+  // Helper for InputDecoration
+  InputDecoration _buildInputDecoration(
+      {required String label, IconData? icon}) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: icon != null ? Icon(icon, color: AppColors.primary, size: 20) : null,
+      prefixIcon: icon != null
+          ? Icon(icon, color: AppColors.primary, size: 20)
+          : null,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -222,19 +241,20 @@ class _EWalletPageState extends State<EWalletPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: const CustomAppBarMobile(
-        title: 'Ví Điện Tử Của Tôi',
+        title: 'My E-Wallets',
         isBack: true,
       ),
-      body: Center( // ⬅️ Đảm bảo Responsive
+      body: Center(
+        // Ensure Responsive
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800), // Giới hạn chiều rộng
+          constraints: const BoxConstraints(maxWidth: 800),
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- DANH SÁCH VÍ ---
+                // --- WALLET LIST ---
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -244,27 +264,30 @@ class _EWalletPageState extends State<EWalletPage> {
                     return _WalletCard(
                       wallet: wallet,
                       onSetDefault: () => _handleSetDefault(index),
-                      onEdit: () => _showWalletFormDialog(initialWallet: wallet),
+                      onEdit: () =>
+                          _showWalletFormDialog(initialWallet: wallet),
                       onDelete: () => _handleDelete(index),
                     );
                   },
                 ),
-                
+
                 const SizedBox(height: 20),
 
-                // --- NÚT THÊM MỚI ---
+                // --- ADD NEW BUTTON ---
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     icon: const Icon(FeatherIcons.plus, size: 20),
                     label: const Text(
-                      'Liên Kết Ví Mới',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      'Link New Wallet',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
                       side: BorderSide(color: AppColors.primary, width: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
                       padding: const EdgeInsets.symmetric(vertical: 16),
                     ),
                     onPressed: () {
@@ -281,7 +304,6 @@ class _EWalletPageState extends State<EWalletPage> {
   }
 }
 
-/// 🎨 WIDGET THẺ VÍ (HIỆN ĐẠI)
 class _WalletCard extends StatelessWidget {
   final EWallet wallet;
   final VoidCallback onSetDefault;
@@ -295,13 +317,18 @@ class _WalletCard extends StatelessWidget {
     required this.onDelete,
   });
 
-  // Helper để lấy màu và logo
   Map<String, dynamic> _getWalletVisuals(String type) {
     switch (type) {
       case 'MOMO':
-        return {'color': const Color(0xFFAE2070), 'icon': Icons.payment}; // (Thay bằng logo MoMo)
+        return {
+          'color': const Color(0xFFAE2070),
+          'icon': Icons.payment
+        }; // Replace with MoMo logo if available
       case 'ZALOPAY':
-        return {'color': const Color(0xFF0056C0), 'icon': Icons.account_balance_wallet};
+        return {
+          'color': const Color(0xFF0056C0),
+          'icon': Icons.account_balance_wallet
+        };
       case 'VNPAY':
         return {'color': const Color(0xFF003D7C), 'icon': Icons.qr_code};
       default:
@@ -309,7 +336,7 @@ class _WalletCard extends StatelessWidget {
     }
   }
 
-  // Helper che số điện thoại
+  // Helper to mask phone number
   String _maskPhone(String phone) {
     if (phone.length > 6) {
       return '${phone.substring(0, 3)}***${phone.substring(phone.length - 3)}';
@@ -320,7 +347,7 @@ class _WalletCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visuals = _getWalletVisuals(wallet.type);
-    
+
     return Card(
       elevation: 3,
       margin: const EdgeInsets.only(bottom: 20),
@@ -343,13 +370,14 @@ class _WalletCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Hàng Header: Tên ví và Menu
+              // Header Row: Wallet Name and Menu
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Row(
                     children: [
-                      Icon(visuals['icon'] as IconData, color: Colors.white, size: 28),
+                      Icon(visuals['icon'] as IconData,
+                          color: Colors.white, size: 28),
                       const SizedBox(width: 12),
                       Text(
                         wallet.type,
@@ -361,41 +389,59 @@ class _WalletCard extends StatelessWidget {
                       ),
                     ],
                   ),
-                  // Nút 3 chấm (Menu)
+                  // Menu Button
                   PopupMenuButton<String>(
                     onSelected: (value) {
                       if (value == 'edit') onEdit();
                       if (value == 'delete') onDelete();
                       if (value == 'default') onSetDefault();
                     },
-                    icon: const Icon(FeatherIcons.moreVertical, color: Colors.white),
+                    icon: const Icon(FeatherIcons.moreVertical,
+                        color: Colors.white),
                     color: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    itemBuilder: (BuildContext context) =>
+                        <PopupMenuEntry<String>>[
                       const PopupMenuItem<String>(
                         value: 'edit',
-                        child: Row(children: [Icon(FeatherIcons.edit, size: 18, color: Colors.black87), SizedBox(width: 10), Text('Chỉnh Sửa')]),
+                        child: Row(children: [
+                          Icon(FeatherIcons.edit,
+                              size: 18, color: Colors.black87),
+                          SizedBox(width: 10),
+                          Text('Edit')
+                        ]),
                       ),
                       if (!wallet.isDefault)
                         const PopupMenuItem<String>(
                           value: 'default',
-                          child: Row(children: [Icon(FeatherIcons.checkCircle, size: 18, color: Colors.black87), SizedBox(width: 10), Text('Đặt làm mặc định')]),
+                          child: Row(children: [
+                            Icon(FeatherIcons.checkCircle,
+                                size: 18, color: Colors.black87),
+                            SizedBox(width: 10),
+                            Text('Set as Default')
+                          ]),
                         ),
                       const PopupMenuDivider(),
                       const PopupMenuItem<String>(
                         value: 'delete',
-                        child: Row(children: [Icon(FeatherIcons.trash2, size: 18, color: Colors.red), SizedBox(width: 10), Text('Xóa liên kết', style: TextStyle(color: Colors.red))]),
+                        child: Row(children: [
+                          Icon(FeatherIcons.trash2,
+                              size: 18, color: Colors.red),
+                          SizedBox(width: 10),
+                          Text('Unlink', style: TextStyle(color: Colors.red))
+                        ]),
                       ),
                     ],
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
-              // Tên Chủ Ví
+
+              // Account Holder
               const Text(
-                'Chủ ví',
+                'Account Holder',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               Text(
@@ -406,11 +452,12 @@ class _WalletCard extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
+              // Phone Number
               const Text(
-                'Số điện thoại',
+                'Phone Number',
                 style: TextStyle(color: Colors.white70, fontSize: 13),
               ),
               Text(
@@ -422,18 +469,19 @@ class _WalletCard extends StatelessWidget {
                   letterSpacing: 1.2,
                 ),
               ),
-              
+
               if (wallet.isDefault)
                 Align(
                   alignment: Alignment.bottomRight,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'MẶC ĐỊNH',
+                      'DEFAULT',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 11,

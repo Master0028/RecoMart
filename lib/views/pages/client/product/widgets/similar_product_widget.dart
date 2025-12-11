@@ -36,7 +36,7 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
 
   void _loadData() async {
     setState(() => _isLoading = true);
-    // Gọi API AI
+    // Call AI API
     var data = await _service.getSimilarProducts(widget.productId);
     if (mounted) {
       setState(() {
@@ -46,105 +46,72 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
     }
   }
 
-  String formatCurrency(num price) {
-    final format = NumberFormat.currency(locale: 'vi_VN', symbol: 'đ');
-    return format.format(price);
-  }
-
- @override
+  @override
   Widget build(BuildContext context) {
-    if (_isLoading) return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
-    
-    if (_similarItems.isEmpty) return const SizedBox.shrink(); 
+    if (_isLoading) {
+      return const SizedBox(
+        height: 200,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_similarItems.isEmpty) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4.0, vertical: 10),
+        // --- Header Section ---
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
           child: Row(
             children: [
-              Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
-              SizedBox(width: 8),
-              Text(
-                "Có thể bạn cũng thích (AI)",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.purple),
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.purple, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                "Recommended for you",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                  letterSpacing: 0.5,
+                ),
               ),
             ],
           ),
         ),
-        
+
         SizedBox(
-          height: 260, 
-          child: ListView.builder(
+          height: 280,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
             itemCount: _similarItems.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 16),
             itemBuilder: (context, index) {
               final item = _similarItems[index];
 
               return StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance.collection('products').doc(item.id.toString()).snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('products')
+                    .doc(item.id.toString())
+                    .snapshots(),
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData || !snapshot.data!.exists) return const SizedBox();
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const SizedBox.shrink();
+                  }
 
                   var data = snapshot.data!.data() as Map<String, dynamic>;
-                  
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => ProductDetailsView(productId: item.id.toString(), categoryId: 'Unknown')));
-                    },
-                    child: Container(
-                      width: 150, // Tăng chiều rộng chút cho thoải mái
-                      margin: const EdgeInsets.only(right: 12, bottom: 5), // Thêm margin bottom cho shadow
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.purple.withOpacity(0.2)),
-                        boxShadow: [BoxShadow(color: Colors.purple.withOpacity(0.05), blurRadius: 5, offset: const Offset(0, 2))],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Ảnh (Dùng Expanded để chiếm phần lớn diện tích)
-                          Expanded(
-                            flex: 3, // Chiếm 3 phần
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                              child: Image.network(
-                                data['imageUrl'] ?? '',
-                                fit: BoxFit.cover,
-                                width: double.infinity,
-                                errorBuilder: (_,__,___) => const Center(child: Icon(Icons.image_not_supported, color: Colors.grey)),
-                              ),
-                            ),
-                          ),
-                          
-                          // Thông tin (Chiếm ít hơn)
-                          Expanded(
-                            flex: 2, // Chiếm 2 phần
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween, // Căn đều
-                                children: [
-                                  Text(
-                                    data['name'] ?? 'Unknown',
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis, // Cắt chữ nếu dài quá
-                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                  Text(
-                                    formatCurrency(data['price'] ?? 0),
-                                    style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w700),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+
+                  return _ModernProductCard(
+                    data: data,
+                    id: item.id.toString(),
                   );
                 },
               );
@@ -152,6 +119,153 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ModernProductCard extends StatelessWidget {
+  final Map<String, dynamic> data;
+  final String id;
+
+  const _ModernProductCard({
+    required this.data,
+    required this.id,
+  });
+
+  String formatCurrency(num price) {
+    final format = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 0);
+    return '${format.format(price)} đ';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductDetailsView(
+              productId: id,
+              categoryId: 'Unknown',
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(bottom: 10), // Margin for shadow
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Product Image
+            Expanded(
+              flex: 3,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                child: Stack(
+                  children: [
+                    Container(
+                      color: Colors.grey[50], // Background placeholder
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: Image.network(
+                        data['imageUrl'] ?? '',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const Icon(
+                          Icons.image_not_supported_outlined,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
+                    // Optional: Discount Badge
+                    if (data['discount'] != null && data['discount'] > 0)
+                      Positioned(
+                        top: 8,
+                        left: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.redAccent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            '-${data['discount']}%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Product Details
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          data['name'] ?? 'Unknown Product',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                            height: 1.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Rating star example
+                        Row(
+                          children: [
+                            const Icon(Icons.star, color: Colors.amber, size: 12),
+                            const SizedBox(width: 4),
+                            Text(
+                              "${data['rating'] ?? '4.5'}",
+                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    Text(
+                      formatCurrency(data['price'] ?? 0),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

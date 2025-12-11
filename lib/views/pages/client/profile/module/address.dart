@@ -13,28 +13,29 @@ class AddressPage extends StatefulWidget {
 }
 
 class _AddressPageState extends State<AddressPage> {
+  // Mock Data (Translated)
   final List<dynamic> provinces = [
-    {'code': 1, 'name': 'TP. Hồ Chí Minh'},
-    {'code': 2, 'name': 'Hà Nội'}
+    {'code': 1, 'name': 'Ho Chi Minh City'},
+    {'code': 2, 'name': 'Hanoi'}
   ];
   final List<dynamic> districts = [
-    {'code': 101, 'name': 'Quận 1'},
-    {'code': 102, 'name': 'Quận Ba Đình'}
+    {'code': 101, 'name': 'District 1'},
+    {'code': 102, 'name': 'Ba Dinh District'}
   ];
   final List<dynamic> wards = [
-    {'code': 1001, 'name': 'Phường Bến Nghé'},
-    {'code': 1002, 'name': 'Phường Cống Vị'}
+    {'code': 1001, 'name': 'Ben Nghe Ward'},
+    {'code': 1002, 'name': 'Cong Vi Ward'}
   ];
   
   String? selectedProvinceCode;
   String? selectedDistrictCode;
   String? selectedWardCode;
-  String currentAddress = '123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. HCM';
+  String currentAddress = '123 Nguyen Hue Street, Ben Nghe Ward, District 1, HCMC';
   bool _addNewAddress = false;
   
   List<String> savedAddresses = [
-    '123 Đường Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. HCM',
-    '456 Đường Lê Lợi, Phường Cống Vị, Quận Ba Đình, Hà Nội'
+    '123 Nguyen Hue Street, Ben Nghe Ward, District 1, HCMC',
+    '456 Le Loi Street, Cong Vi Ward, Ba Dinh District, Hanoi'
   ]; 
 
   @override
@@ -88,7 +89,7 @@ class _AddressPageState extends State<AddressPage> {
   
   Future<void> _handleSaveLocation() async {
       if (selectedWardCode == null || selectedDistrictCode == null || selectedProvinceCode == null) {
-        showCustomSnackBar(context, 'Vui lòng chọn đầy đủ địa chỉ', type: SnackBarType.error);
+        showCustomSnackBar(context, 'Please fill in all address fields', type: SnackBarType.error);
         return;
       }
 
@@ -99,7 +100,7 @@ class _AddressPageState extends State<AddressPage> {
 
       String newAddress = '${getSelectedName(wards, selectedWardCode)}, ${getSelectedName(districts, selectedDistrictCode)}, ${getSelectedName(provinces, selectedProvinceCode)}';
       
-      showCustomSnackBar(context, 'Đã thêm địa chỉ mới', type: SnackBarType.success);
+      showCustomSnackBar(context, 'New address added successfully', type: SnackBarType.success);
 
       if (!mounted) return;
       setState(() {
@@ -176,7 +177,7 @@ class _AddressPageState extends State<AddressPage> {
             ),
             subtitle: Text(
               address, 
-              style: TextStyle(color: Colors.black54, fontSize: 14),
+              style: const TextStyle(color: Colors.black54, fontSize: 14),
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
@@ -202,7 +203,7 @@ class _AddressPageState extends State<AddressPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: const CustomAppBarMobile(
-        title: 'Quản lý Địa chỉ',
+        title: 'Address Management',
         isBack: true,
       ),
       body: Center( 
@@ -214,7 +215,7 @@ class _AddressPageState extends State<AddressPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildSectionHeader('Địa chỉ đã lưu'),
+                _buildSectionHeader('Saved Addresses'),
                 
                 ...savedAddresses.map((address) {
                   return _buildSavedAddressCard(address);
@@ -223,7 +224,7 @@ class _AddressPageState extends State<AddressPage> {
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   title: Text(
-                    _addNewAddress ? 'Đóng' : 'Thêm Địa chỉ Mới',
+                    _addNewAddress ? 'Close' : 'Add New Address',
                     style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 16),
                   ),
                   trailing: Icon(
@@ -253,7 +254,7 @@ class _AddressPageState extends State<AddressPage> {
                         child: Column(
                           children: [
                             _buildAddressDropdown(
-                              label: 'Tỉnh/Thành phố',
+                              label: 'Province/City',
                               value: selectedProvinceCode,
                               items: provinces,
                               onChanged: (value) {
@@ -268,7 +269,7 @@ class _AddressPageState extends State<AddressPage> {
                             ),
                             const SizedBox(height: 16),
                             _buildAddressDropdown(
-                              label: 'Quận/Huyện',
+                              label: 'District',
                               value: selectedDistrictCode,
                               items: districts,
                               onChanged: (value) {
@@ -282,7 +283,7 @@ class _AddressPageState extends State<AddressPage> {
                             ),
                             const SizedBox(height: 16),
                             _buildAddressDropdown(
-                              label: 'Phường/Xã',
+                              label: 'Ward/Commune',
                               value: selectedWardCode,
                               items: wards,
                               onChanged: (value) {
@@ -295,7 +296,7 @@ class _AddressPageState extends State<AddressPage> {
                             SizedBox(
                               width: double.infinity,
                               child: MyButton(
-                                text: 'Lưu Địa Chỉ',
+                                text: 'Save Address',
                                 onTap: (_) => _handleSaveLocation(),
                               ),
                             ),
@@ -310,7 +311,7 @@ class _AddressPageState extends State<AddressPage> {
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                                 child: Text(
-                                  'Hủy Bỏ',
+                                  'Cancel',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -318,7 +319,7 @@ class _AddressPageState extends State<AddressPage> {
                                   ),
                                 ),
                               ),
-                            ),                            
+                            ),                                    
                           ],
                         ),
                       ),

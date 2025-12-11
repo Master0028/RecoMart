@@ -1,6 +1,6 @@
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
-import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import '../../Chat/widgets/chat_body.dart';
 
 class ChatView extends StatefulWidget {
@@ -12,6 +12,7 @@ class ChatView extends StatefulWidget {
 
 class _ChatViewState extends State<ChatView> {
   final GlobalKey<CartIconKey> cartKey = GlobalKey<CartIconKey>();
+  
   late Function(GlobalKey) runAddToCartAnimation;
 
   @override

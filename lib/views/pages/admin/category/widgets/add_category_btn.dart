@@ -14,6 +14,9 @@ class AddCategoryButton extends StatelessWidget {
           builder: (context) {
             return AlertDialog(
               backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               title: const Text(
                 "Add Category",
                 textAlign: TextAlign.center,
@@ -22,23 +25,30 @@ class AddCategoryButton extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              content: Theme(
-                data: Theme.of(context).copyWith(
-                  inputDecorationTheme: const InputDecorationTheme(
-                    border: OutlineInputBorder(),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.orange, width: 2),
+              content: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 400),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(
+                      inputDecorationTheme: const InputDecorationTheme(
+                        border: OutlineInputBorder(),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              BorderSide(color: Colors.orange, width: 2),
+                        ),
+                        labelStyle: TextStyle(color: Colors.black),
+                        floatingLabelStyle: TextStyle(color: Colors.orange),
+                      ),
                     ),
-                    labelStyle: TextStyle(color: Colors.black),
-                    floatingLabelStyle: TextStyle(color: Colors.orange),
+                    child: CategoryForm(
+                      buttonLabel: "Add Category",
+                      onSubmit: (categoryData) {
+                        // Fix: Use debugPrint for better logging
+                        debugPrint("Category added: $categoryData");
+                        context.pop();
+                      },
+                    ),
                   ),
-                ),
-                child: CategoryForm(
-                  buttonLabel: "Add Category",
-                  onSubmit: (categoryData) {
-                    print("Đã thêm danh mục: $categoryData (FE action)");
-                    context.pop();
-                  },
                 ),
               ),
             );
@@ -49,13 +59,14 @@ class AddCategoryButton extends StatelessWidget {
         backgroundColor: Colors.green,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(4),
+          borderRadius: BorderRadius.circular(8),
         ),
+        elevation: 2,
       ),
       icon: const Icon(Icons.add, color: Colors.white),
       label: const Text(
         "ADD CATEGORY",
-        style: TextStyle(color: Colors.white, fontSize: 16),
+        style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
       ),
     );
   }

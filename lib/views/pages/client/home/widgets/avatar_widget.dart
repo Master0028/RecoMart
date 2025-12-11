@@ -19,7 +19,7 @@ class _MockCartWidget extends StatelessWidget {
       icon: const Icon(FeatherIcons.shoppingCart, size: 25),
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chuyển đến giỏ hàng'))
+          const SnackBar(content: Text('Navigate to Cart')), // Translated
         );
       },
     );
@@ -29,9 +29,10 @@ class _MockCartWidget extends StatelessWidget {
 class AvatarWidget extends StatelessWidget {
   const AvatarWidget({super.key});
 
+  // Translated the search keywords to English
   final List<String> recentSearches = const [ 
-    "Macbook", "Lenovo", "Asus", "Chuột không dây", 
-    "Bàn phím cơ", "Màn hình", "Tai nghe Gaming"
+    "Macbook", "Lenovo", "Asus", "Wireless Mouse", 
+    "Mechanical Keyboard", "Monitor", "Gaming Headset"
   ];
 
   @override
@@ -53,7 +54,6 @@ class AvatarWidget extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [              
-                  // ... (Các widget search, cart giữ nguyên) ...
                   Responsive.isDesktop(context)
                       ? Row(
                           children: [
@@ -86,12 +86,10 @@ class AvatarWidget extends StatelessWidget {
                                 children: [
                                   Icon(CupertinoIcons.person),
                                   SizedBox(width: 8),
-                                  // 🔥 HIỂN THỊ TÊN HOẶC EMAIL THAY VÌ CHỮ "PROFILE" CHUNG CHUNG
                                   Text('Profile'), 
                                 ],
                               ),
                             ),
-                          // ... (Các menu item khác giữ nguyên) ...
                           const PopupMenuItem<String>(
                             value: 'home',
                             child: Row( 
@@ -130,7 +128,6 @@ class AvatarWidget extends StatelessWidget {
   }
 
   void _handleMenuSelection(String value, BuildContext context) async {
-    // ... (Giữ nguyên logic xử lý menu) ...
     switch (value) {
       case 'profile':
         context.go('/profile');
@@ -144,7 +141,7 @@ class AvatarWidget extends StatelessWidget {
       case 'logout':
         await FirebaseAuth.instance.signOut();
         context.go('/login');
-        showCustomSnackBar(context, 'Đăng xuất thành công');
+        showCustomSnackBar(context, 'Logged out successfully', type: SnackBarType.success);
         break;
       default:
         break;

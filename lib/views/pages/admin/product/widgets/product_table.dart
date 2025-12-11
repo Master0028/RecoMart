@@ -23,10 +23,8 @@ class _ProductTableState extends State<ProductTable> {
 
   List<ProductModel> _productsData = [];
   Map<String, String> _categoryMap = {};
-  Map<String, String> _brandMap = {};
   int _page = 1;
-  int _limit = FE_LIMIT;
-  int _totalPage = FE_TOTAL_PAGE;
+  final int _limit = FE_LIMIT;
   bool _hasNextPage = true;
 
   @override
@@ -53,7 +51,7 @@ class _ProductTableState extends State<ProductTable> {
         _categoryMap = provider.categoriesMap;
       });
     } catch (e) {
-      debugPrint('Lỗi tải danh mục: $e');
+      debugPrint('Error loading categories: $e');
     }
   }
 
@@ -63,10 +61,9 @@ class _ProductTableState extends State<ProductTable> {
       await provider.fetchBrands();
       if (!mounted) return;
       setState(() {
-        _brandMap = provider.brandsMap;
       });
     } catch (e) {
-      debugPrint('Lỗi tải thương hiệu: $e');
+      debugPrint('Error loading brands: $e');
     }
   }
 
@@ -92,11 +89,12 @@ class _ProductTableState extends State<ProductTable> {
       final provider = Provider.of<ProductProvider>(context, listen: false);
 
       setState(() {
+        // Filter locally based on fetched products
         _productsData = text.isEmpty
             ? provider.products
             : provider.products
-            .where((p) => p.name.toLowerCase().contains(text))
-            .toList();
+                .where((p) => p.name.toLowerCase().contains(text))
+                .toList();
       });
     });
   }
@@ -105,6 +103,7 @@ class _ProductTableState extends State<ProductTable> {
     return _productsData;
   }
 
+  // Sorts by ID descending
   List<ProductModel> _sortProducts(List<ProductModel> products) {
     return products..sort((a, b) => b.id.compareTo(a.id));
   }
@@ -126,7 +125,7 @@ class _ProductTableState extends State<ProductTable> {
             buttonLabel: 'Save',
             initialProduct: product.toJson(),
             onSubmit: (updatedData) async {
-              print('Cập nhật sản phẩm: $updatedData');
+              debugPrint('Product updated: $updatedData'); // Translated
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
@@ -137,7 +136,7 @@ class _ProductTableState extends State<ProductTable> {
               if (mounted) await _fetchFromFirebase();
             },
             onDelete: () async {
-              print('🗑️ Xóa sản phẩm: ${product.name}');
+              debugPrint('Product deleted: ${product.name}'); // Translated
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
@@ -159,7 +158,7 @@ class _ProductTableState extends State<ProductTable> {
   TableRow buildHeaderRow(List<String> headers, List<double> colWidths) {
     return TableRow(
       decoration:
-      const BoxDecoration(color: Color.fromARGB(255, 240, 240, 240)),
+          const BoxDecoration(color: Color.fromARGB(255, 240, 240, 240)),
       children: List.generate(headers.length, (index) {
         return Container(
           padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
@@ -184,52 +183,52 @@ class _ProductTableState extends State<ProductTable> {
     return TableRow(
       children: isMobile
           ? [
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: cellText(getShortId(product.id), colWidths[0]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: productCell(product, colWidths[1]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: cellText(
-              product.isActive ? 'Active' : 'Disabled', colWidths[2]),
-        ),
-      ]
-          : [
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: cellText(getShortId(product.id), colWidths[0]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: productCell(product, colWidths[1]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: cellText(totalStock, colWidths[2]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: cellText(categoryName, colWidths[3]),
-        ),
-        InkWell(
-          onTap: () => _showProductForm(product),
-          child: Container(
-            width: colWidths[4],
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Chip(
-              label: Text(
-                product.isActive ? 'Active' : 'Disabled',
-                style: const TextStyle(color: Colors.white),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: cellText(getShortId(product.id), colWidths[0]),
               ),
-              backgroundColor: _getStatusColor(product.isActive),
-            ),
-          ),
-        ),
-      ],
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: productCell(product, colWidths[1]),
+              ),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: cellText(
+                    product.isActive ? 'Active' : 'Disabled', colWidths[2]),
+              ),
+            ]
+          : [
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: cellText(getShortId(product.id), colWidths[0]),
+              ),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: productCell(product, colWidths[1]),
+              ),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: cellText(totalStock, colWidths[2]),
+              ),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: cellText(categoryName, colWidths[3]),
+              ),
+              InkWell(
+                onTap: () => _showProductForm(product),
+                child: Container(
+                  width: colWidths[4],
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Chip(
+                    label: Text(
+                      product.isActive ? 'Active' : 'Disabled',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    backgroundColor: _getStatusColor(product.isActive),
+                  ),
+                ),
+              ),
+            ],
     );
   }
 
@@ -254,7 +253,7 @@ class _ProductTableState extends State<ProductTable> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
-              product.imageUrl ?? '',
+              product.imageUrl,
               width: 50,
               height: 50,
               fit: BoxFit.cover,
@@ -274,8 +273,8 @@ class _ProductTableState extends State<ProductTable> {
               children: [
                 Text(product.name,
                     style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text('Giá: ${product.price.toStringAsFixed(0)}₫'),
-                Text('Tồn kho: ${product.stock}'),
+                Text('Price: ${product.price.toStringAsFixed(0)}₫'),
+                Text('Stock: ${product.stock}'),
               ],
             ),
           ),
@@ -313,16 +312,59 @@ class _ProductTableState extends State<ProductTable> {
         final List<double> colWidths = isMobile
             ? [tableWidth * 0.08, tableWidth * 0.55, tableWidth * 0.25]
             : [
-          tableWidth * 0.08,
-          tableWidth * 0.35,
-          tableWidth * 0.12,
-          tableWidth * 0.20,
-          tableWidth * 0.15,
-        ];
+                tableWidth * 0.08,
+                tableWidth * 0.35,
+                tableWidth * 0.12,
+                tableWidth * 0.20,
+                tableWidth * 0.15,
+              ];
 
         final headers = isMobile
             ? ['ID', 'Product', 'Status']
             : ['ID', 'Product', 'Stock', 'Category', 'Status'];
+
+        Widget buildSearchBar({bool fullWidth = false}) {
+          return Row(
+            children: [
+              fullWidth
+                  ? Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: TextField(
+                          controller: _searchController,
+                          decoration: InputDecoration(
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 12),
+                            hintText: 'Search by name',
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                    )
+                  : SizedBox(
+                      width: 200,
+                      height: 36,
+                      child: TextField(
+                        controller: _searchController,
+                        decoration: InputDecoration(
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 12),
+                          hintText: 'Search by name',
+                          prefixIcon: const Icon(Icons.search, size: 18),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                      ),
+                    ),
+              const SizedBox(width: 12),
+              AddProductButton(onProductAdded: _fetchFromFirebase),
+            ],
+          );
+        }
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -341,47 +383,34 @@ class _ProductTableState extends State<ProductTable> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header + Search
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Product List',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 200,
-                        height: 36,
-                        child: TextField(
-                          controller: _searchController,
-                          decoration: InputDecoration(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                            hintText: 'Search by name',
-                            prefixIcon: const Icon(Icons.search, size: 18),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      AddProductButton(onProductAdded: _fetchFromFirebase),
-                    ],
-                  ),
-                ],
-              ),
+              if (isMobile) ...[
+                const Text(
+                  'Product List',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 12),
+                buildSearchBar(fullWidth: true),
+              ] else ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Product List',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    buildSearchBar(fullWidth: false),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 16),
-              // Table
+              
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                  width: tableWidth - 40,
+                  width: tableWidth > 600 ? tableWidth - 40 : 600, 
                   child: Table(
-                    defaultVerticalAlignment:
-                    TableCellVerticalAlignment.middle,
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
                     columnWidths: {
                       for (int i = 0; i < colWidths.length; i++)
                         i: FixedColumnWidth(colWidths[i]),

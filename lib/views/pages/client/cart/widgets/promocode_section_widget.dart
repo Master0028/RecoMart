@@ -49,7 +49,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
     final code = _couponController.text.trim();
 
     if (code.isEmpty) {
-      showCustomSnackBar(context, 'Vui lòng nhập mã giảm giá trước khi áp dụng',
+      showCustomSnackBar(context, 'Please enter a coupon code first',
           type: SnackBarType.error);
       return;
     }
@@ -57,21 +57,21 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
     setState(() => _isApplyingCoupon = true);
 
     try {
-      // 🔹 Lấy toàn bộ coupon từ Firestore
+      // 🔹 Fetch all coupons from Firestore
       final coupons = await _couponService.fetchCoupons();
 
-      // 🔹 Tìm coupon khớp mã
+      // 🔹 Find matching coupon
       final coupon = coupons.firstWhere(
-            (c) => c.code.toLowerCase() == code.toLowerCase(),
-        orElse: () => throw Exception('Mã giảm giá không hợp lệ'),
+        (c) => c.code.toLowerCase() == code.toLowerCase(),
+        orElse: () => throw Exception('Invalid coupon code'),
       );
 
-      // 🔹 Kiểm tra số lượt dùng
+      // 🔹 Check usage limits
       if (coupon.usedCount >= coupon.maxUsage) {
-        throw Exception('Mã giảm giá "$code" đã hết lượt sử dụng');
+        throw Exception('Coupon code "$code" usage limit exceeded');
       }
 
-      // 🔹 Áp dụng giảm giá
+      // 🔹 Apply discount
       setState(() {
         _couponDiscountMoney = coupon.discountValue;
         _isApplyingCoupon = false;
@@ -81,7 +81,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
 
       showCustomSnackBar(
         context,
-        'Áp dụng mã $code thành công (-${formatMoney(coupon.discountValue)})',
+        'Applied code $code successfully (-${formatMoney(coupon.discountValue)})',
         type: SnackBarType.success,
       );
     } catch (e) {
@@ -95,13 +95,13 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
     final input = int.tryParse(_pointsController.text.trim()) ?? 0;
 
     if (input <= 0) {
-      showCustomSnackBar(context, 'Nhập số điểm hợp lệ để sử dụng',
+      showCustomSnackBar(context, 'Please enter a valid amount of points',
           type: SnackBarType.error);
       return;
     }
 
     if (input > _availablePoints) {
-      showCustomSnackBar(context, 'Bạn không đủ điểm để sử dụng!',
+      showCustomSnackBar(context, 'You do not have enough points!',
           type: SnackBarType.error);
       return;
     }
@@ -111,7 +111,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
 
     showCustomSnackBar(
       context,
-      'Dùng $_usedPoints điểm (-${formatMoney(_usedPoints * 1000)})',
+      'Used $_usedPoints points (-${formatMoney(_usedPoints * 1000)})',
       type: SnackBarType.success,
     );
   }
@@ -146,12 +146,12 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                   child: TextField(
                     controller: _couponController,
                     decoration: InputDecoration(
-                      hintText: 'Nhập mã giảm giá',
+                      hintText: 'Enter coupon code',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                       contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                   ),
                 ),
@@ -162,11 +162,11 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                       backgroundColor: AppColors.primary),
                   child: _isApplyingCoupon
                       ? const SizedBox(
-                      height: 18,
-                      width: 18,
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2))
-                      : const Text('Áp dụng'),
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Text('Apply'),
                 ),
               ],
             ),
@@ -174,7 +174,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'Giảm ${formatMoney(_couponDiscountMoney)} được áp dụng',
+                  'Discount ${formatMoney(_couponDiscountMoney)} applied',
                   style: const TextStyle(color: Colors.green, fontSize: 13),
                 ),
               ),
@@ -192,7 +192,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
             ),
             const SizedBox(height: 10),
             Text(
-              'Bạn có ${_availablePoints.toStringAsFixed(0)} điểm (1 điểm = 1.000đ).',
+              'You have ${_availablePoints.toStringAsFixed(0)} points (1 point = 1,000đ).',
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 10),
@@ -203,12 +203,12 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                     controller: _pointsController,
                     keyboardType: TextInputType.number,
                     decoration: InputDecoration(
-                      hintText: 'Nhập số điểm muốn dùng',
+                      hintText: 'Enter points to use',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                       contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                   ),
                 ),
@@ -217,7 +217,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                   onPressed: _applyLoyaltyPoints,
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary),
-                  child: const Text('Dùng điểm'),
+                  child: const Text('Use Points'),
                 ),
               ],
             ),

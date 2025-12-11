@@ -38,16 +38,16 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Scaffold(
-        appBar: const CustomAppBarMobile(title: 'Chi tiết đơn hàng', isBack: true),
-        body: const Center(child: CircularProgressIndicator()),
+      return const Scaffold(
+        appBar: CustomAppBarMobile(title: 'Order Details', isBack: true),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_order == null) {
-      return Scaffold(
-        appBar: const CustomAppBarMobile(title: 'Chi tiết đơn hàng', isBack: true),
-        body: const Center(child: Text('Không tìm thấy đơn hàng')),
+      return const Scaffold(
+        appBar: CustomAppBarMobile(title: 'Order Details', isBack: true),
+        body: Center(child: Text('Order not found')),
       );
     }
 
@@ -56,7 +56,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: CustomAppBarMobile(
-        title: 'Đơn hàng #${order.id}',
+        title: 'Order #${order.id}',
         isBack: true,
       ),
       body: SingleChildScrollView(
@@ -65,53 +65,62 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSectionCard(
-              title: 'Thông tin đơn hàng',
+              title: 'Order Information',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildRow('Mã đơn', order.id ?? '--'),
-                  _buildRow('Ngày đặt', order.createdAt != null
-                      ? DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt!)
-                      : '--'),
-                  _buildRow('Trạng thái', order.status ?? 'Chưa xác định'),
-                  _buildRow('Phương thức thanh toán', order.paymentMethod ?? 'COD'),
+                  _buildRow('Order ID', order.id ?? '--'),
+                  _buildRow(
+                      'Date',
+                      order.createdAt != null
+                          ? DateFormat('dd/MM/yyyy HH:mm')
+                              .format(order.createdAt!)
+                          : '--'),
+                  _buildRow('Status', order.status ?? 'Unknown'),
+                  _buildRow(
+                      'Payment Method', order.paymentMethod ?? 'COD'),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
             _buildSectionCard(
-              title: 'Địa chỉ giao hàng',
+              title: 'Shipping Address',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildRow('Người nhận', order.userName ?? '--'),
+                  _buildRow('Recipient', order.userName ?? '--'),
                   _buildRow('Email', order.email ?? '--'),
-                  _buildRow('Địa chỉ', order.address ?? '--'),
+                  _buildRow('Address', order.address ?? '--'),
                 ],
               ),
             ),
             const SizedBox(height: 16),
 
             _buildSectionCard(
-              title: 'Sản phẩm trong đơn',
+              title: 'Order Items',
               child: Column(
-                children: order.items?.map((item) => _OrderItemTile(item: item)).toList() ?? [],
+                children: order.items
+                        ?.map((item) => _OrderItemTile(item: item))
+                        .toList() ??
+                    [],
               ),
             ),
             const SizedBox(height: 16),
 
             _buildSectionCard(
-              title: 'Tổng cộng',
+              title: 'Summary',
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildRow('Tạm tính', formatMoney(order.totalAmount ?? 0)),
-                  _buildRow('Giảm giá', '- ${formatMoney(order.discountAmount ?? 0)}'),
-                  _buildRow('Điểm đã dùng', '${order.loyaltyPointsUsed ?? 0} điểm'),
+                  _buildRow('Subtotal', formatMoney(order.totalAmount ?? 0)),
+                  _buildRow('Discount',
+                      '- ${formatMoney(order.discountAmount ?? 0)}'),
+                  _buildRow('Points Used',
+                      '${order.loyaltyPointsUsed ?? 0} points'),
                   const Divider(),
                   _buildRow(
-                    'Thành tiền',
+                    'Total',
                     formatMoney(order.totalAmount ?? 0),
                     isBold: true,
                     color: AppColors.primary,
@@ -121,18 +130,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             ),
             const SizedBox(height: 16),
 
-            if (order.orderTracking != null && order.orderTracking!.isNotEmpty)
+            if (order.orderTracking != null &&
+                order.orderTracking!.isNotEmpty)
               _buildSectionCard(
-                title: 'Lịch sử đơn hàng',
+                title: 'Order History',
                 child: Column(
                   children: order.orderTracking!.map((track) {
                     return ListTile(
                       leading: const Icon(FeatherIcons.clock, size: 18),
-                      title: Text(track.status ?? 'Không rõ',
+                      title: Text(track.status ?? 'Unknown',
                           style: const TextStyle(fontWeight: FontWeight.w600)),
                       subtitle: Text(
                         track.date != null
-                            ? DateFormat('dd/MM/yyyy HH:mm').format(track.date!)
+                            ? DateFormat('dd/MM/yyyy HH:mm')
+                                .format(track.date!)
                             : '--/--/----',
                         style: const TextStyle(color: Colors.black54),
                       ),
@@ -157,7 +168,9 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           children: [
             Text(title,
                 style: const TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87)),
             const SizedBox(height: 12),
             child,
           ],
@@ -166,13 +179,15 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  Widget _buildRow(String label, String value, {bool isBold = false, Color? color}) {
+  Widget _buildRow(String label, String value,
+      {bool isBold = false, Color? color}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 14, color: Colors.black54)),
+          Text(label,
+              style: const TextStyle(fontSize: 14, color: Colors.black54)),
           Text(
             value,
             style: TextStyle(
@@ -212,16 +227,19 @@ class _OrderItemTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(item.productName ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 15)),
                 const SizedBox(height: 4),
-                Text('Số lượng: ${item.quantity}',
-                    style: const TextStyle(color: Colors.black54, fontSize: 13)),
+                Text('Qty: ${item.quantity}',
+                    style:
+                        const TextStyle(color: Colors.black54, fontSize: 13)),
               ],
             ),
           ),
           const SizedBox(width: 12),
           Text(formatMoney(item.unit_price ?? 0),
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ],
       ),
     );

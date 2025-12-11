@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
-import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
 import 'package:recomart/views/pages/client/search/widget/search_field.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -154,12 +152,12 @@ class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: CustomAppBarMobile(title: "Tìm kiếm sản phẩm", isBack: true),
+      appBar: CustomAppBarMobile(title: "Search Product", isBack: true),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thanh tìm kiếm luôn ở trên cùng
+            // Search bar always on top
             Padding(
               padding: const EdgeInsets.all(16),
               child: SearchField(
@@ -183,7 +181,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              "Gần đây",
+                              "Recent",
                               style: TextStyle(
                                   fontSize: 18, 
                                   fontWeight: FontWeight.bold,
@@ -193,7 +191,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             TextButton(
                               onPressed: _clearAllSearches,
                               child: const Text(
-                                "Xóa tất cả",
+                                "Clear all",
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Color(0xFF1976D2), 
@@ -220,7 +218,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               children: [
                                 Expanded(
                                   child: Text(
-                                    'Kết quả cho "$searchQuery"',
+                                    'Results for "$searchQuery"',
                                     style: const TextStyle(
                                       fontSize: 16, 
                                       fontWeight: FontWeight.bold,
@@ -230,7 +228,7 @@ class _SearchScreenState extends State<SearchScreen> {
                                   ),
                                 ),
                                 Text(
-                                  "${_searchResults.length} sản phẩm", 
+                                  "${_searchResults.length} items", 
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -241,7 +239,7 @@ class _SearchScreenState extends State<SearchScreen> {
                             ),
                           ),
                           
-                          // Danh sách sản phẩm
+                          // Product List
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -416,7 +414,7 @@ class ProductView extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '$price VNĐ',
+                          '$price VND',
                           style: const TextStyle(
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF1976D2),

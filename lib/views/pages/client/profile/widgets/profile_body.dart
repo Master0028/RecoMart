@@ -19,17 +19,17 @@ class ProfileBody extends StatefulWidget {
 class _ProfileBodyState extends State<ProfileBody> {
   int _selectedIndex = 0;
   
-  String userName = 'Khách';
+  String userName = 'Guest';
   String userAvatar = '';
   int loyaltyPoints = 0;
   String currentUserId = '';
   bool isLoading = true;
 
   final List<Map<String, dynamic>> _menuItems = [
-    {'title': 'Tài khoản', 'icon': FeatherIcons.user},
-    {'title': 'Đơn hàng', 'icon': FeatherIcons.package},
-    {'title': 'Thanh toán', 'icon': FeatherIcons.creditCard},
-    {'title': 'Hỗ trợ', 'icon': FeatherIcons.messageSquare},
+    {'title': 'Account', 'icon': FeatherIcons.user},
+    {'title': 'Orders', 'icon': FeatherIcons.package},
+    {'title': 'Payment', 'icon': FeatherIcons.creditCard},
+    {'title': 'Support', 'icon': FeatherIcons.messageSquare},
   ];
 
   @override
@@ -75,7 +75,7 @@ class _ProfileBodyState extends State<ProfileBody> {
           }
         }
       } catch (e) {
-        print("Lỗi tải profile: $e");
+        print("Error loading profile: $e");
         if (mounted) setState(() => isLoading = false);
       }
     } else {
@@ -101,7 +101,6 @@ class _ProfileBodyState extends State<ProfileBody> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // SỬ DỤNG SINGLECHILDSCROLLVIEW ĐỂ TRÁNH OVERFLOW TRÊN MOBILE
     return SingleChildScrollView(
       physics: const ClampingScrollPhysics(),
       child: Column(
@@ -109,7 +108,6 @@ class _ProfileBodyState extends State<ProfileBody> {
           // --- HEADER PROFILE ---
           Container(
             width: double.infinity,
-            // Tăng padding đáy để chứa phần avatar tràn xuống
             padding: const EdgeInsets.only(top: 40, bottom: 60, left: 16, right: 16),
             decoration: const BoxDecoration(
               color: headerColor,
@@ -123,7 +121,7 @@ class _ProfileBodyState extends State<ProfileBody> {
             ),
             child: Column(
               children: [
-                // Tên người dùng
+                // User Name
                 Text(
                   'Welcome, $userName!',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
@@ -167,9 +165,9 @@ class _ProfileBodyState extends State<ProfileBody> {
                       ),
                     ),
                     
-                    // Điểm thưởng (Loyalty Points)
+                    // Loyalty Points Badge
                     Positioned(
-                      bottom: -20, // Đẩy xuống dưới avatar
+                      bottom: -20, 
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                         decoration: BoxDecoration(
@@ -183,7 +181,7 @@ class _ProfileBodyState extends State<ProfileBody> {
                           children: [
                             const Icon(FeatherIcons.award, color: Colors.white, size: 14),
                             const SizedBox(width: 6),
-                            Flexible( // Flexible giúp text không bị overflow nếu quá dài
+                            Flexible( 
                               child: Text(
                                 '$loyaltyPoints Points',
                                 style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
@@ -200,10 +198,9 @@ class _ProfileBodyState extends State<ProfileBody> {
             ),
           ),
 
-          const SizedBox(height: 40), // Khoảng cách bù cho phần avatar tràn xuống
+          const SizedBox(height: 40), 
 
           // --- MENU TAB BAR ---
-          // Menu ngang cuộn được
           SizedBox(
             height: 50,
             child: ListView.separated(
@@ -259,8 +256,6 @@ class _ProfileBodyState extends State<ProfileBody> {
 
           const SizedBox(height: 20),
 
-          // --- CONTENT BODY ---
-          // BỎ Expanded, để nó tự chiếm chiều cao theo nội dung
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Container(
@@ -280,7 +275,6 @@ class _ProfileBodyState extends State<ProfileBody> {
             ),
           ),
           
-          // Khoảng trống dưới cùng để không bị dính đáy màn hình
           const SizedBox(height: 80),
         ],
       ),

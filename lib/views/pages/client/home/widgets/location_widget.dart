@@ -13,7 +13,7 @@ class LocationWidget extends StatefulWidget {
 }
 
 class _LocationWidgetState extends State<LocationWidget> {
-  final String _location = '123 Đường ABC, Quận XYZ, TP. Hà Nội';
+  final String _location = '123 ABC Street, XYZ District, Hanoi City';
   
   @override
   void initState() {
@@ -30,14 +30,14 @@ class _LocationWidgetState extends State<LocationWidget> {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.location_on_rounded,
                 color: AppColors.secondary,
                 size: IconSize.large,
               ),
               const SizedBox(width: 5), 
               Text(
-                // Giữ nguyên logic hiển thị FE
+                // Keep FE display logic
                 TextHelper.textLimit(_location, 25),
                 style: const TextStyle(
                   color: Colors.black,

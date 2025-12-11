@@ -28,7 +28,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
   final GlobalKey<CartIconKey> cartKey = GlobalKey<CartIconKey>();
   late Function(GlobalKey) runAddToCartAnimation;
 
-  // Biến lưu kết quả từ API Python
+  // Variables to store search results from API
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
   bool _hasSearched = false; 
@@ -53,11 +53,11 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
     });
 
     try {
-      // Lấy link ngrok
+      // Get base URL from service
       final baseUrl = RecommendationService.baseUrl;
       final url = '$baseUrl/api/search?keyword=$keyword';
 
-      print("📡 Đang gọi API Search Python: $url");
+      print("📡 Calling Search API: $url");
 
       final response = await http.get(
         Uri.parse(url),
@@ -71,7 +71,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
         final data = jsonDecode(response.body);
         final List<dynamic> results = data['results'] ?? [];
         
-        print("Tìm thấy ${results.length} sản phẩm từ Python");
+        print("Found ${results.length} products.");
 
         if (mounted) {
           setState(() {
@@ -80,11 +80,11 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
           });
         }
       } else {
-        print("Lỗi Server Python: ${response.statusCode}");
+        print("API Error: ${response.statusCode}");
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print("Lỗi kết nối API: $e");
+      print("Connection Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -96,7 +96,9 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
       height: 30,
       width: 30,
       opacity: 0.85,
-      dragAnimation: const DragToCartAnimationOptions(rotation: true),
+      dragAnimation: const DragToCartAnimationOptions(
+        rotation: true,
+      ),
       jumpAnimation: const JumpAnimationOptions(),
       createAddToCartAnimation: (run) => runAddToCartAnimation = run,
       child: Scaffold(
@@ -104,12 +106,15 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
         appBar: AppBarHomeCustom(cartKey: cartKey),
         body: Column(
           children: [
-            // KHUNG TÌM KIẾM
+            // SEARCH BAR
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))]
+                boxShadow: [
+                  BoxShadow(
+                      color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))
+                ]
               ),
               child: Row(
                 children: [
@@ -119,11 +124,13 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                       onSubmitted: (_) => _performSearch(),
                       textInputAction: TextInputAction.search,
                       decoration: InputDecoration(
-                        hintText: 'Tìm kiếm (Apple, Dell...)...',
+                        hintText: 'Search (Apple, Dell...)...',
                         prefixIcon: const Icon(FeatherIcons.search, color: Colors.grey),
                         filled: true,
                         fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                         suffixIcon: _searchController.text.isNotEmpty 
                           ? IconButton(
@@ -143,7 +150,8 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                       onPressed: _performSearch,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
                       ),
                       child: const Icon(FeatherIcons.search, color: Colors.white),
                     ),
@@ -152,7 +160,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
               ),
             ),
 
-            // KẾT QUẢ
+            // SEARCH RESULTS
             Expanded(
               child: _buildBody(),
             ),
@@ -174,14 +182,16 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
           children: [
             Icon(FeatherIcons.frown, size: 64, color: Colors.grey),
             SizedBox(height: 10),
-            Text("Không tìm thấy sản phẩm nào.", style: TextStyle(color: Colors.grey)),
+            Text("No products found.", style: TextStyle(color: Colors.grey)),
           ],
         ),
       );
     }
 
     if (!_hasSearched) {
-      return const Center(child: Text("Nhập từ khóa để tìm kiếm", style: TextStyle(color: Colors.grey)));
+      return const Center(
+          child: Text("Enter a keyword to search",
+              style: TextStyle(color: Colors.grey)));
     }
 
     return Padding(
@@ -193,11 +203,17 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Kết quả tìm kiếm:", style: TextStyle(fontSize: 16)),
+                const Text("Search Results:", style: TextStyle(fontSize: 16)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
-                  child: Text("${_searchResults.length} sản phẩm", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                  decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(8)),
+                  child: Text("${_searchResults.length} items found",
+                      style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary)),
                 ),
               ],
             ),
@@ -212,16 +228,17 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                 mainAxisSpacing: 16,
               ),
               itemBuilder: (context, index) {
-                // Lấy dữ liệu trực tiếp từ JSON API trả về
                 final item = _searchResults[index];
                 
                 return ProductView(
                   id: item['id'].toString(),
-                  categoryId: item['category'] ?? '', // API trả về category null thì để rỗng
+                  categoryId: item['category'] ?? '', 
                   name: item['name'] ?? 'No Name',
                   image: item['imageUrl'] ?? '',
                   price: (item['price'] ?? 0).toDouble(),
                   averageRating: (item['rating'] ?? 0).toString(),
+                  // If you want to trigger cart animation from here, 
+                  // pass runAddToCartAnimation down to ProductView
                 );
               },
             ),

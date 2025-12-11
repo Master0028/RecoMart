@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:recomart/config/color.dart'; 
-import 'package:recomart/config/font.dart';
+import 'package:recomart/config/color.dart';
 
 class EmptyCartView extends StatefulWidget {
   const EmptyCartView({super.key});
@@ -63,13 +62,11 @@ class _EmptyCartViewState extends State<EmptyCartView>
                 child: Icon(
                   Icons.shopping_bag_outlined,
                   size: 120,
-                  color: AppColors.primary.withOpacity(0.7)
+                  color: AppColors.primary.withOpacity(0.7),
                 ),
               ),
             ),
-
             const SizedBox(height: 32.0),
-
             const Text(
               "Your Cart Is Looking Lonely...",
               textAlign: TextAlign.center,
@@ -79,9 +76,7 @@ class _EmptyCartViewState extends State<EmptyCartView>
                 color: Colors.black87,
               ),
             ),
-
             const SizedBox(height: 12.0),
-
             const Text(
               "Start adding some high-tech gadgets to your digital inventory!",
               textAlign: TextAlign.center,
@@ -90,16 +85,13 @@ class _EmptyCartViewState extends State<EmptyCartView>
                 color: Colors.black54,
               ),
             ),
-
             const SizedBox(height: 32.0),
-
             SizedBox(
               width: 250,
               height: 55,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  context.pop();
-                  Navigator.of(context).pop(); 
+                  context.go('/home');
                 },
                 icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
                 label: const Text(
@@ -110,7 +102,7 @@ class _EmptyCartViewState extends State<EmptyCartView>
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary, 
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),

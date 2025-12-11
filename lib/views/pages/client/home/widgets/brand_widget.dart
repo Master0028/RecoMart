@@ -7,15 +7,20 @@ class AppColors {
   static const Color darkText = Color(0xFF212121);
 }
 
-class BrandWidget extends StatefulWidget {
-  const BrandWidget({super.key});
+class ProductFilterWidget extends StatefulWidget {
+  final ValueChanged<String> onFilterSelected;
+
+  const ProductFilterWidget({
+    super.key,
+    required this.onFilterSelected,
+  });
 
   @override
-  State<BrandWidget> createState() => _BrandWidgetState();
+  State<ProductFilterWidget> createState() => _ProductFilterWidgetState();
 }
 
-class _BrandWidgetState extends State<BrandWidget> {
-  final List<String> brands = [
+class _ProductFilterWidgetState extends State<ProductFilterWidget> {
+  final List<String> filterOptions = [
     'All',
     'New',
     'Low to High',
@@ -23,7 +28,7 @@ class _BrandWidgetState extends State<BrandWidget> {
     'Rate',
   ];
 
-  int isSelectedList = 0;
+  int _selectedIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -31,43 +36,45 @@ class _BrandWidgetState extends State<BrandWidget> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           'Product Filters',
           style: TextStyle(
-              fontSize: 22,
-              color: AppColors.darkText,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5),
+            fontSize: 22,
+            color: AppColors.darkText,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+          ),
         ),
         const SizedBox(height: 16),
-
         SizedBox(
           height: 40,
           child: ListView.separated(
             separatorBuilder: (context, index) => const SizedBox(width: 8),
             scrollDirection: Axis.horizontal,
-            itemCount: brands.length,
+            itemCount: filterOptions.length,
             itemBuilder: (context, index) {
-              final isSelected = isSelectedList == index;
-
+              final isSelected = _selectedIndex == index;
               return InkWell(
                 onTap: () {
-                  setState(
-                    () {
-                      isSelectedList = index;
-                    },
-                  );
+                  setState(() {
+                    _selectedIndex = index;
+                  });
+                  widget.onFilterSelected(filterOptions[index]);
                 },
                 borderRadius: BorderRadius.circular(20),
-                child: AnimatedContainer( 
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeInOut,
                   padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.orangePastel : AppColors.backgroundLight,
+                    color: isSelected
+                        ? AppColors.orangePastel
+                        : AppColors.backgroundLight,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected ? AppColors.primary.withOpacity(0.5) : Colors.transparent,
+                      color: isSelected
+                          ? AppColors.primary.withOpacity(0.5)
+                          : Colors.transparent,
                       width: 1.5,
                     ),
                     boxShadow: isSelected
@@ -88,9 +95,11 @@ class _BrandWidgetState extends State<BrandWidget> {
                   ),
                   child: Center(
                     child: Text(
-                      brands[index],
+                      filterOptions[index],
                       style: TextStyle(
-                        color: isSelected ? AppColors.primary : AppColors.darkText.withOpacity(0.7),
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.darkText.withOpacity(0.7),
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                         fontSize: 14,
                       ),

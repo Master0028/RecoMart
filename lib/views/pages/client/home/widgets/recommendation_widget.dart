@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:recomart/models/recommendation_model.dart';
 import 'package:recomart/services/recommendation_service.dart';
 import 'package:go_router/go_router.dart';
-import 'package:recomart/helpers/formatMoney.dart'; 
-import 'package:recomart/config/color.dart'; 
+import 'package:recomart/helpers/formatMoney.dart';
+import 'package:recomart/config/color.dart';
 
 class RecommendationWidget extends StatefulWidget {
   final int userId;
@@ -26,7 +26,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     _loadData();
   }
 
-  // 👇 QUAN TRỌNG: Load lại dữ liệu nếu User ID thay đổi (ví dụ từ Guest -> Login)
+  // 👇 IMPORTANT: Reload data if User ID changes (e.g., Guest -> Login)
   @override
   void didUpdateWidget(covariant RecommendationWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -38,7 +38,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
   void _loadData() async {
     if (!mounted) return;
     setState(() => _isLoading = true);
-    
+
     try {
       var data = await _service.getRecommendations(widget.userId);
       if (mounted) {
@@ -48,14 +48,14 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         });
       }
     } catch (e) {
-      print("Lỗi tải gợi ý: $e");
+      debugPrint("Error loading recommendations: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Loading ban đầu khi gọi API Python
+    // Initial loading when calling Python API
     if (_isLoading) {
       return const SizedBox(
         height: 100,
@@ -75,7 +75,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
               Icon(Icons.auto_awesome, color: Colors.amber),
               SizedBox(width: 8),
               Text(
-                "Gợi ý riêng cho bạn",
+                "Recommended for you",
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -87,7 +87,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         ),
 
         SizedBox(
-          height: 230, 
+          height: 230,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -95,31 +95,31 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             itemBuilder: (context, index) {
               final item = _recommendations[index];
 
-              // Lấy chi tiết sản phẩm từ Firebase
+              // Get product details from Firebase
               return StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('products')
                     .doc(item.id.toString())
                     .snapshots(),
                 builder: (context, snapshot) {
-                  // 1. Nếu có lỗi -> Ẩn item này đi, đừng loading mãi
+                  // 1. If error -> Hide this item, don't keep loading
                   if (snapshot.hasError) {
-                    // print("Lỗi item ${item.id}: ${snapshot.error}");
+                    // debugPrint("Error item ${item.id}: ${snapshot.error}");
                     return const SizedBox.shrink();
                   }
-                  
-                  // 2. Nếu đang load hoặc document không tồn tại -> Hiện khung xương
+
+                  // 2. If loading or document does not exist -> Show skeleton
                   if (!snapshot.hasData || !snapshot.data!.exists) {
-                     return _buildLoadingCard(); 
+                    return _buildLoadingCard();
                   }
 
-                  // 3. Parse dữ liệu an toàn
+                  // 3. Safely parse data
                   final data = snapshot.data!.data() as Map<String, dynamic>;
                   final String imageUrl = data['imageUrl'] ?? '';
                   final String name = data['name'] ?? item.name;
-                  
-                  // Xử lý giá tiền (Firestore có thể trả về int hoặc double)
-                  final num priceVal = data['price'] ?? 0; 
+
+                  // Handle price (Firestore might return int or double)
+                  final num priceVal = data['price'] ?? 0;
                   final double price = priceVal.toDouble();
 
                   return GestureDetector(
@@ -144,7 +144,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Ảnh sản phẩm
+                          // Product Image
                           Expanded(
                             child: ClipRRect(
                               borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
@@ -164,8 +164,8 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                                   : const Center(child: Icon(Icons.image, color: Colors.grey, size: 40)),
                             ),
                           ),
-                          
-                          // Thông tin
+
+                          // Product Info
                           Padding(
                             padding: const EdgeInsets.all(10.0),
                             child: Column(
@@ -179,11 +179,11 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  formatMoney(price), 
+                                  formatMoney(price),
                                   style: const TextStyle(
-                                    fontSize: 13, 
-                                    fontWeight: FontWeight.bold, 
-                                    color: AppColors.primary 
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary
                                   ),
                                 ),
                               ],

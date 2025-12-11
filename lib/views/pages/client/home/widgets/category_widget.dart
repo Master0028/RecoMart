@@ -41,8 +41,10 @@ class Responsive {
   static bool isDesktop(BuildContext context) {
     return MediaQuery.of(context).size.width >= 1000;
   }
+
   static bool isTablet(BuildContext context) {
-    return MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1000;
+    return MediaQuery.of(context).size.width >= 600 &&
+        MediaQuery.of(context).size.width < 1000;
   }
 }
 
@@ -108,19 +110,32 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                 height: 60,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: _isHovering ? AppColors.orangePastel.withOpacity(0.8) : AppColors.lightGray,
+                  color: _isHovering
+                      ? AppColors.orangePastel.withOpacity(0.8)
+                      : AppColors.lightGray,
                   shape: BoxShape.circle,
                   boxShadow: _isHovering
-                      ? [BoxShadow(color: AppColors.primary.withOpacity(0.4), blurRadius: 15, offset: const Offset(0, 8))]
-                      : [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8, offset: const Offset(0, 4))],
+                      ? [
+                          BoxShadow(
+                              color: AppColors.primary.withOpacity(0.4),
+                              blurRadius: 15,
+                              offset: const Offset(0, 8))
+                        ]
+                      : [
+                          BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4))
+                        ],
                 ),
                 child: ClipOval(
                   child: widget.icon.endsWith('.svg')
                       ? SvgPicture.network(
                           widget.icon,
                           fit: BoxFit.cover,
-                          placeholderBuilder: (_) =>
-                              const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          placeholderBuilder: (_) => const Center(
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2)),
                           width: 60,
                           height: 60,
                         )
@@ -134,7 +149,7 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                         ),
                 ),
               ),
-              const SizedBox(height: 6), 
+              const SizedBox(height: 6),
               ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxWidth: 75,
@@ -145,9 +160,11 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
-                    color: _isHovering ? AppColors.primary : AppColors.darkText.withOpacity(0.8),
+                    color: _isHovering
+                        ? AppColors.primary
+                        : AppColors.darkText.withOpacity(0.8),
                   ),
-                  maxLines: 2, 
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -179,10 +196,14 @@ class ProductCardWidget extends StatelessWidget {
                 image: DecorationImage(
                   image: AssetImage(productsPromotion.imageUrl),
                   fit: BoxFit.cover,
-                  colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.1), BlendMode.darken),
+                  colorFilter: ColorFilter.mode(
+                      Colors.black.withOpacity(0.1), BlendMode.darken),
                 ),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 15, offset: const Offset(0, 10)),
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 10)),
                 ],
               ),
             ),
@@ -196,11 +217,13 @@ class ProductCardWidget extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                   height: 90,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
-                    border: Border.all(color: Colors.white.withOpacity(0.4), width: 1),
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.4), width: 1),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -213,18 +236,27 @@ class ProductCardWidget extends StatelessWidget {
                           children: [
                             Text(
                               productsPromotion.name,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.darkText),
+                              style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.darkText),
                               overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${productsPromotion.discount}% OFF',
-                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.primary),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${productsPromotion.price.toStringAsFixed(0)} VND',
-                              style: const TextStyle(fontSize: 12, color: Colors.black87, decoration: TextDecoration.lineThrough),
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black87,
+                                  decoration: TextDecoration.lineThrough),
                             ),
                           ],
                         ),
@@ -232,10 +264,12 @@ class ProductCardWidget extends StatelessWidget {
                       Container(
                         width: 40,
                         height: 40,
-                        decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                        decoration: const BoxDecoration(
+                            color: AppColors.primary, shape: BoxShape.circle),
                         child: IconButton(
                           onPressed: () {},
-                          icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                          icon: const Icon(Icons.add,
+                              color: Colors.white, size: 20),
                           padding: EdgeInsets.zero,
                         ),
                       ),
@@ -260,17 +294,47 @@ class CategoryWidget extends StatefulWidget {
 
 class _CategoryWidgetState extends State<CategoryWidget> {
   bool isSeeAll = false;
-  bool isLoading = true; // Bắt đầu là true để hiện loading
+  bool isLoading = true; // Start as true to show loading
   List<CategoryModel> categories = [];
 
   final CategoryService _categoryService = CategoryService();
 
   final List<ProductPromotion> productsPromotion = [
-    ProductPromotion(name: 'Macbook Pro', description: 'Laptop mới nhất với hiệu năng vượt trội.', price: 10000000, discount: 15, imageUrl: 'assets/images/laptop-popular-1.jpg', category: 'Laptop'),
-    ProductPromotion(name: 'Dell Inspiron 5000', description: 'Máy tính bàn hiệu suất cao dành cho công việc.', price: 12000000, discount: 10, imageUrl: 'assets/images/laptop-popular-2.jpg', category: 'Desktop'),
-    ProductPromotion(name: 'Logitech Mouse', description: 'Chuột Logitech dành cho laptop và máy tính bàn.', price: 500000, discount: 5, imageUrl: 'assets/images/laptop-popular-3.jpg', category: 'Accessories'),
-    ProductPromotion(name: 'Dell 24" Monitor', description: 'Màn hình Dell với độ phân giải 4K.', price: 8000000, discount: 20, imageUrl: 'assets/images/laptop-popular-4.jpg', category: 'Accessories'),
-    ProductPromotion(name: 'Laptop Vip Dominator', description: 'Laptop bán chạy nhất với năng suất ổn định', price: 8000000, discount: 20, imageUrl: 'assets/images/laptop-popular-5.jpg', category: 'Accessories'),
+    ProductPromotion(
+        name: 'Macbook Pro',
+        description: 'Latest laptop with superior performance.',
+        price: 10000000,
+        discount: 15,
+        imageUrl: 'assets/images/laptop-popular-1.jpg',
+        category: 'Laptop'),
+    ProductPromotion(
+        name: 'Dell Inspiron 5000',
+        description: 'High-performance desktop suitable for work.',
+        price: 12000000,
+        discount: 10,
+        imageUrl: 'assets/images/laptop-popular-2.jpg',
+        category: 'Desktop'),
+    ProductPromotion(
+        name: 'Logitech Mouse',
+        description: 'Logitech mouse for laptops and desktops.',
+        price: 500000,
+        discount: 5,
+        imageUrl: 'assets/images/laptop-popular-3.jpg',
+        category: 'Accessories'),
+    ProductPromotion(
+        name: 'Dell 24" Monitor',
+        description: 'Dell monitor with 4K resolution.',
+        price: 8000000,
+        discount: 20,
+        imageUrl: 'assets/images/laptop-popular-4.jpg',
+        category: 'Accessories'),
+    ProductPromotion(
+        name: 'Laptop Vip Dominator',
+        description: 'Best-selling laptop with stable productivity.',
+        price: 8000000,
+        discount: 20,
+        imageUrl: 'assets/images/laptop-popular-5.jpg',
+        category: 'Accessories'),
   ];
 
   @override
@@ -289,29 +353,31 @@ class _CategoryWidgetState extends State<CategoryWidget> {
         });
       }
     } catch (e) {
-      print('Lỗi tải categories: $e');
+      print('Error loading categories: $e');
       if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // 1. Xác định số cột
+    // 1. Determine column count
     int crossAxisCount = Responsive.isDesktop(context)
-        ? 8 
+        ? 8
         : Responsive.isTablet(context)
-            ? 6 
-            : 4; 
+            ? 6
+            : 4;
 
-    // 2. Xác định số lượng hiển thị mặc định (1 hàng)
-    final int defaultVisibleCount = crossAxisCount * 1; 
+    // 2. Determine default visible count (1 row)
+    final int defaultVisibleCount = crossAxisCount * 1;
 
-    // 3. Tính toán số lượng item thực tế sẽ render
-    final int itemCount = isSeeAll 
-        ? categories.length 
-        : (categories.length > defaultVisibleCount ? defaultVisibleCount : categories.length);
+    // 3. Calculate actual item count to render
+    final int itemCount = isSeeAll
+        ? categories.length
+        : (categories.length > defaultVisibleCount
+            ? defaultVisibleCount
+            : categories.length);
 
-    // Kiểm tra xem có cần hiện nút See All không
+    // Check if See All button is needed
     final bool showSeeAllButton = categories.length > defaultVisibleCount;
 
     return Column(
@@ -346,7 +412,6 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                       color: AppColors.darkText,
                     ),
                   ),
-                  
                   if (showSeeAllButton)
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
@@ -356,7 +421,8 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                           backgroundColor: isSeeAll
                               ? AppColors.primary.withOpacity(0.15)
                               : Colors.transparent,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
@@ -396,9 +462,7 @@ class _CategoryWidgetState extends State<CategoryWidget> {
             ],
           ),
         ),
-
         const SizedBox(height: 40),
-
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/models/order.model.dart';
 import 'package:recomart/services/order.service.dart';
@@ -10,7 +9,6 @@ import 'package:recomart/services/user.service.dart';
 
 import '../../../../components/custom/snackbar.dart';
 import '../../../../helpers/formatMoney.dart';
-import '../../../../provider/cart_provider.dart';
 
 enum ShippingMethod { pickupAtStore, expressDelivery }
 
@@ -87,14 +85,13 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
   double get total =>
       (subtotal + shippingFee - totalDiscount).clamp(0, double.infinity);
 
-  /// ✅ Áp dụng mã giảm giá
   Future<void> _applyCoupon() async {
     final code = _couponCtrl.text.trim();
 
     if (code.isEmpty) {
       showCustomSnackBar(
         context,
-        'Vui lòng nhập mã giảm giá trước khi áp dụng',
+        'Please enter a coupon code first',
         type: SnackBarType.error,
       );
       return;
@@ -103,28 +100,24 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     setState(() => _isApplyingCoupon = true);
 
     try {
-      // 🔹 Lấy toàn bộ coupon từ Firestore
       final coupons = await _couponService.fetchCoupons();
 
-      // 🔹 Tìm coupon khớp mã
       final coupon = coupons.firstWhere(
-            (c) => c.code.toLowerCase() == code.toLowerCase(),
-        orElse: () => throw Exception('❌ Mã giảm giá không hợp lệ'),
+        (c) => c.code.toLowerCase() == code.toLowerCase(),
+        orElse: () => throw Exception('Invalid coupon code'),
       );
 
-      // 🔹 Kiểm tra lượt dùng
       if (coupon.usedCount >= coupon.maxUsage) {
-        throw Exception('⚠️ Mã "$code" đã hết lượt sử dụng');
+        throw Exception('Coupon code "$code" usage limit exceeded');
       }
 
-      // 🔹 Áp dụng giảm giá
       setState(() {
         _couponDiscountMoney = coupon.discountValue;
       });
 
       showCustomSnackBar(
         context,
-        '🎟️ Áp dụng mã $code thành công (-${formatMoney(coupon.discountValue)})',
+        'Applied code $code successfully (-${formatMoney(coupon.discountValue)})',
         type: SnackBarType.success,
       );
     } catch (e) {
@@ -134,14 +127,13 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     }
   }
 
-  /// ✅ Áp dụng điểm thưởng
   void _applyPoints() {
     final entered = int.tryParse(_pointsCtrl.text.trim()) ?? 0;
     if (entered <= 0) return;
     if (entered > _loyaltyPoints) {
       showCustomSnackBar(
         context,
-        '❌ Bạn không đủ điểm để dùng!',
+        'You do not have enough points!',
         type: SnackBarType.error,
       );
       return;
@@ -149,7 +141,6 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     setState(() => _usedPoints = entered);
   }
 
-  /// ✅ Gửi đơn hàng
   Future<void> _placeOrder() async {
     if (_isLoading) return;
     final user = _auth.currentUser;
@@ -160,7 +151,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
       final now = DateTime.now();
       final order = OrderModel(
         userId: user.uid,
-        userName: user.displayName ?? 'Khách hàng',
+        userName: user.displayName ?? 'Customer',
         email: user.email ?? '',
         address: _addressCtrl.text,
         totalAmount: total,
@@ -191,12 +182,12 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
 
       showCustomSnackBar(
         context,
-        '🎉 Đặt hàng thành công!',
+        '🎉 Order placed successfully!',
         type: SnackBarType.success,
       );
       Navigator.pop(context);
     } catch (e) {
-      showCustomSnackBar(context, 'Lỗi khi tạo đơn hàng: $e',
+      showCustomSnackBar(context, 'Error creating order: $e',
           type: SnackBarType.error);
     } finally {
       setState(() => _isLoading = false);
@@ -204,13 +195,13 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
   }
 
   String format(double value) =>
-      NumberFormat.decimalPattern('vi_VN').format(value);
+      NumberFormat.decimalPattern('en_US').format(value);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Xác nhận mua hàng'),
+        title: const Text('Confirm Purchase'),
         backgroundColor: AppColors.primary,
       ),
       body: SingleChildScrollView(
@@ -218,7 +209,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- THÔNG TIN SẢN PHẨM ---
+            // --- PRODUCT INFORMATION ---
             Card(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
@@ -273,7 +264,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 child:
-                Text(_isLoading ? 'Đang xử lý...' : 'Xác nhận đặt hàng'),
+                    Text(_isLoading ? 'Processing...' : 'Confirm Order'),
               ),
             ),
           ],
@@ -292,7 +283,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
         decoration: BoxDecoration(
           border: Border.all(
               color:
-              selected ? AppColors.primary : Colors.grey.shade300,
+                  selected ? AppColors.primary : Colors.grey.shade300,
               width: 1.5),
           borderRadius: BorderRadius.circular(10),
         ),
@@ -308,13 +299,13 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
             if (badge != null)
               Container(
                 padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                     color: AppColors.primary.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8)),
                 child: Text(
                   badge,
-                  style: TextStyle(
+                  style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: 12,
                       fontWeight: FontWeight.bold),
@@ -337,10 +328,10 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Coupon
-          Row(children: [
-            const Icon(Icons.discount, color: Colors.purple),
-            const SizedBox(width: 6),
-            const Text('Voucher / Coupon',
+          const Row(children: [
+            Icon(Icons.discount, color: Colors.purple),
+            SizedBox(width: 6),
+            Text('Voucher / Coupon',
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ]),
           const SizedBox(height: 8),
@@ -349,7 +340,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
               child: TextField(
                 controller: _couponCtrl,
                 decoration: const InputDecoration(
-                  hintText: 'Nhập mã giảm giá',
+                  hintText: 'Enter coupon code',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -360,19 +351,19 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
               ),
-              child: Text(_isApplyingCoupon ? '...' : 'Áp dụng'),
+              child: Text(_isApplyingCoupon ? '...' : 'Apply'),
             )
           ]),
           const Divider(height: 20),
 
           // Loyalty
-          Row(children: [
-            const Icon(Icons.card_giftcard, color: Colors.indigo),
-            const SizedBox(width: 6),
-            const Text('Loyalty Points',
+          const Row(children: [
+            Icon(Icons.card_giftcard, color: Colors.indigo),
+            SizedBox(width: 6),
+            Text('Loyalty Points',
                 style: TextStyle(fontWeight: FontWeight.bold)),
           ]),
-          Text('Bạn có ${_loyaltyPoints.toInt()} điểm (1 điểm = 1.000đ)'),
+          Text('You have ${_loyaltyPoints.toInt()} points (1 point = 1,000đ)'),
           const SizedBox(height: 8),
           Row(children: [
             Expanded(
@@ -380,7 +371,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
                 controller: _pointsCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
-                  hintText: 'Nhập số điểm muốn dùng',
+                  hintText: 'Enter points to use',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -391,7 +382,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blueAccent,
               ),
-              child: const Text('Dùng điểm'),
+              child: const Text('Use Points'),
             ),
           ]),
         ],

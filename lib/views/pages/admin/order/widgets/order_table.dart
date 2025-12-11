@@ -18,7 +18,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   DateTimeRange? _customDateRange;
   int _currentPage = 1;
   final int _itemsPerPage = 10;
-  bool _isLoading = false;
+  bool _isLoading = false; 
 
   @override
   void initState() {
@@ -35,6 +35,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   }
 
   List<Map<String, dynamic>> get filteredOrders {
+    // 1. Initial Sorting (Newest first)
     List<Map<String, dynamic>> sorted = List.from(widget.orders)
       ..sort((a, b) {
         final dateA = DateTime.tryParse(a['orderDate'] ?? '') ?? DateTime(2000);
@@ -42,6 +43,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
         return dateB.compareTo(dateA);
       });
 
+    // 2. Date Filtering
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = today.subtract(const Duration(days: 1));
@@ -77,6 +79,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
         if (_customDateRange != null) {
           sorted = sorted.where((o) {
             final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+            // Add 1 day to the end date for inclusive filtering
             return d.isAfter(_customDateRange!.start) &&
                 d.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
           }).toList();
@@ -84,6 +87,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
         break;
     }
 
+    // 3. Search Filtering (by Order ID)
     if (_searchController.text.isNotEmpty) {
       final query = _searchController.text.toLowerCase();
       sorted = sorted.where((o) {
@@ -119,6 +123,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
       builder: (_) => OrderDetailDialog(
         order: Map.from(order), 
         onStatusChanged: (newStatus) {
+          // Update local state after dialog closes
           setState(() {
             final index = widget.orders.indexWhere((o) => o['id'] == order['id']);
             if (index != -1) {
@@ -127,7 +132,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Cập nhật trạng thái thành công: $newStatus"),
+              content: Text("Status updated successfully: $newStatus"),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -157,16 +162,16 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
             if (_isLoading)
               const Center(child: CircularProgressIndicator())
             else if (filteredOrders.isEmpty)
-              const Center(heightFactor: 5, child: Text("Không có đơn hàng nào", style: TextStyle(color: Colors.grey)))
+              const Center(heightFactor: 5, child: Text("No orders found", style: TextStyle(color: Colors.grey)))  
             else
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: DataTable(
                   headingRowColor: WidgetStateProperty.all(Colors.grey.shade100),
                   headingTextStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
-                  dataRowMinHeight: 60, // Tăng chiều cao hàng
+                  dataRowMinHeight: 60, 
                   dataRowMaxHeight: 80,
-                  columnSpacing: 20, // Tăng khoảng cách cột
+                  columnSpacing: 20, 
                   columns: _buildTableColumns(isMobile),
                   rows: paginatedOrders.map((order) => _buildDataRow(order, isMobile)).toList(),
                 ),
@@ -174,7 +179,6 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
             
             const SizedBox(height: 16),
 
-            // --- Pagination ---
             if (totalPages > 1)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -191,7 +195,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
                       color: Colors.blue.shade50,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Text("Trang $_currentPage / $totalPages"),
+                    child: Text("Page $_currentPage / $totalPages"),  
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
@@ -212,7 +216,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
       ? Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Order List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),  
             const SizedBox(height: 12),
             Row(
               children: [
@@ -225,7 +229,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
         )
       : Row(
           children: [
-            const Text("Danh sách đơn hàng", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("Order List", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),  
             const Spacer(),
             SizedBox(width: 220, child: _buildSearchField()),
             const SizedBox(width: 12),
@@ -238,7 +242,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     return TextField(
       controller: _searchController,
       decoration: InputDecoration(
-        hintText: "Tìm mã đơn...",
+        hintText: "Search order ID...",  
         prefixIcon: const Icon(Icons.search, size: 18),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -287,18 +291,18 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   List<DataColumn> _buildTableColumns(bool isMobile) {
     if (isMobile) {
       return const [
-        DataColumn(label: Text('Mã đơn')),
-        DataColumn(label: Text('Ngày')),
-        DataColumn(label: Text('Tổng tiền'), numeric: true),
+        DataColumn(label: Text('Order ID')),  
+        DataColumn(label: Text('Date')),  
+        DataColumn(label: Text('Total'), numeric: true),  
       ];
     }
     return const [
-      DataColumn(label: Text('Mã đơn')),
-      DataColumn(label: Text('Khách hàng')),
-      DataColumn(label: Text('Ngày')),
-      DataColumn(label: Text('Tổng tiền'), numeric: true),
-      DataColumn(label: Text('Giảm giá'), numeric: true),
-      DataColumn(label: Text('Trạng thái')),
+      DataColumn(label: Text('Order ID')),  
+      DataColumn(label: Text('Customer')),  
+      DataColumn(label: Text('Date')),  
+      DataColumn(label: Text('Total'), numeric: true),  
+      DataColumn(label: Text('Discount'), numeric: true),  
+      DataColumn(label: Text('Status')),  
     ];
   }
 
@@ -309,8 +313,11 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
     final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
     final status = order['status']?.toString().toUpperCase() ?? 'PENDING';
-    final customerName = order['customerName'] ?? 'Khách lẻ';
+    final customerName = order['customerName'] ?? 'Guest';  
     
+    // Currency format for VND, kept local for display accuracy
+    final currencyFormatter = NumberFormat('#,##0', 'en_US'); 
+
     DataCell _clickableCell(Widget child) {
         return DataCell(child, onTap: () => _showOrderDetail(order));
     }
@@ -318,9 +325,9 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     if (isMobile) {
       return DataRow(cells: [
         _clickableCell(Text(shortId, style: const TextStyle(fontWeight: FontWeight.bold))),
-        _clickableCell(Text(DateFormat('dd/MM/yyyy').format(date))),
+        _clickableCell(Text(DateFormat('MM/dd/yyyy').format(date))),
         _clickableCell(Text(
-          '${NumberFormat('#,##0', 'vi').format(total)}đ',
+          '${currencyFormatter.format(total)}đ',
           style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
           textAlign: TextAlign.end,
         )),
@@ -330,14 +337,14 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     return DataRow(cells: [
       _clickableCell(Text(shortId, style: const TextStyle(fontWeight: FontWeight.bold))),
       _clickableCell(Text(customerName, overflow: TextOverflow.ellipsis)),
-      _clickableCell(Text(DateFormat('dd/MM/yyyy').format(date))),
+      _clickableCell(Text(DateFormat('MM/dd/yyyy').format(date))),
       _clickableCell(Text(
-        '${NumberFormat('#,##0', 'vi').format(total)}đ',
+        '${currencyFormatter.format(total)}đ',
         style: const TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
         textAlign: TextAlign.end,
       )),
       _clickableCell(Text(
-        '-${NumberFormat('#,##0', 'vi').format(discount)}đ',
+        '-${currencyFormatter.format(discount)}đ',
         style: const TextStyle(color: Colors.redAccent),
         textAlign: TextAlign.end,
       )),

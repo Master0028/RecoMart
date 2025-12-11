@@ -1,10 +1,10 @@
-import 'package:firebase_auth/firebase_auth.dart'; // 1. Import Firebase Auth
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
 
-const Color _primaryColor = Colors.blue; 
+const Color _primaryColor = Colors.blue;
 const Color _secondaryColor = Colors.orange;
 const Color _searchBarBackground = Color(0xFFEEEEEE);
 const Color _actionButtonColor = Color(0xFFFF5722);
@@ -15,7 +15,6 @@ class Responsive {
   }
 }
 
-// --- WIDGET LOCATION ---
 class _MockLocationWidget extends StatelessWidget {
   const _MockLocationWidget();
   @override
@@ -29,7 +28,7 @@ class _MockLocationWidget extends StatelessWidget {
           SizedBox(width: 4),
           Flexible(
             child: Text(
-              'Phường A, TP HCM',
+              'Ward A, Ho Chi Minh City', // Translated
               style: TextStyle(fontSize: 13, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
             ),
@@ -40,15 +39,14 @@ class _MockLocationWidget extends StatelessWidget {
   }
 }
 
-// --- WIDGET AVATAR (Đã sửa để nhận thông tin động) ---
 class InteractiveGuestAvatar extends StatefulWidget {
   final String userName;
   final String? userId;
-  final String? avatarUrl; // Thêm URL avatar
+  final String? avatarUrl;
 
   const InteractiveGuestAvatar({
-    super.key, 
-    required this.userName, 
+    super.key,
+    required this.userName,
     this.userId,
     this.avatarUrl
   });
@@ -65,10 +63,10 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
 
     final List<Map<String, dynamic>> items = [
       {'text': 'Home', 'icon': Icons.home_outlined, 'value': 'Home'},
-      if (isLoggedIn) {'text': 'Profile', 'icon': Icons.person, 'value': 'Profile'}, // Chỉ hiện khi login
+      if (isLoggedIn) {'text': 'Profile', 'icon': Icons.person, 'value': 'Profile'},
       {'text': "Cart", 'icon': Icons.shopping_cart, 'value': "Cart"},
       {'text': "Support", 'icon': Icons.support, 'value': "Support"},
-      // Đổi text Logout/Login tùy trạng thái
+      // Toggle Logout/Login text based on state
       {'text': isLoggedIn ? 'Logout' : 'Login', 'icon': isLoggedIn ? Icons.logout : Icons.login, 'value': isLoggedIn ? 'Logout' : 'Login'},
     ];
 
@@ -108,18 +106,18 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
     Widget avatarCircle;
     if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty) {
        avatarCircle = CircleAvatar(
-          radius: Responsive.isDesktop(context) ? 15 : 18,
-          backgroundImage: NetworkImage(widget.avatarUrl!),
-          backgroundColor: Colors.grey[200],
+         radius: Responsive.isDesktop(context) ? 15 : 18,
+         backgroundImage: NetworkImage(widget.avatarUrl!),
+         backgroundColor: Colors.grey[200],
        );
     } else {
        avatarCircle = CircleAvatar(
-          radius: Responsive.isDesktop(context) ? 15 : 18,
-          backgroundColor: _secondaryColor,
-          child: Text(
-            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'G', 
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-          ),
+         radius: Responsive.isDesktop(context) ? 15 : 18,
+         backgroundColor: _secondaryColor,
+         child: Text(
+           widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'G',
+           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
+         ),
        );
     }
 
@@ -156,7 +154,6 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
   }
 }
 
-// --- DESKTOP SEARCH (Giữ nguyên) ---
 class _DesktopSearchAndCart extends StatelessWidget {
   final GlobalKey<CartIconKey> cartKey;
   const _DesktopSearchAndCart({required this.cartKey});
@@ -170,7 +167,7 @@ class _DesktopSearchAndCart extends StatelessWidget {
             decoration: BoxDecoration(color: _searchBarBackground, borderRadius: BorderRadius.circular(5)),
             child: Row(children: [
               Expanded(child: TextField(
-                decoration: InputDecoration(hintText: 'Tìm sản phẩm...', border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12)),
+                decoration: const InputDecoration(hintText: 'Search products...', border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12)),
                 onSubmitted: (_) => context.push('/search'),
               )),
               Container(
@@ -192,7 +189,6 @@ class _DesktopSearchAndCart extends StatelessWidget {
   }
 }
 
-// --- MAIN APP BAR (ĐÃ SỬA STREAMBUILDER) ---
 class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
   final GlobalKey<CartIconKey> cartKey;
   const AppBarHomeCustom({super.key, required this.cartKey});
@@ -210,7 +206,7 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       elevation: 0,
       toolbarHeight: isDesktop ? 80 : 60,
-      
+
       title: isDesktop
           ? Padding(
               padding: const EdgeInsets.only(left: 32),
@@ -226,7 +222,7 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
                 ],
               ),
             )
-          : const _MockLocationWidget(), 
+          : const _MockLocationWidget(),
 
       actions: [
         if (!isDesktop) ...[
@@ -244,23 +240,19 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
           ),
         ],
 
-        // 👇 ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT ĐỂ HIỂN THỊ TÊN THẬT
         Padding(
           padding: EdgeInsets.only(right: isDesktop ? 32 : 16),
-          // Dùng StreamBuilder lắng nghe thay đổi User
           child: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.userChanges(), 
+            stream: FirebaseAuth.instance.userChanges(),
             builder: (context, snapshot) {
               final user = snapshot.data;
               final isLoggedIn = user != null;
-              
-              // Logic lấy tên hiển thị
+
               String displayName = 'Guest';
               String? photoUrl;
               String? uid;
 
               if (isLoggedIn) {
-                // Ưu tiên Display Name -> Email -> 'User'
                 displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
                 photoUrl = user.photoURL;
                 uid = user.uid;

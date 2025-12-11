@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:recomart/config/color.dart';
@@ -8,25 +7,29 @@ class _Message {
   final String text;
   final bool isUser;
   final DateTime timestamp;
+  bool shouldAnimate; 
 
-  _Message(this.text, this.isUser, this.timestamp);
+  _Message(this.text, this.isUser, this.timestamp, {this.shouldAnimate = false});
 }
 
 final List<_Message> _mockMessages = [
   _Message(
-    "Xin chào! Tôi có thể giúp gì cho bạn hôm nay?",
+    "Hello! How can I help you today?",
     false,
     DateTime.now().subtract(const Duration(minutes: 5)),
+    shouldAnimate: false,
   ),
   _Message(
-    "Tôi đang gặp sự cố với đơn hàng 12345 của mình.",
+    "I am having trouble with my order #12345.",
     true,
     DateTime.now().subtract(const Duration(minutes: 3)),
+    shouldAnimate: false,
   ),
   _Message(
-    "Tôi hiểu rồi. Bạn vui lòng mô tả chi tiết sự cố bạn đang gặp phải được không?",
+    "I understand. Could you please describe the issue in detail?",
     false,
     DateTime.now().subtract(const Duration(minutes: 2)),
+    shouldAnimate: false,
   ),
 ];
 
@@ -47,7 +50,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add(_Message(text, true, DateTime.now()));
+      _messages.add(_Message(text, true, DateTime.now(), shouldAnimate: false));
     });
     _messageController.clear();
     _scrollToBottom();
@@ -56,9 +59,10 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
       if (!mounted) return;
       setState(() {
         _messages.add(_Message(
-          "Xin chào bạn cần hỗ trợ gì đi",
+          "Hello, how can I assist you further?",
           false,
           DateTime.now(),
+          shouldAnimate: true,
         ));
       });
       _scrollToBottom();
@@ -89,7 +93,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: const CustomAppBarMobile(
-        title: 'Trung tâm Hỗ trợ',
+        title: 'Support Center', // Translated
         isBack: true,
       ),
       body: Column(
@@ -130,7 +134,7 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
               child: TextField(
                 controller: _messageController,
                 decoration: InputDecoration(
-                  hintText: 'Nhập tin nhắn của bạn...',
+                  hintText: 'Type your message...', // Translated
                   fillColor: Colors.grey.shade100,
                   filled: true,
                   border: OutlineInputBorder(
@@ -140,7 +144,6 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
                   contentPadding:
                       const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0),
                 ),
-                // SỬA: onSubmitted xử lý phím Enter
                 onSubmitted: (_) => _handleSendPressed(),
               ),
             ),
@@ -203,10 +206,20 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                message.text,
-                style: TextStyle(color: textColor, fontSize: 15, height: 1.4),
-              ),
+              if (!isUser && message.shouldAnimate)
+                TypewriterText(
+                  text: message.text,
+                  style: TextStyle(color: textColor, fontSize: 15, height: 1.4),
+                  onFinished: () {
+                    message.shouldAnimate = false; 
+                  },
+                )
+              else
+                Text(
+                  message.text,
+                  style: TextStyle(color: textColor, fontSize: 15, height: 1.4),
+                ),
+              
               const SizedBox(height: 5),
               Text(
                 '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
@@ -219,6 +232,34 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class TypewriterText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final VoidCallback? onFinished;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.onFinished,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<int>(
+      tween: IntTween(begin: 0, end: text.length),
+      duration: Duration(milliseconds: text.length * 30),
+      onEnd: onFinished,
+      builder: (context, value, child) {
+        return Text(
+          text.substring(0, value),
+          style: style,
+        );
+      },
     );
   }
 }

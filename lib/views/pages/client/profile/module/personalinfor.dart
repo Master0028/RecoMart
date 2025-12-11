@@ -41,7 +41,7 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
     Future.microtask(() async {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
       await userProvider.fetchUserInfo();
-      final user = userProvider.userInfo; // ✅ Lấy từ Firestore model
+      final user = userProvider.userInfo; // ✅ Get from Firestore model
 
       if (user != null) {
         _fullNameController.text = user.fullName;
@@ -62,7 +62,7 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
 
     setState(() => _isLoading = true);
 
-    // 🔹 Cập nhật Firestore qua Provider
+    // 🔹 Update Firestore via Provider
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     await userProvider.updateUserInfo(
       name: _fullNameController.text,
@@ -89,7 +89,7 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.userInfo; 
+    final user = userProvider.userInfo;
     final avatarUrl = user?.avatar ?? widget.userInfo?['avatar']?['url'];
 
     return Scaffold(
@@ -101,158 +101,158 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
       body: userProvider.loading
           ? const Center(child: CircularProgressIndicator())
           : Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 700),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                // Avatar
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 700),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Avatar
+                      Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(5),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: AppColors.primary, width: 4),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.primary.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: CircleAvatar(
+                              radius: 60,
+                              backgroundImage: _selectedFile != null
+                                  ? FileImage(_selectedFile!)
+                                  : (_selectedImageBytes != null
+                                      ? MemoryImage(_selectedImageBytes!)
+                                      : (avatarUrl != null && avatarUrl.isNotEmpty
+                                          ? NetworkImage(avatarUrl)
+                                          : const AssetImage('assets/logo/logo.png')))
+                                      as ImageProvider,
+                            ),
                           ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: IconButton(
+                                padding: const EdgeInsets.all(8),
+                                onPressed: () {
+                                  if (_selectedFile != null || _selectedImageBytes != null) {
+                                    _removeImage();
+                                  } else {
+                                    _pickImage();
+                                  }
+                                },
+                                icon: Icon(
+                                  (_selectedFile != null || _selectedImageBytes != null)
+                                      ? CupertinoIcons.xmark
+                                      : CupertinoIcons.camera,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          )
                         ],
                       ),
-                      child: CircleAvatar(
-                        radius: 60,
-                        backgroundImage: _selectedFile != null
-                            ? FileImage(_selectedFile!)
-                            : (_selectedImageBytes != null
-                            ? MemoryImage(_selectedImageBytes!)
-                            : (avatarUrl != null && avatarUrl.isNotEmpty
-                            ? NetworkImage(avatarUrl)
-                            : const AssetImage('assets/logo/logo.png')))
-                        as ImageProvider,
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: IconButton(
-                          padding: const EdgeInsets.all(8),
-                          onPressed: () {
-                            if (_selectedFile != null || _selectedImageBytes != null) {
-                              _removeImage();
-                            } else {
-                              _pickImage();
-                            }
-                          },
-                          icon: Icon(
-                            (_selectedFile != null || _selectedImageBytes != null)
-                                ? CupertinoIcons.xmark
-                                : CupertinoIcons.camera,
-                            color: Colors.white,
-                            size: 20,
+                      const SizedBox(height: 30),
+
+                      // Form
+                      Card(
+                        elevation: 5,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Column(
+                            children: [
+                              _buildLabeledTextField(
+                                label: 'Full Name',
+                                controller: _fullNameController,
+                                focusNode: _fullNameFocusNode,
+                                hint: 'e.g. John Doe',
+                                icon: CupertinoIcons.person,
+                              ),
+                              _buildLabeledTextField(
+                                label: 'Phone Number',
+                                controller: _phoneNumberController,
+                                focusNode: _phoneNumberFocusNode,
+                                hint: 'e.g. +1 234 567 890',
+                                icon: CupertinoIcons.phone,
+                                fieldType: TextInputType.phone,
+                              ),
+                              _buildLabeledTextField(
+                                label: 'Email (Disabled)',
+                                controller: _emailController,
+                                focusNode: _emailFocusNode,
+                                hint: 'example@gmail.com',
+                                icon: CupertinoIcons.envelope,
+                                disable: true,
+                              ),
+                              _buildLabeledTextField(
+                                label: 'Address',
+                                controller: _addressController,
+                                focusNode: _addressFocusNode,
+                                hint: 'e.g. 123 Main St, City',
+                                icon: CupertinoIcons.location,
+                              ),
+                            ],
                           ),
                         ),
                       ),
-                    )
-                  ],
-                ),
-                const SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
-                // Form
-                Card(
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  margin: EdgeInsets.zero,
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        _buildLabeledTextField(
-                          label: 'Full Name',
-                          controller: _fullNameController,
-                          focusNode: _fullNameFocusNode,
-                          hint: 'Seibon',
-                          icon: CupertinoIcons.person,
-                        ),
-                        _buildLabeledTextField(
-                          label: 'Phone Number',
-                          controller: _phoneNumberController,
-                          focusNode: _phoneNumberFocusNode,
-                          hint: 'Phone Number',
-                          icon: CupertinoIcons.phone,
-                          fieldType: TextInputType.phone,
-                        ),
-                        _buildLabeledTextField(
-                          label: 'Email (Disabled)',
-                          controller: _emailController,
-                          focusNode: _emailFocusNode,
-                          hint: 'example@gmail.com',
-                          icon: CupertinoIcons.envelope,
-                          disable: true,
-                        ),
-                        _buildLabeledTextField(
-                          label: 'Address',
-                          controller: _addressController,
-                          focusNode: _addressFocusNode,
-                          hint: 'District 1, HCM City',
-                          icon: CupertinoIcons.location,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 350),
-                  child: Column(
-                    children: [
-                      MyButton(
-                        text: 'Update Information',
-                        isLoading: _isLoading,
-                        onTap: (_) => {handleChangeInfomation()},
-                      ),
-                      const SizedBox(height: 16),
-                      OutlinedButton(
-                        onPressed: () {
-                          context.pop();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(color: AppColors.primary, width: 2),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          minimumSize: const Size(double.infinity, 0),
-                        ),
-                        child: Text(
-                          'Cancel',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
-                          ),
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 350),
+                        child: Column(
+                          children: [
+                            MyButton(
+                              text: 'Update Information',
+                              isLoading: _isLoading,
+                              onTap: (_) => {handleChangeInfomation()},
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton(
+                              onPressed: () {
+                                context.pop();
+                              },
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                side: BorderSide(color: AppColors.primary, width: 2),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                minimumSize: const Size(double.infinity, 0),
+                              ),
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                      const SizedBox(height: 20),
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
-          ),
-        ),
-      ),
     );
   }
 

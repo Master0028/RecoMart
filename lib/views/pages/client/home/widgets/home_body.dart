@@ -47,7 +47,7 @@ class _HomeBodyState extends State<HomeBody> {
                 isLoadingUser = false;
               });
             }
-            print("Đã tìm thấy User ID cho AI: $aiModelUserId");
+            print("Found AI Model User ID: $aiModelUserId");
           } else {
             if (mounted) {
               setState(() {
@@ -55,17 +55,17 @@ class _HomeBodyState extends State<HomeBody> {
                 isLoadingUser = false;
               });
             }
-            print("User mới (Chưa có ID model) -> Fallback Popular Items");
+            print("New User (No Model ID) -> Fallback to Popular Items");
           }
         } else {
           if (mounted) setState(() => isLoadingUser = false);
         }
       } catch (e) {
-        print("Lỗi lấy User ID: $e");
+        print("Error fetching User ID: $e");
         if (mounted) setState(() => isLoadingUser = false);
       }
     } else {
-      print("Khách vãng lai -> Fallback Popular Items");
+      print("Guest User -> Fallback to Popular Items");
       if (mounted) setState(() => isLoadingUser = false);
     }
   }

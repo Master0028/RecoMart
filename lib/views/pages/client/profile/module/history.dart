@@ -19,14 +19,15 @@ class OrderHistoryPage extends StatefulWidget {
 }
 
 class _OrderHistoryPageState extends State<OrderHistoryPage> {
-  String selectedTab = 'Tất cả';
+  String selectedTab = 'All';
 
+  // Mapping English tabs to status codes
   final Map<String, String> _statusMap = {
-    'Tất cả': '',
-    'Chờ xác nhận': 'pending',
-    'Đang giao': 'shipping',
-    'Đã giao': 'delivered',
-    'Đã hủy': 'cancelled',
+    'All': '',
+    'Pending': 'pending',
+    'Shipping': 'shipping',
+    'Delivered': 'delivered',
+    'Cancelled': 'cancelled',
   };
 
   @override
@@ -41,7 +42,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     final provider = Provider.of<OrderProvider>(context);
     final orders = provider.orders;
 
-    // Lọc theo trạng thái
+    // Filter orders by status
     final filter = _statusMap[selectedTab];
     final filteredOrders = (filter == null || filter.isEmpty)
         ? orders
@@ -49,7 +50,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
-      appBar: const CustomAppBarMobile(title: 'Đơn hàng của tôi', isBack: true),
+      appBar: const CustomAppBarMobile(title: 'My Orders', isBack: true),
       body: Column(
         children: [
           // Tabs
@@ -80,12 +81,12 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           ),
           const SizedBox(height: 8),
 
-          // Nội dung chính
+          // Main Content
           Expanded(
             child: provider.isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : filteredOrders.isEmpty
-                ? const Center(child: Text('Không có đơn hàng nào.'))
+                ? const Center(child: Text('No orders found.'))
                 : ListView.builder(
               padding: const EdgeInsets.symmetric(
                   horizontal: 16, vertical: 8),
@@ -109,15 +110,15 @@ class _OrderCard extends StatelessWidget {
   Map<String, dynamic> _getStatusVisuals(String? status) {
     switch (status) {
       case 'delivered':
-        return {'color': Colors.green, 'icon': FeatherIcons.checkCircle, 'label': 'Đã giao'};
+        return {'color': Colors.green, 'icon': FeatherIcons.checkCircle, 'label': 'Delivered'};
       case 'shipping':
-        return {'color': AppColors.primary, 'icon': FeatherIcons.truck, 'label': 'Đang giao'};
+        return {'color': AppColors.primary, 'icon': FeatherIcons.truck, 'label': 'Shipping'};
       case 'pending':
-        return {'color': Colors.orange.shade700, 'icon': FeatherIcons.clock, 'label': 'Chờ xác nhận'};
+        return {'color': Colors.orange.shade700, 'icon': FeatherIcons.clock, 'label': 'Pending'};
       case 'cancelled':
-        return {'color': Colors.red.shade700, 'icon': FeatherIcons.xCircle, 'label': 'Đã hủy'};
+        return {'color': Colors.red.shade700, 'icon': FeatherIcons.xCircle, 'label': 'Cancelled'};
       default:
-        return {'color': Colors.grey, 'icon': FeatherIcons.helpCircle, 'label': 'Không xác định'};
+        return {'color': Colors.grey, 'icon': FeatherIcons.helpCircle, 'label': 'Unknown'};
     }
   }
 
@@ -142,11 +143,11 @@ class _OrderCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Mã đơn: ${order.id}',
+                        Text('Order ID: ${order.id}',
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                         const SizedBox(height: 4),
                         Text(
-                          'Ngày đặt: ${order.createdAt != null ? DateFormat('dd/MM/yyyy').format(order.createdAt!) : '--/--/----'}',
+                          'Date: ${order.createdAt != null ? DateFormat('MM/dd/yyyy').format(order.createdAt!) : '--/--/----'}',
                           style: const TextStyle(color: Colors.black54, fontSize: 13),
                         ),
                       ],
@@ -176,14 +177,14 @@ class _OrderCard extends StatelessWidget {
               },
             ),
 
-            // Tổng cộng + nút hành động
+            // Total + Action
             Container(
               color: Colors.grey.shade50,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Tổng cộng:', style: TextStyle(color: Colors.black54, fontSize: 15)),
+                  const Text('Total:', style: TextStyle(color: Colors.black54, fontSize: 15)),
                   Text(
                     formatMoney(order.totalAmount ?? 0),
                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 17),
@@ -233,7 +234,7 @@ class _OrderItemTile extends StatelessWidget {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Text('Số lượng: ${item.quantity}',
+                Text('Qty: ${item.quantity}',
                     style: const TextStyle(color: Colors.black54, fontSize: 13)),
               ],
             ),

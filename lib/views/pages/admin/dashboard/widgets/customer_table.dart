@@ -124,12 +124,12 @@ class _CustomerTableState extends State<CustomerTable> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: [
+            boxShadow: const [
               BoxShadow(
                 color: AppColors.lightGrey,
                 spreadRadius: 2,
                 blurRadius: 5,
-                offset: const Offset(0, 3),
+                offset: Offset(0, 3),
               ),
             ],
           ),

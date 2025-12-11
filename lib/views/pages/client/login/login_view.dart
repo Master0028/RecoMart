@@ -27,7 +27,7 @@ class _LoginViewState extends State<LoginView> {
   @override
   void initState() {
     super.initState();
-    _isLogin();
+    _checkLoginStatus();
   }
 
   @override
@@ -42,17 +42,17 @@ class _LoginViewState extends State<LoginView> {
   void _focusAndShowError(FocusNode node, String message) {
     FocusScope.of(context).requestFocus(node);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(message), 
+      content: Text(message),
       backgroundColor: Colors.red,
+      behavior: SnackBarBehavior.floating,
     ));
   }
 
-  Future<void> _isLogin() async {
+  Future<void> _checkLoginStatus() async {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user != null) {
-      print(user.email);
-      // Kiểm tra email của user
+      debugPrint("Logged in as: ${user.email}");
       if (user.email == 'admin@gmail.com') {
         context.go('/admin');
       } else {
@@ -66,130 +66,82 @@ class _LoginViewState extends State<LoginView> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty) {
-      _focusAndShowError(_emailFocus, 'Vui lòng nhập email');
+      _focusAndShowError(_emailFocus, 'Please enter your email');
       return;
     }
     if (password.isEmpty) {
-      _focusAndShowError(_passwordFocus, 'Vui lòng nhập mật khẩu');
+      _focusAndShowError(_passwordFocus, 'Please enter your password');
       return;
     }
 
     setState(() => _loading = true);
 
     try {
-      final userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+      final userCredential =
+          await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
 
       final token = await userCredential.user?.getIdToken();
 
-      // Lưu token để kiểm tra đăng nhập sau
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('accessToken', token ?? '');
 
-      _isLogin();
+      _checkLoginStatus();
     } on FirebaseAuthException catch (e) {
       String errorMsg;
       switch (e.code) {
         case 'user-not-found':
-          errorMsg = 'Tài khoản không tồn tại.';
+        case 'invalid-email':
+          errorMsg = 'Account does not exist.';
           break;
         case 'wrong-password':
-          errorMsg = 'Sai mật khẩu.';
+        case 'invalid-credential':
+          errorMsg = 'Incorrect password or email.';
           break;
         default:
-          errorMsg = e.message ?? 'Đăng nhập thất bại.';
+          errorMsg = e.message ?? 'Login failed. Please try again.';
       }
       _focusAndShowError(_emailFocus, errorMsg);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Widget buildEmailField() {
-    return TextFormField(
-      controller: _emailController,
-      focusNode: _emailFocus,
-      keyboardType: TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      decoration: InputDecoration(
-        hintText: 'Email',
-        prefixIcon: Icon(Icons.email, color: primaryBlue.withOpacity(0.7)),
-        filled: true,
-        fillColor: inputFillColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(largeRadius),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-      ),
-    );
-  }
-
-  Widget buildPasswordField() {
-    return TextFormField(
-      controller: _passwordController,
-      focusNode: _passwordFocus,
-      obscureText: !_isPasswordVisible,
-      keyboardType: TextInputType.visiblePassword,
-      textInputAction: TextInputAction.done,
-      onFieldSubmitted: (_) {
-        if (!_loading) signIn();
-      },
-      decoration: InputDecoration(
-        hintText: 'Password',
-        prefixIcon: Icon(Icons.lock, color: primaryBlue.withOpacity(0.7)),
-        suffixIcon: IconButton(
-          icon: Icon(
-            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-            color: primaryBlue.withOpacity(0.6),
-          ),
-          onPressed: () {
-            setState(() {
-              _isPasswordVisible = !_isPasswordVisible;
-            });
-          },
-        ),
-        filled: true,
-        fillColor: inputFillColor,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(largeRadius),
-          borderSide: BorderSide.none,
-        ),
-        contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
-      ),
-    );
-  }
-
   Widget buildSignInButton() {
-    return ElevatedButton(
-      onPressed: _loading ? null : signIn,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: primaryBlue,
-        minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(largeRadius),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      child: ElevatedButton(
+        onPressed: _loading ? null : signIn,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryBlue,
+          minimumSize: const Size(double.infinity, 56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(largeRadius),
+          ),
+          elevation: _loading ? 0 : 5,
+          shadowColor: primaryBlue.withOpacity(0.4),
         ),
-        elevation: 2,
+        child: _loading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Colors.white,
+                  strokeWidth: 3.0,
+                ),
+              )
+            : const Text(
+                'Sign In',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
+                ),
+              ),
       ),
-      child: _loading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 3.0,
-              ),
-            )
-          : const Text(
-              'Sign In',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
     );
   }
 
@@ -198,15 +150,16 @@ class _LoginViewState extends State<LoginView> {
       children: [
         Image.asset(
           'assets/logo/logo.png',
-          height: 40, 
+          height: 40,
         ),
         const SizedBox(width: 10),
         const Text(
-          "RecoMart", 
+          "RecoMart",
           style: TextStyle(
             fontSize: 24,
-            fontWeight: FontWeight.w500,
-            color: Colors.black54,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+            letterSpacing: 0.5,
           ),
         )
       ],
@@ -231,14 +184,15 @@ class _LoginViewState extends State<LoginView> {
             height: size.height,
             child: Stack(
               children: [
+                // Background Shapes
                 Positioned(
-                  top: -size.height * 0.15, 
+                  top: -size.height * 0.15,
                   left: -size.width * 0.5,
                   child: Container(
                     width: size.width * 1.5,
                     height: size.height * 0.6,
                     decoration: BoxDecoration(
-                      color: primaryBlue.withOpacity(0.2),
+                      color: primaryBlue.withOpacity(0.15),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -255,22 +209,23 @@ class _LoginViewState extends State<LoginView> {
                     ),
                   ),
                 ),
-                // Nội dung chính
+
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 32.0),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const SizedBox(height: 100),
+                        const SizedBox(height: 80),
                         buildLogo(),
-                        const SizedBox(height: 60),
+                        const SizedBox(height: 50),
                         const Text(
                           'Login',
                           style: TextStyle(
-                            fontSize: 40,
+                            fontSize: 42,
                             fontWeight: FontWeight.w900,
                             color: Colors.black,
+                            letterSpacing: -1,
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -281,37 +236,68 @@ class _LoginViewState extends State<LoginView> {
                               style: TextStyle(
                                 fontSize: 18,
                                 color: Colors.black54,
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            SizedBox(width: 5),
-                            Icon(Icons.favorite, size: 18, color: Colors.black),
+                            SizedBox(width: 8),
+                            Icon(Icons.favorite, size: 20, color: Colors.black),
                           ],
                         ),
                         const SizedBox(height: 40),
-                        // Email
-                        buildEmailField(),
-                        const SizedBox(height: 15),
-                        // Password
-                        buildPasswordField(),
+
+                        AnimatedInputField(
+                          controller: _emailController,
+                          focusNode: _emailFocus,
+                          hintText: "Email",
+                          icon: Icons.email_outlined,
+                          inputType: TextInputType.emailAddress,
+                          inputAction: TextInputAction.next,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        AnimatedInputField(
+                          controller: _passwordController,
+                          focusNode: _passwordFocus,
+                          hintText: "Password",
+                          icon: Icons.lock_outline,
+                          inputType: TextInputType.visiblePassword,
+                          inputAction: TextInputAction.done,
+                          isPassword: true,
+                          isPasswordVisible: _isPasswordVisible,
+                          onVisibilityToggle: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                          onSubmitted: (_) {
+                            if (!_loading) signIn();
+                          },
+                        ),
+
                         const SizedBox(height: 10),
-                        
+
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              context.push('/recovery?email=${_emailController.text.trim()}');
+                              context.push(
+                                  '/recovery?email=${_emailController.text.trim()}');
                             },
-                            child: Text(
+                            style: TextButton.styleFrom(
+                              foregroundColor: primaryBlue,
+                            ),
+                            child: const Text(
                               'Forgot Password?',
-                              style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontWeight: FontWeight.bold),
                             ),
                           ),
                         ),
-                        
+
                         const SizedBox(height: 10),
-                        
+
                         buildSignInButton(),
-                        
+
                         const SizedBox(height: 40),
 
                         Row(
@@ -319,7 +305,8 @@ class _LoginViewState extends State<LoginView> {
                           children: [
                             const Text(
                               "Don't have an account?",
-                              style: TextStyle(fontSize: 16, color: Colors.black54),
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.black54),
                             ),
                             TextButton(
                               onPressed: () {
@@ -344,6 +331,117 @@ class _LoginViewState extends State<LoginView> {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class AnimatedInputField extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final String hintText;
+  final IconData icon;
+  final TextInputType inputType;
+  final TextInputAction inputAction;
+  final bool isPassword;
+  final bool isPasswordVisible;
+  final VoidCallback? onVisibilityToggle;
+  final Function(String)? onSubmitted;
+
+  const AnimatedInputField({
+    super.key,
+    required this.controller,
+    required this.focusNode,
+    required this.hintText,
+    required this.icon,
+    required this.inputType,
+    required this.inputAction,
+    this.isPassword = false,
+    this.isPasswordVisible = false,
+    this.onVisibilityToggle,
+    this.onSubmitted,
+  });
+
+  @override
+  State<AnimatedInputField> createState() => _AnimatedInputFieldState();
+}
+
+class _AnimatedInputFieldState extends State<AnimatedInputField> {
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_handleFocusChange);
+  }
+
+  @override
+  void dispose() {
+    widget.focusNode.removeListener(_handleFocusChange);
+    super.dispose();
+  }
+
+  void _handleFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: inputFillColor,
+        borderRadius: BorderRadius.circular(largeRadius),
+        border: Border.all(
+          color: _isFocused ? primaryBlue : Colors.transparent,
+          width: _isFocused ? 2.0 : 1.0,
+        ),
+        boxShadow: [
+          if (_isFocused)
+            BoxShadow(
+              color: primaryBlue.withOpacity(0.25),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+        ],
+      ),
+      child: TextFormField(
+        controller: widget.controller,
+        focusNode: widget.focusNode,
+        keyboardType: widget.inputType,
+        textInputAction: widget.inputAction,
+        obscureText: widget.isPassword && !widget.isPasswordVisible,
+        onFieldSubmitted: widget.onSubmitted,
+        style: const TextStyle(fontSize: 16, color: Colors.black87),
+        decoration: InputDecoration(
+          hintText: widget.hintText,
+          hintStyle: TextStyle(color: Colors.grey.shade500),
+          prefixIcon: Icon(
+            widget.icon,
+            color: _isFocused ? primaryBlue : Colors.grey.shade600,
+          ),
+          suffixIcon: widget.isPassword
+              ? IconButton(
+                  icon: Icon(
+                    widget.isPasswordVisible
+                        ? Icons.visibility
+                        : Icons.visibility_off,
+                    color: _isFocused
+                        ? primaryBlue.withOpacity(0.8)
+                        : Colors.grey.shade500,
+                  ),
+                  onPressed: widget.onVisibilityToggle,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
         ),
       ),
     );

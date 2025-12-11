@@ -6,7 +6,7 @@ Widget listTileCustom(IconData icon, String title, {Function()? onTap}) {
     leading: Icon(icon),
     title: Text(
       title,
-      style: TextStyle(
+      style: const TextStyle(
         fontSize: 14,
         fontWeight: FontWeight.w400,
       ),
@@ -19,7 +19,7 @@ Widget listTileCustom(IconData icon, String title, {Function()? onTap}) {
         color: const Color.fromARGB(255, 255, 229, 202),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Center(
+      child: const Center(
         child: Text(
           'Edit',
           style: TextStyle(

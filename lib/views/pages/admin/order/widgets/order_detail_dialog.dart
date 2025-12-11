@@ -32,7 +32,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
   }
 
   String _formatMoney(double amount) {
-    return NumberFormat.decimalPattern('vi_VN').format(amount);
+    return NumberFormat.decimalPattern('en_US').format(amount);
   }
 
   @override
@@ -74,6 +74,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // --- GENERAL ORDER INFO ---
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -145,6 +146,8 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                 ),
               ),
               const SizedBox(height: 16),
+              
+              // --- PRODUCTS LIST ---
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -184,7 +187,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                               ),
                               subtitle: product['discount'] != 0
-                                  ? Text("Giảm: ${product['discount']}%", style: const TextStyle(color: Colors.redAccent))
+                                  ? Text("Discount: ${product['discount']}%", style: const TextStyle(color: Colors.redAccent))
                                   : null,
                               trailing: Text(
                                 "${_formatMoney(unitPrice * quantity)}đ",
@@ -201,6 +204,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                 ),
               ),
               const SizedBox(height: 16),
+
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -234,9 +238,9 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                               },
                               dropdownMenuEntries: _orderStatuses
                                   .map((value) => DropdownMenuEntry(
-                                value: value,
-                                label: value,
-                              ))
+                                    value: value,
+                                    label: value,
+                                  ))
                                   .toList(),
                               textStyle: const TextStyle(fontSize: 14, color: Colors.black),
                               menuStyle: const MenuStyle(
@@ -275,11 +279,12 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
 
             try {
               await _orderService.updateOrderStatus(orderId, _selectedStatus);
+              widget.onStatusChanged(_selectedStatus);
 
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text("Cập nhật trạng thái đơn $orderId: $_selectedStatus"),
+                    content: Text("Order status updated for $orderId: $_selectedStatus"),
                     backgroundColor: Colors.green,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -287,12 +292,14 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                 context.pop();
               }
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Lỗi khi cập nhật trạng thái: $e"),
-                  backgroundColor: Colors.red,
-                ),
-              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Error updating status: $e"), 
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             }
           },
           style: ElevatedButton.styleFrom(

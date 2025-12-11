@@ -20,7 +20,6 @@ import '../../../../services/order.service.dart';
 import '../../../../services/user.service.dart';
 import 'widgets/cart_item_widget.dart';
 import 'widgets/promocode_section_widget.dart';
-import 'widgets/remove_cart_widget.dart';
 
 enum ShippingMethod { pickupAtStore, expressDelivery }
 
@@ -33,8 +32,8 @@ class CartView extends StatefulWidget {
 
 class _CartViewState extends State<CartView> {
   ShippingMethod _selectedMethod = ShippingMethod.expressDelivery;
+  // ignore: unused_field
   int? _itemToRemove;
-  final int _quantityToRemove = 1;
 
   final TextEditingController _shippingAddressController = TextEditingController();
   final TextEditingController _contactPhoneController = TextEditingController();
@@ -46,9 +45,11 @@ class _CartViewState extends State<CartView> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      final cartProvider = Provider.of<CartProvider>(context, listen: false);
-      await cartProvider.loadCart();
-      await _loadUserInfo();
+      if (FirebaseAuth.instance.currentUser != null) {
+        final cartProvider = Provider.of<CartProvider>(context, listen: false);
+        await cartProvider.loadCart();
+        await _loadUserInfo();
+      }
     });
   }
 
@@ -59,6 +60,7 @@ class _CartViewState extends State<CartView> {
     super.dispose();
   }
 
+  // ignore: unused_element
   void _cancelRemoveItem() => setState(() => _itemToRemove = null);
 
   Future<void> _loadUserInfo() async {
@@ -70,19 +72,19 @@ class _CartViewState extends State<CartView> {
 
       if (mounted && userData != null) {
         _shippingAddressController.text =
-            userData['address'] ?? 'Chưa có địa chỉ';
+            userData['address'] ?? 'No address provided';
         _contactPhoneController.text =
-            userData['phone'] ?? 'Chưa có số điện thoại';
+            userData['phone'] ?? 'No phone number provided';
       }
     } catch (e) {
-      debugPrint('Lỗi khi lấy thông tin user: $e');
+      debugPrint('Error loading user info: $e');
     }
   }
 
   Future<void> _createOrder(CartProvider provider) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      showCustomSnackBar(context, 'Vui lòng đăng nhập để thanh toán',
+      showCustomSnackBar(context, 'Please login to proceed with checkout',
           type: SnackBarType.error);
       return;
     }
@@ -91,32 +93,32 @@ class _CartViewState extends State<CartView> {
     final phone = _contactPhoneController.text.trim();
 
     if (address.isEmpty || phone.isEmpty) {
-      showCustomSnackBar(context, 'Vui lòng nhập địa chỉ và số điện thoại',
+      showCustomSnackBar(context, 'Please enter shipping address and phone number',
           type: SnackBarType.error);
       return;
     }
 
     final cartItems = provider.cart?.items ?? [];
     if (cartItems.isEmpty) {
-      showCustomSnackBar(context, 'Giỏ hàng trống', type: SnackBarType.error);
+      showCustomSnackBar(context, 'Your cart is empty', type: SnackBarType.error);
       return;
     }
 
     try {
-      // 🔹 Lấy thông tin user từ Firestore
+      // 🔹 Get user info from Firestore
       final userData = await _userService.getUserInfo(user.uid);
       final userName = userData?['name'] ?? 'Unknown User';
       final email = userData?['email'] ?? user.email ?? '';
       final currentPoints = (userData?['loyaltyPoints'] ?? 0).toDouble();
 
-      // 🔹 Tính tổng giá
+      // 🔹 Calculate totals
       final subtotal = provider.totalPrice;
       final shippingFee =
-      _selectedMethod == ShippingMethod.pickupAtStore ? 0 : 20000;
+          _selectedMethod == ShippingMethod.pickupAtStore ? 0 : 20000;
       final discount = provider.couponDiscount + (provider.usedPoints * 1000);
       final total = (subtotal + shippingFee - discount).clamp(0, double.infinity);
 
-      // 🔹 Tạo danh sách sản phẩm
+      // 🔹 Create Order Items
       final orderItems = cartItems.map((p) {
         return OrderItemModel(
           productId: p.productId,
@@ -128,7 +130,7 @@ class _CartViewState extends State<CartView> {
         );
       }).toList();
 
-      // 🔹 Tạo OrderModel
+      // 🔹 Create OrderModel
       final order = OrderModel(
         userId: user.uid,
         userName: userName,
@@ -149,7 +151,7 @@ class _CartViewState extends State<CartView> {
         updatedAt: DateTime.now(),
       );
 
-      // Lưu đơn hàng vào Firestore
+      // Save order to Firestore
       await _orderService.createOrder(order);
 
       if (provider.selectedCoupon != null) {
@@ -163,317 +165,123 @@ class _CartViewState extends State<CartView> {
           if (isUpdated) {
             showCustomSnackBar(
               context,
-              'Coupon ${coupon.code} đã được áp dụng cho đơn $orderId',
+              'Coupon ${coupon.code} applied to order $orderId',
               type: SnackBarType.success,
             );
           }
         }
       }
 
-      // Cập nhật điểm khách hàng
+      // Update User Points
       final newPoints = (currentPoints - provider.usedPoints +
-          (total / 10000).floorToDouble())
+              (total / 10000).floorToDouble())
           .clamp(0, double.infinity);
       await _userService.updateUserPoints(user.uid, newPoints);
 
-      // Dọn giỏ hàng
+      // Clear Cart
       await provider.clearCart();
 
-      showCustomSnackBar(context, 'Đặt hàng thành công!',
+      showCustomSnackBar(context, 'Order placed successfully!',
           type: SnackBarType.success);
 
       if (mounted) {
         context.go('/home');
       }
     } catch (e) {
-      debugPrint('Lỗi khi tạo đơn hàng: $e');
-      showCustomSnackBar(context, 'Lỗi khi tạo đơn hàng: $e',
+      debugPrint('Error creating order: $e');
+      showCustomSnackBar(context, 'Error creating order: $e',
           type: SnackBarType.error);
     }
   }
-
 
   Future<void> _handleRemoveItem(BuildContext context, String productId) async {
     final provider = Provider.of<CartProvider>(context, listen: false);
     final userId = provider.cart?.userId ?? '';
 
     await provider.removeItemFromCart(userId, productId);
-    showCustomSnackBar(context, '🗑️ Đã xóa sản phẩm khỏi giỏ hàng',
+    showCustomSnackBar(context, 'Item removed from cart',
         type: SnackBarType.success);
   }
 
-  Widget _buildHeaderRow() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: const Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text('PRODUCT',
-                style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text('QUANTITY',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold)),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text('TOTAL',
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRowWithLabel({
-    required String label,
-    Widget? child,
-    String? value,
-    TextStyle? labelStyle,
-    TextStyle? valueStyle,
-    Color valueColor = Colors.black87,
-  }) {
-    return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // --- NEW: View for unauthenticated users ---
+  Widget _buildLoginRequiredView() {
+    return Scaffold(
+      appBar: CustomAppBarMobile(title: 'Shopping Cart', isBack: true),
+      backgroundColor: Colors.white,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-            Text(label,
-            style:
-            labelStyle ?? const TextStyle(fontSize: 14, color: Colors.black54)),
-        child ??
-            Text(value ?? '',
-                textAlign: TextAlign.right,
-                style: valueStyle ??
-                    TextStyle(
-                        fontSize: 14,
-                        color: valueColor,
-                        fontWeight: FontWeight.w600)),
-    ],
-    ),
-    );
-  }
-
-  Widget _buildAddressSection() {
-    return _ModernCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Shipping Information',
-            style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _shippingAddressController,
-            decoration: InputDecoration(
-              labelText: 'Delivery Address',
-              hintText: 'e.g., 123 Nguyen Trai, District 5, HCM',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  FeatherIcons.shoppingCart,
+                  size: 64,
+                  color: AppColors.primary,
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            controller: _contactPhoneController,
-            keyboardType: TextInputType.phone,
-            decoration: InputDecoration(
-              labelText: 'Contact Phone Number',
-              hintText: 'e.g., 0901234567',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShippingOptions() {
-    return _ModernCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Choose Delivery Mode',
-              style: TextStyle(
-                  fontSize: 18,
+              const SizedBox(height: 24),
+              const Text(
+                'You are not logged in',
+                style: TextStyle(
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87)),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
-          const SizedBox(height: 8),
-          _buildRadioTile(
-              value: ShippingMethod.pickupAtStore,
-              title: Row(children: [
-                const Expanded(
-                    child: Text('Store pickup (Ready in 20 min)',
-                        style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.black87,
-                            fontWeight: FontWeight.w500))),
-                const SizedBox(width: 8),
-                Container(
-                    padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6)),
-                    child: Text('FREE',
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.bold)))
-              ])),
-          const SizedBox(height: 8),
-          _buildRadioTile(
-              value: ShippingMethod.expressDelivery,
-              title: const Text('Express Delivery (2 - 4 business days)',
-                  style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      fontWeight: FontWeight.w500))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRadioTile({required ShippingMethod value, required Widget title}) {
-    return InkWell(
-      onTap: () => setState(() => _selectedMethod = value),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-        decoration: BoxDecoration(
-          color: _selectedMethod == value
-              ? AppColors.primary.withOpacity(0.05)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: _selectedMethod == value
-                  ? AppColors.primary
-                  : Colors.grey.shade300,
-              width: _selectedMethod == value ? 1.5 : 1),
-        ),
-        child: Row(
-          children: [
-            Radio<ShippingMethod>(
-                activeColor: AppColors.primary,
-                value: value,
-                groupValue: _selectedMethod,
-                onChanged: (val) => setState(() => _selectedMethod = val!)),
-            Expanded(child: title),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSummaryDetails(
-      CartProvider provider,
-      ShippingMethod selectedMethod,
-      double couponDiscount,
-      int usedPoints,
-      ) {
-    // 🔹 Tính tổng tiền sản phẩm (subtotal)
-    final subtotal = provider.cart?.items.fold<double>(
-      0,
-          (sum, item) =>
-      sum +
-          (item.unitPrice - (item.unitPrice * item.discount / 100)) *
-              item.quantity,
-    ) ??
-        0;
-
-    // 🔹 Phí vận chuyển
-    final shippingFee =
-    selectedMethod == ShippingMethod.pickupAtStore ? 0.0 : 20000.0;
-
-    // 🔹 Giảm giá (voucher + điểm KHTT)
-    final totalDiscount = couponDiscount + (usedPoints * 1000);
-
-    // 🔹 Tổng thanh toán cuối cùng
-    final totalPayment = (subtotal + shippingFee - totalDiscount).clamp(0, double.infinity);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildRowWithLabel(
-          label: 'Subtotal',
-          value: formatMoney(subtotal),
-        ),
-        _buildRowWithLabel(
-          label: 'Shipping Fee',
-          value: formatMoney(shippingFee),
-        ),
-        _buildRowWithLabel(
-          label: 'Discount (Voucher & Points)',
-          value: '- ${formatMoney(totalDiscount)}',
-          valueColor: AppColors.pink,
-        ),
-        const Divider(height: 24),
-        _buildRowWithLabel(
-          label: 'Total Payment',
-          value: formatMoney(totalPayment.toDouble()),
-          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          valueStyle: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primary,
-          ),
-        ),
-        const SizedBox(height: 16),
-        SizedBox(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton.icon(
-            onPressed: () => _createOrder(provider),
-            icon: const Icon(FeatherIcons.checkCircle,
-                color: Colors.white, size: 20),
-            label: const Text(
-              'Proceed to Checkout',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
               ),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              elevation: 5,
-              shadowColor: AppColors.primary.withOpacity(0.4),
-            ),
+              const SizedBox(height: 12),
+              const Text(
+                'Please login to view your cart and proceed with checkout.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    // Navigate to Login Page
+                    context.push('/login'); 
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: const Text(
+                    'Login Now',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    // 1. CHECK LOGIN STATUS FIRST
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return _buildLoginRequiredView();
+    }
+
     final isMobile = Responsive.isMobile(context);
 
     return Consumer<CartProvider>(
@@ -489,9 +297,26 @@ class _CartViewState extends State<CartView> {
         if (cartItems.isEmpty) {
           return Scaffold(
             appBar: CustomAppBarMobile(title: 'My Cart (0)', isBack: true),
-            body: const Center(
-                child: Text('🛒 Giỏ hàng của bạn đang trống',
-                    style: TextStyle(fontSize: 16))),
+            body: Center(
+                child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(FeatherIcons.shoppingCart,
+                    size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
+                const Text('Your cart is empty',
+                    style: TextStyle(fontSize: 16, color: Colors.grey)),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => context.go('/home'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: const Text("Continue Shopping",
+                      style: TextStyle(color: Colors.white)),
+                )
+              ],
+            )),
           );
         }
 
@@ -531,8 +356,8 @@ class _CartViewState extends State<CartView> {
     );
   }
 
-  Widget _buildVerticalLayout(List<ProductForCartModel> items,
-      CartProvider provider, bool isMobile) {
+  Widget _buildVerticalLayout(
+      List<ProductForCartModel> items, CartProvider provider, bool isMobile) {
     return Column(
       children: [
         _buildCartList(items, true),
@@ -615,7 +440,8 @@ class _CartViewState extends State<CartView> {
                 children: [
                   CustomSlidableAction(
                     borderRadius: BorderRadius.circular(16),
-                    onPressed: (_) => _handleRemoveItem(context, item.productId ?? ''),
+                    onPressed: (_) =>
+                        _handleRemoveItem(context, item.productId ?? ''),
                     backgroundColor: Colors.transparent,
                     child: const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -624,7 +450,7 @@ class _CartViewState extends State<CartView> {
                             color: AppColors.red, size: 24),
                         Text('Remove',
                             style:
-                            TextStyle(color: AppColors.red, fontSize: 12)),
+                                TextStyle(color: AppColors.red, fontSize: 12)),
                       ],
                     ),
                   ),
@@ -637,7 +463,7 @@ class _CartViewState extends State<CartView> {
                   onQuantityChanged: (newQty) async {
                     await provider.updateItemQuantity(
                         userId, item.productId ?? '', newQty);
-                    showCustomSnackBar(context, 'Cập nhật số lượng thành công',
+                    showCustomSnackBar(context, 'Quantity updated successfully',
                         type: SnackBarType.success);
                   },
                 ),
@@ -646,6 +472,278 @@ class _CartViewState extends State<CartView> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHeaderRow() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text('PRODUCT',
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('QUANTITY',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            flex: 1,
+            child: Text('TOTAL',
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRowWithLabel({
+    required String label,
+    Widget? child,
+    String? value,
+    TextStyle? labelStyle,
+    TextStyle? valueStyle,
+    Color valueColor = Colors.black87,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label,
+              style: labelStyle ??
+                  const TextStyle(fontSize: 14, color: Colors.black54)),
+          child ??
+              Text(value ?? '',
+                  textAlign: TextAlign.right,
+                  style: valueStyle ??
+                      TextStyle(
+                          fontSize: 14,
+                          color: valueColor,
+                          fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressSection() {
+    return _ModernCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Shipping Information',
+            style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _shippingAddressController,
+            decoration: InputDecoration(
+              labelText: 'Delivery Address',
+              hintText: 'e.g., 123 Nguyen Trai, District 5, HCM',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _contactPhoneController,
+            keyboardType: TextInputType.phone,
+            decoration: InputDecoration(
+              labelText: 'Contact Phone Number',
+              hintText: 'e.g., 0901234567',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShippingOptions() {
+    return _ModernCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Choose Delivery Mode',
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87)),
+          const SizedBox(height: 12),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          _buildRadioTile(
+              value: ShippingMethod.pickupAtStore,
+              title: Row(children: [
+                const Expanded(
+                    child: Text('Store pickup (Ready in 20 min)',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w500))),
+                const SizedBox(width: 8),
+                Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6)),
+                    child: const Text('FREE',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold)))
+              ])),
+          const SizedBox(height: 8),
+          _buildRadioTile(
+              value: ShippingMethod.expressDelivery,
+              title: const Text('Express Delivery (2 - 4 business days)',
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.black87,
+                      fontWeight: FontWeight.w500))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRadioTile(
+      {required ShippingMethod value, required Widget title}) {
+    return InkWell(
+      onTap: () => setState(() => _selectedMethod = value),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: _selectedMethod == value
+              ? AppColors.primary.withOpacity(0.05)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: _selectedMethod == value
+                  ? AppColors.primary
+                  : Colors.grey.shade300,
+              width: _selectedMethod == value ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            Radio<ShippingMethod>(
+                activeColor: AppColors.primary,
+                value: value,
+                groupValue: _selectedMethod,
+                onChanged: (val) => setState(() => _selectedMethod = val!)),
+            Expanded(child: title),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSummaryDetails(
+    CartProvider provider,
+    ShippingMethod selectedMethod,
+    double couponDiscount,
+    int usedPoints,
+  ) {
+    // 🔹 Calculate subtotal
+    final subtotal = provider.cart?.items.fold<double>(
+          0,
+          (sum, item) =>
+              sum +
+              (item.unitPrice - (item.unitPrice * item.discount / 100)) *
+                  item.quantity,
+        ) ??
+        0;
+
+    // 🔹 Shipping fee
+    final shippingFee =
+        selectedMethod == ShippingMethod.pickupAtStore ? 0.0 : 20000.0;
+
+    // 🔹 Discount (voucher + points)
+    final totalDiscount = couponDiscount + (usedPoints * 1000);
+
+    // 🔹 Final payment total
+    final totalPayment =
+        (subtotal + shippingFee - totalDiscount).clamp(0, double.infinity);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRowWithLabel(
+          label: 'Subtotal',
+          value: formatMoney(subtotal),
+        ),
+        _buildRowWithLabel(
+          label: 'Shipping Fee',
+          value: formatMoney(shippingFee),
+        ),
+        _buildRowWithLabel(
+          label: 'Discount (Voucher & Points)',
+          value: '- ${formatMoney(totalDiscount)}',
+          valueColor: AppColors.pink,
+        ),
+        const Divider(height: 24),
+        _buildRowWithLabel(
+          label: 'Total Payment',
+          value: formatMoney(totalPayment.toDouble()),
+          labelStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          valueStyle: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: () => _createOrder(provider),
+            icon: const Icon(FeatherIcons.checkCircle,
+                color: Colors.white, size: 20),
+            label: const Text(
+              'Proceed to Checkout',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              elevation: 5,
+              shadowColor: AppColors.primary.withOpacity(0.4),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

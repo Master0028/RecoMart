@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
 class SearchCameraPage extends StatefulWidget {
@@ -9,36 +10,61 @@ class SearchCameraPage extends StatefulWidget {
   State<SearchCameraPage> createState() => _SearchCameraPageState();
 }
 
-class _SearchCameraPageState extends State<SearchCameraPage> {
+class _SearchCameraPageState extends State<SearchCameraPage>
+    with SingleTickerProviderStateMixin {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isSearching = false;
 
-  // Hàm chọn ảnh từ nguồn (Gallery hoặc Camera)
+  late AnimationController _animationController;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    );
+
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
   Future<void> _pickImage(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: source,
         maxWidth: 1080,
         maxHeight: 1080,
-        imageQuality: 85, // Nén nhẹ để upload nhanh hơn
+        imageQuality: 85,
       );
 
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
+          _isSearching = false;
+          _animationController.reset();
         });
       }
     } catch (e) {
-      debugPrint('Lỗi chọn ảnh: $e');
+      debugPrint('Error picking image: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không thể truy cập hình ảnh. Vui lòng kiểm tra quyền truy cập.')),
+        const SnackBar(
+            content: Text(
+                'Unable to access image. Please check permissions.')),
       );
     }
   }
 
-  // Hàm giả lập gửi ảnh đi tìm kiếm
   void _performImageSearch() async {
     if (_imageFile == null) return;
 
@@ -46,27 +72,30 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
       _isSearching = true;
     });
 
-    // Giả lập delay gọi API (2 giây)
-    await Future.delayed(const Duration(seconds: 2));
+    _animationController.repeat(reverse: true);
+
+    await Future.delayed(const Duration(seconds: 3));
 
     if (!mounted) return;
 
     setState(() {
       _isSearching = false;
     });
-
-    // Ở đây bạn sẽ Navigate sang trang kết quả hoặc hiện bottom sheet
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã tìm thấy sản phẩm tương tự! (Demo)')),
-    );
     
-    // Ví dụ: context.push('/search-results', extra: _imageFile);
+    _animationController.stop();
+    _animationController.reset();
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Similar products found! (Demo)')),
+    );
+    context.push('/search-results', extra: _imageFile);
   }
 
-  // Hàm xóa ảnh để chọn lại
   void _clearImage() {
     setState(() {
       _imageFile = null;
+      _isSearching = false;
+      _animationController.reset();
     });
   }
 
@@ -76,16 +105,16 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      // Nút Back và Tiêu đề
+      // AppBar
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Tìm kiếm bằng hình ảnh", style: TextStyle(color: Colors.white)),
+        title: const Text("Image Search", style: TextStyle(color: Colors.white)),
         elevation: 0,
       ),
       body: Column(
         children: [
-          // Khu vực hiển thị ảnh
+          // Image Display Area
           Expanded(
             child: Container(
               width: size.width,
@@ -96,41 +125,67 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
                 border: Border.all(color: Colors.grey[800]!),
               ),
               child: _imageFile != null
-                  ? Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        // Ảnh đã chọn
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.file(_imageFile!, fit: BoxFit.cover),
-                        ),
-                        // Nút xóa ảnh
-                        Positioned(
-                          top: 10,
-                          right: 10,
-                          child: IconButton(
-                            onPressed: _clearImage,
-                            icon: const Icon(Icons.close, color: Colors.white),
-                            style: IconButton.styleFrom(backgroundColor: Colors.black54),
-                          ),
-                        ),
-                        // Loading khi đang tìm kiếm
-                        if (_isSearching)
-                          Container(
-                            color: Colors.black54,
-                            child: const Center(
-                              child: CircularProgressIndicator(color: Colors.white),
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Image.file(_imageFile!, fit: BoxFit.cover),
+
+                          if (_isSearching)
+                            Container(color: Colors.black.withOpacity(0.3)),
+
+                          if (_isSearching)
+                            AnimatedBuilder(
+                              animation: _animationController,
+                              builder: (context, child) {
+                                return Positioned(
+                                  top: -100 + (_animation.value * (size.height * 0.6)), // Move scanner down
+                                  left: 0,
+                                  right: 0,
+                                  child: Container(
+                                    height: 100, // Height of the gradient tail
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                        colors: [
+                                          Colors.blue.withOpacity(0.0),
+                                          Colors.blue.withOpacity(0.5),
+                                        ],
+                                      ),
+                                      border: const Border(
+                                        bottom: BorderSide(color: Colors.blue, width: 2),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
-                          ),
-                      ],
+
+                          // 4. Close Button
+                          if (!_isSearching)
+                            Positioned(
+                              top: 10,
+                              right: 10,
+                              child: IconButton(
+                                onPressed: _clearImage,
+                                icon: const Icon(Icons.close, color: Colors.white),
+                                style: IconButton.styleFrom(
+                                    backgroundColor: Colors.black54),
+                              ),
+                            ),
+                        ],
+                      ),
                     )
                   : const Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.center_focus_weak, size: 80, color: Colors.grey),
+                        Icon(Icons.center_focus_weak,
+                            size: 80, color: Colors.grey),
                         SizedBox(height: 10),
                         Text(
-                          'Chụp hoặc chọn ảnh sản phẩm\nđể tìm kiếm',
+                          'Snap or select a photo\nto find products',
                           textAlign: TextAlign.center,
                           style: TextStyle(color: Colors.grey),
                         ),
@@ -139,7 +194,6 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
             ),
           ),
 
-          // Nút tìm kiếm (Chỉ hiện khi đã có ảnh)
           if (_imageFile != null && !_isSearching)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -149,13 +203,21 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text("TÌM KIẾM SẢN PHẨM NÀY", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: const Text("SEARCH THIS PRODUCT",
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
+          
+          if (_isSearching)
+             const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Text("Scanning...", style: TextStyle(color: Colors.white, letterSpacing: 1.5)),
+            ),
 
-          // Bottom Bar (Gallery & Camera)
           Container(
             height: size.height * 0.15,
             padding: const EdgeInsets.only(bottom: 20, top: 10),
@@ -166,14 +228,13 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Nút Gallery
+                // Gallery Button
                 _buildActionButton(
                   icon: Icons.image_outlined,
-                  label: 'Thư viện',
+                  label: 'Gallery',
                   onPressed: () => _pickImage(ImageSource.gallery),
                 ),
 
-                // Nút Camera (Nổi bật)
                 InkWell(
                   onTap: () => _pickImage(ImageSource.camera),
                   borderRadius: BorderRadius.circular(50),
@@ -192,19 +253,21 @@ class _SearchCameraPageState extends State<SearchCameraPage> {
                       ],
                     ),
                     child: const Center(
-                      child: Icon(Icons.camera_alt, color: Colors.white, size: 32),
+                      child: Icon(Icons.camera_alt,
+                          color: Colors.white, size: 32),
                     ),
                   ),
                 ),
 
-                // Placeholder để cân đối layout (hoặc nút xoay camera nếu cần)
-                 const SizedBox(
-                   width: 80,
-                   child: Center(
-                    // Có thể thay bằng nút flash hoặc lịch sử
-                     child: Icon(Icons.history, color: Colors.grey),
-                   ),
-                 ),
+                _buildActionButton(
+                  icon: Icons.history,
+                  label: 'History',
+                  onPressed: () {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('History feature coming soon')),
+                      );
+                  },
+                ),
               ],
             ),
           ),

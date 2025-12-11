@@ -143,13 +143,13 @@ class _AdminScreenState extends State<AdminScreen> {
           _currentScreen = const ProductManagementScreen();
           break;
         case "Category":
-          _currentScreen = CategoryManagementScreen();
+          _currentScreen = const CategoryManagementScreen();
           break;
         case "Brand":
-          _currentScreen = BrandManagementScreen();
+          _currentScreen = const BrandManagementScreen();
           break;
         case "Customer":
-          _currentScreen = CustomerManagementScreen();
+          _currentScreen = const CustomerManagementScreen();
           break;
         case "Order":
           _currentScreen = const OrderManagementScreen();
@@ -158,10 +158,10 @@ class _AdminScreenState extends State<AdminScreen> {
           _currentScreen = const InvoiceManagementScreen();
           break;
         case "Coupon":
-          _currentScreen = CouponManagementScreen();
+          _currentScreen = const CouponManagementScreen();
           break;
         case "Support":
-          _currentScreen = SupportScreen();
+          _currentScreen = const SupportScreen();
           break;
         case "Logout":
           _logoutFE();

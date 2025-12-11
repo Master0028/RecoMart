@@ -4,7 +4,6 @@ import '../../../../../models/brand.model.dart';
 import 'brand_form.dart';
 
 class BrandTable extends StatefulWidget {
-  // BrandTable giờ chấp nhận List<BrandModel> (Model Stub)
   final List<BrandModel> brands;
 
   const BrandTable({super.key, required this.brands});
@@ -173,7 +172,6 @@ class _BrandTableState extends State<BrandTable> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // SỬA LỖI: Truy cập thuộc tính bằng dấu chấm (brand.name)
                 Text(
                   brand.name,
                   style: const TextStyle(
@@ -284,7 +282,7 @@ class _BrandTableState extends State<BrandTable> {
                     children: [
                       buildHeaderRow(headers, colWidths),
                       ...filteredBrands.asMap().entries.map((entry) {
-                        final index = entry.key + 1; // 🧮 STT bắt đầu từ 1
+                        final index = entry.key + 1;
                         final brand = entry.value;
                         return buildBrandRow(index, brand, colWidths);
                       }),

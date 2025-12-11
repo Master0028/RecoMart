@@ -15,7 +15,6 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
   @override
   void initState() {
     super.initState();
-    // 🧠 Lấy dữ liệu thật từ Firestore khi mở màn hình
     Future.microtask(() =>
         Provider.of<CategoryProvider>(context, listen: false).fetchCategories());
   }
@@ -39,7 +38,7 @@ class _CategoryManagementScreenState extends State<CategoryManagementScreen> {
             if (categoryProvider.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (categoryProvider.categories.isEmpty)
-              const Text("Không có danh mục nào trong Firestore.")
+              const Text("We have no category in our Firestore.")
             else
               CategoryTable(categories: categoryProvider.categories),
           ],

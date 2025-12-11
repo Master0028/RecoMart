@@ -9,8 +9,10 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'RecoMart UI',
       theme: ThemeData(
-        fontFamily: 'Roboto', 
+        fontFamily: 'Roboto',
         primarySwatch: Colors.blue,
+        scaffoldBackgroundColor: Colors.white,
+        useMaterial3: true,
       ),
       debugShowCheckedModeBanner: false,
       home: const IntroScreen(),
@@ -18,68 +20,62 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class BannerImage extends StatelessWidget {
-  final double width;
-  final double height;
-  final String imagePath; 
+class ModernBannerImage extends StatelessWidget {
+  final double size;
+  final String imagePath;
 
-  const BannerImage({
+  const ModernBannerImage({
     super.key,
-    required this.width,
-    required this.height,
+    required this.size,
     required this.imagePath,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.blue.shade100,
-        borderRadius: const BorderRadius.all(Radius.circular(60)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Center( 
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(60),
-          child: Image.asset(
-            imagePath,
-            width: width,
-            height: height,
-            fit: BoxFit.contain,
-            errorBuilder: (context, error, stackTrace) {
-              return const Icon( 
-                Icons.shopping_bag_outlined,
-                size: 100,
-                color: Colors.blue,
-              );
-            },
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.blue.withOpacity(0.05),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class WelcomeImageWidget extends StatelessWidget {
-  const WelcomeImageWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    const String imagePath = "assets/logo/logo.png"; 
-    
-    return const Center(
-      child: BannerImage(
-          width: 300.0,
-          height: 300.0,
-          imagePath: imagePath),
+        Container(
+          width: size * 0.85,
+          height: size * 0.85,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.blue.withOpacity(0.15),
+                blurRadius: 30,
+                offset: const Offset(0, 15),
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: ClipOval(
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: Image.asset(
+                imagePath,
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    Icons.shopping_bag_rounded,
+                    size: size * 0.4,
+                    color: Colors.blue.shade600,
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -87,124 +83,170 @@ class WelcomeImageWidget extends StatelessWidget {
 class IntroScreen extends StatelessWidget {
   const IntroScreen({super.key});
 
-  void _handleNavigation(BuildContext context, String routeName) {
-    print('UI Interaction: Navigating to $routeName...');
-  }
-
   @override
   Widget build(BuildContext context) {
-    final blueColor = Colors.blue.shade800;
-    const orangeColor = Color(0xFFFF9800);
+    // Định nghĩa màu sắc chủ đạo
+    final Color primaryBlue = const Color(0xFF2962FF);
+    final Color accentOrange = const Color(0xFFFF6D00);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              const Spacer(), 
-              
-              const WelcomeImageWidget(),
-              const SizedBox(height: 30), 
-
-              Text.rich(
-                TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Reco',
-                      style: TextStyle(
-                        color: blueColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const TextSpan(text: ' '),
-                    TextSpan(
-                      text: 'Mart',
-                      style: TextStyle(
-                        color: orangeColor,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 40,
-                ),
+      body: Stack(
+        children: [
+          Positioned(
+            top: -50,
+            right: -50,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: primaryBlue.withOpacity(0.05),
               ),
-              const SizedBox(height: 10),
-
-              const Text(
-                'Personalized Product\nRecommendation System',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black54,
-                  height: 1.4,
-                ),
-              ),
-
-              const Spacer(flex: 2),
-
-              ElevatedButton(
-                onPressed: () => context.push('/signup'), 
-                style: ElevatedButton.styleFrom( 
-                  backgroundColor: Colors.blue.shade700,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  "Let's get started",
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () => context.push('/login'), 
-                  borderRadius: BorderRadius.circular(8.0), 
+            ),
+          ),
+          
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 20.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  const Spacer(flex: 1),
                   
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
+                  const Center(
+                    child: ModernBannerImage(
+                      size: 320.0,
+                      imagePath: "assets/logo/logo.png",
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 40),
+
+                  Text.rich(
+                    TextSpan(
                       children: [
-                        const Text(
-                          'I already have an account',
+                        TextSpan(
+                          text: 'Reco',
                           style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                            color: primaryBlue,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 42,
+                            letterSpacing: -1.0,
                           ),
                         ),
-                        const SizedBox(width: 5),
-                        Icon(
-                          Icons.arrow_forward,
-                          color: Colors.blue.shade700,
-                          size: 24,
+                        TextSpan(
+                          text: 'Mart',
+                          style: TextStyle(
+                            color: accentOrange,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 42,
+                            letterSpacing: -1.0,
+                          ),
+                        ),
+                        const TextSpan(
+                          text: '',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 42,
+                          ),
                         ),
                       ],
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
+                  
+                  const SizedBox(height: 16),
+
+                  const Text(
+                    'Smart Shopping,\nPersonalized for You.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.grey,
+                      height: 1.5,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+
+                  const Spacer(flex: 2),
+
+                  Container(
+                    height: 60,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        colors: [primaryBlue, const Color(0xFF448AFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: primaryBlue.withOpacity(0.3),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () => context.push('/signup'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        "Get Started",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  TextButton(
+                    onPressed: () => context.push('/login'),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        text: "Already have an account? ",
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        children: [
+                          TextSpan(
+                            text: "Login",
+                            style: TextStyle(
+                              color: primaryBlue,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ),
-              const SizedBox(height: 10),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

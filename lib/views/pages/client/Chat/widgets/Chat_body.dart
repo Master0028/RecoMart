@@ -7,7 +7,14 @@ class ChatMessage {
   final String text;
   final bool isUser;
   final List<dynamic>? products;
-  ChatMessage({required this.text, required this.isUser, this.products});
+  bool shouldAnimate; 
+
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    this.products,
+    this.shouldAnimate = false, // Default false
+  });
 }
 
 class ChatBody extends StatefulWidget {
@@ -23,7 +30,11 @@ class _ChatBodyState extends State<ChatBody> {
   final ScrollController _scrollController = ScrollController();
 
   final List<ChatMessage> _messages = [
-    ChatMessage(text: "Chào bạn! Tôi là trợ lý AI RecoMart. Bạn đang tìm sản phẩm gì? (Ví dụ: 'Laptop gaming', 'Tai nghe sony', 'Chuột giá rẻ')", isUser: false),
+    ChatMessage(
+      text: "Hello! I am RecoMart AI Assistant. What product are you looking for? (e.g., 'Gaming Laptop', 'Sony Headphones', 'Cheap Mouse')",
+      isUser: false,
+      shouldAnimate: true, // Animate the welcome message
+    ),
   ];
 
   bool _isTyping = false;
@@ -33,7 +44,7 @@ class _ChatBodyState extends State<ChatBody> {
     if (text.isEmpty) return;
 
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true));
+      _messages.add(ChatMessage(text: text, isUser: true, shouldAnimate: false));
       _isTyping = true;
       _controller.clear();
     });
@@ -45,9 +56,10 @@ class _ChatBodyState extends State<ChatBody> {
       setState(() {
         _isTyping = false;
         _messages.add(ChatMessage(
-          text: response['reply'] ?? "Tôi không hiểu ý bạn.",
+          text: response['reply'] ?? "I didn't understand that.",
           isUser: false,
-          products: response['products'], // List sản phẩm gợi ý
+          products: response['products'],
+          shouldAnimate: true, 
         ));
       });
       _scrollToBottom();
@@ -70,7 +82,7 @@ class _ChatBodyState extends State<ChatBody> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // DANH SÁCH TIN NHẮN
+        // MESSAGE LIST
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
@@ -82,7 +94,11 @@ class _ChatBodyState extends State<ChatBody> {
                   alignment: Alignment.centerLeft,
                   child: Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: Text("AI đang tìm kiếm...", style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey)),
+                    child: Text(
+                      "AI is searching...",
+                      style: TextStyle(
+                          fontStyle: FontStyle.italic, color: Colors.grey),
+                    ),
                   ),
                 );
               }
@@ -93,12 +109,15 @@ class _ChatBodyState extends State<ChatBody> {
           ),
         ),
 
-        // KHUNG NHẬP LIỆU
+        // INPUT FIELD
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: Colors.white,
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, -2))],
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.black12, blurRadius: 5, offset: Offset(0, -2))
+            ],
           ),
           child: Row(
             children: [
@@ -106,11 +125,14 @@ class _ChatBodyState extends State<ChatBody> {
                 child: TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    hintText: 'Hỏi AI về sản phẩm...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(25), borderSide: BorderSide.none),
+                    hintText: 'Ask AI about products...',
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: BorderSide.none),
                     filled: true,
                     fillColor: Colors.grey[100],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
                   ),
                   onSubmitted: (_) => _handleSend(),
                 ),
@@ -130,18 +152,20 @@ class _ChatBodyState extends State<ChatBody> {
     );
   }
 
-  // WIDGET BONG BÓNG CHAT
+  // CHAT BUBBLE WIDGET
   Widget _buildMessageBubble(ChatMessage msg) {
     final isMe = msg.isUser;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        constraints:
+            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Nội dung text
+            // Text content
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -153,13 +177,24 @@ class _ChatBodyState extends State<ChatBody> {
                   bottomRight: isMe ? Radius.zero : const Radius.circular(12),
                 ),
               ),
-              child: Text(
-                msg.text,
-                style: TextStyle(color: isMe ? Colors.white : Colors.black87),
-              ),
+              child: isMe || !msg.shouldAnimate
+                  ? Text(
+                      msg.text,
+                      style: TextStyle(
+                          color: isMe ? Colors.white : Colors.black87),
+                    )
+                  : TypewriterText(
+                      text: msg.text,
+                      style: TextStyle(
+                          color: isMe ? Colors.white : Colors.black87),
+                      onFinished: () {
+                        // Once finished, set flag to false to prevent re-animation on scroll
+                        msg.shouldAnimate = false;
+                      },
+                    ),
             ),
 
-            // Nếu có sản phẩm gợi ý thì hiển thị List ngang
+            // Suggested Products
             if (!isMe && msg.products != null && msg.products!.isNotEmpty) ...[
               const SizedBox(height: 10),
               SizedBox(
@@ -169,12 +204,9 @@ class _ChatBodyState extends State<ChatBody> {
                   itemCount: msg.products!.length,
                   itemBuilder: (context, pIndex) {
                     final product = msg.products![pIndex];
-                    // Lưu ý: API trả về 'id', 'name', 'score'. 
-                    // Cần query Firebase để lấy ảnh thật (giống widget Suggestion trước đó)
-                    // Ở đây mình làm demo UI trước
                     return GestureDetector(
                       onTap: () {
-                         context.push('/product-detail/${product['id']}');
+                        context.push('/product-detail/${product['id']}');
                       },
                       child: Container(
                         width: 120,
@@ -187,14 +219,16 @@ class _ChatBodyState extends State<ChatBody> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Ảnh Placeholder (Cần sửa để lấy ảnh thật từ Firebase nếu muốn đẹp)
                             Expanded(
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: Colors.grey[100],
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                  borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(10)),
                                 ),
-                                child: const Center(child: Icon(Icons.image, color: Colors.grey)),
+                                child: const Center(
+                                    child: Icon(Icons.image,
+                                        color: Colors.grey)),
                               ),
                             ),
                             Padding(
@@ -206,12 +240,16 @@ class _ChatBodyState extends State<ChatBody> {
                                     product['name'] ?? 'Unknown',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                    style: const TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     "ID: ${product['id']}",
-                                    style: TextStyle(fontSize: 10, color: AppColors.primary),
+                                    style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.primary),
                                   ),
                                 ],
                               ),
@@ -227,6 +265,34 @@ class _ChatBodyState extends State<ChatBody> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class TypewriterText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+  final VoidCallback? onFinished;
+
+  const TypewriterText({
+    super.key,
+    required this.text,
+    this.style,
+    this.onFinished,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<int>(
+      tween: IntTween(begin: 0, end: text.length),
+      duration: Duration(milliseconds: text.length * 30),
+      builder: (context, value, child) {
+        return Text(
+          text.substring(0, value),
+          style: style,
+        );
+      },
+      onEnd: onFinished,
     );
   }
 }

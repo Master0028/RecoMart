@@ -1,13 +1,14 @@
+import 'dart:convert';
 import 'dart:io' show File;
-import 'package:flutter/foundation.dart' show kIsWeb, Uint8List;
+import 'package:flutter/foundation.dart' show Uint8List, kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../../../../models/product.model.dart';
 import '../../../../../provider/product_provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DropdownEntry {
   final String id;
@@ -34,6 +35,7 @@ class ProductForm extends StatefulWidget {
 }
 
 class _ProductFormState extends State<ProductForm> {
+  // Controllers
   late TextEditingController nameController;
   late TextEditingController descriptionController;
   late TextEditingController priceController;
@@ -42,6 +44,7 @@ class _ProductFormState extends State<ProductForm> {
   late TextEditingController avgRatingController;
   late TextEditingController reviewCountController;
 
+  // State
   String? imageUrl;
   Uint8List? imageBytes;
   File? imageFile;
@@ -91,11 +94,10 @@ class _ProductFormState extends State<ProductForm> {
             .toList();
       });
     } catch (e) {
-      debugPrint("Lỗi load category/brand: $e");
+      debugPrint("Error loading category/brand data: $e");
     }
   }
 
-  /// 🔹 Chọn và upload ảnh thật lên Cloudinary
   Future<void> _pickImage() async {
     final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
     if (picked == null) return;
@@ -130,16 +132,15 @@ class _ProductFormState extends State<ProductForm> {
         throw Exception("Upload failed: ${data['error']}");
       }
     } catch (e) {
-      debugPrint("Upload Cloudinary failed: $e");
+      debugPrint("Cloudinary upload failed: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+            .showSnackBar(const SnackBar(content: Text('Image upload failed'))); 
       }
     }
   }
 
-  /// 🔹 Submit sản phẩm (add/update vào Firebase)
   Future<void> _handleSubmit() async {
     setState(() => isLoading = true);
     try {
@@ -163,7 +164,7 @@ class _ProductFormState extends State<ProductForm> {
         'createdAt': DateTime.now().toIso8601String(),
       };
 
-      // 🔹 Chuyển Map → ProductModel
+      // 🔹 Convert Map → ProductModel
       final productModel = ProductModel.fromJson(productData);
 
       final provider = Provider.of<ProductProvider>(context, listen: false);
@@ -185,7 +186,7 @@ class _ProductFormState extends State<ProductForm> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi: ${e.toString().replaceAll('Exception: ', '')}')),
+        SnackBar(content: Text('Error: ${e.toString().replaceAll('Exception: ', '')}')), // Translated context
       );
     } finally {
       setState(() => isLoading = false);
@@ -231,7 +232,7 @@ class _ProductFormState extends State<ProductForm> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 🔹 Cột trái: ảnh
+              // 🔹 Left Column: Image
               Expanded(
                 flex: 1,
                 child: Column(
@@ -241,7 +242,7 @@ class _ProductFormState extends State<ProductForm> {
                       height: 300,
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: _buildImagePreview(),
                     ),
@@ -260,7 +261,7 @@ class _ProductFormState extends State<ProductForm> {
 
               const SizedBox(width: 16),
 
-              // 🔹 Cột phải: form
+              // 🔹 Right Column: Form
               Expanded(
                 flex: 2,
                 child: SingleChildScrollView(
@@ -280,9 +281,9 @@ class _ProductFormState extends State<ProductForm> {
                       const SizedBox(height: 16),
                       _buildTextField(stockController, 'Stock', inputType: TextInputType.number),
                       const SizedBox(height: 16),
-                      _buildTextField(avgRatingController, 'Rating (readonly)', readOnly: true),
+                      _buildTextField(avgRatingController, 'Average Rating (readonly)', readOnly: true), // Translated
                       const SizedBox(height: 16),
-                      _buildTextField(reviewCountController, 'Count Review (readonly)', readOnly: true),
+                      _buildTextField(reviewCountController, 'Review Count (readonly)', readOnly: true), // Translated
                       const SizedBox(height: 16),
                       Row(
                         children: [
@@ -290,7 +291,7 @@ class _ProductFormState extends State<ProductForm> {
                             value: isActive,
                             onChanged: (v) => setState(() => isActive = v!),
                           ),
-                          const Text('Product is available'),
+                          const Text('Product is available'), // Translated
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -330,7 +331,12 @@ class _ProductFormState extends State<ProductForm> {
             ],
           ),
           if (isLoading)
-            const Center(child: CircularProgressIndicator()),
+            Positioned.fill(
+              child: Container(
+                color: Colors.white.withOpacity(0.7),
+                child: const Center(child: CircularProgressIndicator()),
+              ),
+            ),
         ],
       ),
     );
@@ -338,14 +344,23 @@ class _ProductFormState extends State<ProductForm> {
 
   Widget _buildImagePreview() {
     if (imageBytes != null) {
-      return Image.memory(imageBytes!, fit: BoxFit.cover);
+      // Use SVG rendering if the image data matches an SVG signature
+      try {
+        final header = imageBytes!.take(5).toList();
+        if (header.length >= 2 && header[0] == 0x3C && header[1] == 0x3F) {
+           return SvgPicture.memory(imageBytes!, fit: BoxFit.cover);
+        }
+        return Image.memory(imageBytes!, fit: BoxFit.cover);
+      } catch (_) {
+         return const Center(child: Text('Preview Error')); // Translated
+      }
     } else if (imageUrl != null && imageUrl!.isNotEmpty) {
       return Image.network(imageUrl!, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => const Center(child: Text('Không tải được ảnh')));
+          errorBuilder: (_, __, ___) => const Center(child: Text('Failed to load image'))); // Translated
     } else if (imageFile != null && !kIsWeb) {
       return Image.file(imageFile!, fit: BoxFit.cover);
     } else {
-      return const Center(child: Text('Chưa có ảnh'));
+      return const Center(child: Text('No Image Selected')); // Translated
     }
   }
 

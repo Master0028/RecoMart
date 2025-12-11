@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/helpers/formatMoney.dart';
 import 'package:recomart/config/color.dart';
 
 final List<dynamic> FE_REVIEWS_DATA = [
@@ -67,7 +66,7 @@ class _ProductReviewSectionState extends State<ProductReviewSection> {
     try {
       showCustomSnackBar(
         context,
-        'Review sent successfully! (FE Action)',
+        'Review sent successfully!',
         type: SnackBarType.success,
       );
 

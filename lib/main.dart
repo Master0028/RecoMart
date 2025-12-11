@@ -13,15 +13,12 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
-  // 🔹 Bắt buộc: đảm bảo Flutter đã khởi tạo binding
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔹 Khởi tạo Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // 🔹 Chạy app với MultiProvider
   runApp(
     MultiProvider(
       providers: [

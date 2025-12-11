@@ -59,7 +59,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
         widget.onQuantityChanged(_quantity);
       } else {
          if (mounted) {
-            showCustomSnackBar(context, 'Max quantity reached (FE Check)');
+            showCustomSnackBar(context, 'Max quantity reached');
          }
       }
     } finally {
@@ -87,7 +87,7 @@ class _QuantitySelectorState extends State<QuantitySelector> {
         widget.onQuantityChanged(_quantity);
       } else {
         if (mounted) {
-          showCustomSnackBar(context, "You can't descrease quantity below 1 (FE Check)");
+          showCustomSnackBar(context, "You can't descrease quantity below 1");
         }
       }
     } finally {

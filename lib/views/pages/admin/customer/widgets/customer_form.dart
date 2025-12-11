@@ -44,7 +44,7 @@ class _CustomerFormState extends State<CustomerForm> {
     super.initState();
     final user = widget.customer;
     isActive = user.isActive;
-    uploadedImageUrl = user.avatar; // ban đầu là ảnh cũ
+    uploadedImageUrl = user.avatar; // Initially load old avatar
 
     nameController = TextEditingController(text: user.fullName);
     emailController = TextEditingController(text: user.email);
@@ -86,16 +86,16 @@ class _CustomerFormState extends State<CustomerForm> {
         throw Exception("Upload failed: ${data['error']}");
       }
     } catch (e) {
-      debugPrint("Upload Cloudinary failed: $e");
+      debugPrint("Cloudinary upload failed: $e");
       if (mounted) {
         setState(() => isLoading = false);
         ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Upload ảnh thất bại')));
+            .showSnackBar(const SnackBar(content: Text('Image upload failed')));
       }
     }
   }
 
-  /// 🔹 Cấm / Mở khóa khách hàng
+  /// 🔹 Ban / Unban customer
   Future<void> _toggleStatus() async {
     setState(() => isProcessing = true);
     try {
@@ -106,15 +106,15 @@ class _CustomerFormState extends State<CustomerForm> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isActive
-              ? 'Đã mở khóa tài khoản khách hàng'
-              : 'Đã cấm khách hàng này'),
+              ? 'Customer account unlocked'
+              : 'Customer account banned'),
           backgroundColor: isActive ? Colors.green : Colors.red,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi khi cập nhật trạng thái: $e'),
+          content: Text('Error updating status: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -123,13 +123,13 @@ class _CustomerFormState extends State<CustomerForm> {
     }
   }
 
-  /// Lưu thay đổi
+  /// Save changes
   Future<void> _saveChanges() async {
     setState(() => isProcessing = true);
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-      // Ưu tiên ảnh mới, nếu có
+      // Prioritize new image if available
       final String finalAvatar = imageUrl ?? uploadedImageUrl ?? '';
 
       final updatedUser = widget.customer.copyWith(
@@ -138,19 +138,19 @@ class _CustomerFormState extends State<CustomerForm> {
         phone: phoneController.text.trim(),
         address: addressController.text.trim(),
         isActive: isActive,
-        avatar: finalAvatar, // ảnh mới sẽ được lưu
+        avatar: finalAvatar, // Save new image
       );
 
       await userProvider.updateUser(updatedUser);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cập nhật thông tin khách hàng thành công!'),
+          content: Text('Customer information updated successfully!'),
           backgroundColor: Colors.green,
         ),
       );
 
-      // cập nhật lại biến để UI hiển thị đúng
+      // Update UI state
       setState(() {
         isEditing = false;
         uploadedImageUrl = finalAvatar;
@@ -158,7 +158,7 @@ class _CustomerFormState extends State<CustomerForm> {
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi khi lưu thông tin: $e'),
+          content: Text('Error saving information: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -204,17 +204,17 @@ class _CustomerFormState extends State<CustomerForm> {
                                 borderRadius: BorderRadius.circular(12),
                                 child: Builder(
                                   builder: (_) {
-                                    // Ưu tiên ảnh URL
+                                    // Prioritize URL image
                                     if (uploadedImageUrl != null && uploadedImageUrl!.isNotEmpty) {
                                       return Image.network(
                                         uploadedImageUrl!,
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) =>
-                                        const Center(child: Text('Invalid Image URL')),
+                                            const Center(child: Text('Invalid Image URL')),
                                       );
                                     }
 
-                                    // Nếu có bytes — kiểm tra định dạng (PNG/JPEG/SVG)
+                                    // If bytes exist — check format (PNG/JPEG/SVG)
                                     if (imageBytes != null && imageBytes!.isNotEmpty) {
                                       final header = imageBytes!.take(8).toList();
                                       final isXml = header.length >= 5 &&
@@ -229,7 +229,7 @@ class _CustomerFormState extends State<CustomerForm> {
                                           imageBytes!,
                                           fit: BoxFit.cover,
                                           placeholderBuilder: (_) =>
-                                          const Center(child: CircularProgressIndicator()),
+                                              const Center(child: CircularProgressIndicator()),
                                         );
                                       }
 
@@ -238,24 +238,24 @@ class _CustomerFormState extends State<CustomerForm> {
                                           imageBytes!,
                                           fit: BoxFit.cover,
                                           errorBuilder: (_, __, ___) =>
-                                          const Center(child: Text('Invalid image data')),
+                                              const Center(child: Text('Invalid image data')),
                                         );
                                       } catch (_) {
                                         return const Center(child: Text('Invalid image data'));
                                       }
                                     }
 
-                                    // Nếu có file cục bộ
+                                    // If local file exists
                                     if (imageFile != null) {
                                       return Image.file(
                                         imageFile!,
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, __, ___) =>
-                                        const Center(child: Text('Invalid local file')),
+                                            const Center(child: Text('Invalid local file')),
                                       );
                                     }
 
-                                    // Nếu không có ảnh
+                                    // No image
                                     return const Center(child: Text('No Image'));
                                   },
                                 ),
@@ -269,7 +269,7 @@ class _CustomerFormState extends State<CustomerForm> {
                             right: 10,
                             child: ElevatedButton.icon(
                               icon: const Icon(Icons.upload),
-                              label: const Text("Đổi ảnh"),
+                              label: const Text("Change Image"),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.orange,
                               ),
@@ -286,12 +286,12 @@ class _CustomerFormState extends State<CustomerForm> {
                           Switch(
                             value: isActive,
                             onChanged:
-                            isProcessing ? null : (_) => _toggleStatus(),
+                                isProcessing ? null : (_) => _toggleStatus(),
                             activeColor: Colors.green,
                             inactiveThumbColor: Colors.red,
                           ),
                           Text(
-                            isActive ? 'Đang hoạt động' : 'Đã bị cấm',
+                            isActive ? 'Active' : 'Banned',
                             style: TextStyle(
                               color: isActive ? Colors.green : Colors.red,
                               fontWeight: FontWeight.bold,
@@ -303,28 +303,27 @@ class _CustomerFormState extends State<CustomerForm> {
                 ),
               ),
               const SizedBox(width: 24),
-              // 🧾 Thông tin
+              // 🧾 Info
               Expanded(
                 flex: 2,
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildInputField("Họ và tên", nameController),
+                      _buildInputField("Full Name", nameController),
                       _buildInputField("Email", emailController),
-                      _buildInputField("Số điện thoại", phoneController),
-                      _buildInputField("Địa chỉ", addressController),
+                      _buildInputField("Phone Number", phoneController),
+                      _buildInputField("Address", addressController),
                       const SizedBox(height: 24),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           ElevatedButton.icon(
                             icon: Icon(isEditing ? Icons.close : Icons.edit),
-                            label:
-                            Text(isEditing ? "Hủy chỉnh sửa" : "Chỉnh sửa"),
+                            label: Text(isEditing ? "Cancel Edit" : "Edit"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
-                              isEditing ? Colors.grey : Colors.orange,
+                                  isEditing ? Colors.grey : Colors.orange,
                               minimumSize: const Size(150, 48),
                             ),
                             onPressed: () {
@@ -333,13 +332,13 @@ class _CustomerFormState extends State<CustomerForm> {
                           ),
                           ElevatedButton.icon(
                             icon: const Icon(Icons.save),
-                            label: const Text("Lưu thay đổi"),
+                            label: const Text("Save Changes"),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.green,
                               minimumSize: const Size(180, 48),
                             ),
                             onPressed:
-                            isEditing && !isProcessing ? _saveChanges : null,
+                                isEditing && !isProcessing ? _saveChanges : null,
                           ),
                         ],
                       ),

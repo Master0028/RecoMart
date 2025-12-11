@@ -16,7 +16,6 @@ class _BrandManagementScreenState extends State<BrandManagementScreen> {
   @override
   void initState() {
     super.initState();
-    // Lấy danh sách brand thật từ Firestore khi mở màn hình
     Future.microtask(() =>
         Provider.of<BrandProvider>(context, listen: false).fetchBrands());
   }
@@ -40,7 +39,7 @@ class _BrandManagementScreenState extends State<BrandManagementScreen> {
             if (brandProvider.isLoading)
               const Center(child: CircularProgressIndicator())
             else if (brands.isEmpty)
-              const Text("Không có thương hiệu nào trong Firestore.")
+              const Text("We have no any brand in Firestore.")
             else
               BrandTable(brands: brands),
           ],

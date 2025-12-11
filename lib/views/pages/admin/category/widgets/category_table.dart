@@ -21,7 +21,6 @@ class _CategoryTableState extends State<CategoryTable> {
       if (item is CategoryModel) {
         return item;
       } else if (item is Map<String, dynamic>) {
-        // chuyển Map -> CategoryModel (chấp nhận id int hoặc string)
         final dynamic rawId = item['id'];
         final int parsedId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
 
@@ -30,20 +29,15 @@ class _CategoryTableState extends State<CategoryTable> {
           name: item['name'] ?? 'Unknown',
           description: item['description'],
           isActive: item['isActive'],
-          // nếu trước đây còn lưu kiểu { image: { url: ... } } thì fallback:
           imageUrl: item['imageUrl'] ?? (item['image']?['url'] ?? ''),
-          // nếu CategoryModel của bạn có trường isActive:
-          // isActive: item['isActive'] ?? true,
         );
       } else {
-        // trường hợp không mong đợi
         return CategoryModel(
           id: 0,
           name: 'Unknown',
           description: null,
           isActive: false,
           imageUrl: '',
-          // isActive: true,
         );
       }
     }).toList();

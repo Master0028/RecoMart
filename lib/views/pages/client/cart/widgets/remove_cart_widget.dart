@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:recomart/config/color.dart';
 
 class RemoveCartWidget extends StatefulWidget {

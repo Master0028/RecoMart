@@ -13,10 +13,10 @@ class TextFieldReviewWidget extends StatelessWidget {
         shape: ShapeBorder.lerp(
             RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: AppColors.grey)),
+                side: const BorderSide(color: AppColors.grey)),
             RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(10),
-                side: BorderSide(color: AppColors.grey)),
+                side: const BorderSide(color: AppColors.grey)),
             0.5),
         color: AppColors.white,
         child: Container(

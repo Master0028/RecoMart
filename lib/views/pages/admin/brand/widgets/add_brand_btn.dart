@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'brand_form.dart';
 
 class AddBrandButton extends StatelessWidget {
@@ -12,9 +11,9 @@ class AddBrandButton extends StatelessWidget {
         showDialog(
           context: context,
           builder: (context) {
-            return AlertDialog(
+            return const AlertDialog(
               backgroundColor: Colors.white,
-              title: const Text(
+              title: Text(
                 "Add Brand",
                 textAlign: TextAlign.center,
                 style: TextStyle(

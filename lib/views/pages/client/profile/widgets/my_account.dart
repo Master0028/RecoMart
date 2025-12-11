@@ -103,7 +103,7 @@ class _MyAccountView extends State<MyAccountView> {
           }
         }
       } catch (e) {
-        print("Lỗi tải user: $e");
+        print("Error loading user: $e");
         if (mounted) setState(() => isLoading = false);
       }
     } else {
@@ -112,9 +112,9 @@ class _MyAccountView extends State<MyAccountView> {
   }
 
   Future<void> _handleLogout() async {
-    await FirebaseAuth.instance.signOut(); // Đăng xuất thật
+    await FirebaseAuth.instance.signOut();
     if (mounted) {
-      showCustomSnackBar(context, 'Đăng xuất thành công!', type: SnackBarType.success);
+      showCustomSnackBar(context, 'Logout successful!', type: SnackBarType.success);
       context.go('/login');
     }
   }
@@ -129,7 +129,7 @@ class _MyAccountView extends State<MyAccountView> {
       if (!isExistUser || userInfo == null) {
         return const Padding(
           padding: EdgeInsets.all(16.0),
-          child: Text("Bạn chưa đăng nhập."),
+          child: Text("You are not logged in."),
         );
       }
       
@@ -153,6 +153,7 @@ class _MyAccountView extends State<MyAccountView> {
               radius: 40,
               backgroundImage: NetworkImage(avatarUrl),
               onBackgroundImageError: (_, __) {
+                // Handle image error if necessary
               },
             ),
             const SizedBox(width: 16),
@@ -161,7 +162,7 @@ class _MyAccountView extends State<MyAccountView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    userInfo?['fullName'] ?? userInfo?['name'] ?? 'Người dùng',
+                    userInfo?['fullName'] ?? userInfo?['name'] ?? 'User',
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
@@ -187,27 +188,27 @@ class _MyAccountView extends State<MyAccountView> {
           if (isExistUser) ...[
             ModernAccountListTile(
               icon: CupertinoIcons.person,
-              title: 'Thông tin cá nhân',
+              title: 'Personal Information',
               onTap: () => context.push('/personal-information'),
             ),
             ModernAccountListTile(
               icon: CupertinoIcons.square_grid_2x2,
-              title: 'Điểm thưởng & Tiện ích',
+              title: 'Rewards & Utilities',
               onTap: () {
                 context.push('/utilities');
-                showCustomSnackBar(context, 'Điểm tích lũy: ${userInfo?['loyaltyPoints'] ?? 0}', type: SnackBarType.info);
+                showCustomSnackBar(context, 'Loyalty Points: ${userInfo?['loyaltyPoints'] ?? 0}', type: SnackBarType.info);
               },
             ),
             ModernAccountListTile(
               icon: CupertinoIcons.lock,
-              title: 'Đổi mật khẩu',
+              title: 'Change Password',
               onTap: () => context.push('/change-password'),
             ),
           ],
 
           ModernAccountListTile(
             icon: isExistUser ? CupertinoIcons.arrow_right_square : CupertinoIcons.arrow_left_square,
-            title: isExistUser ? 'Đăng xuất' : 'Đăng nhập ngay',
+            title: isExistUser ? 'Logout' : 'Login Now',
             onTap: () {
               if (isExistUser) {
                 _handleLogout();

@@ -39,9 +39,13 @@ class _CustomerTableState extends State<CustomerTable> {
       }).toList();
     }
     final start = (_currentPage - 1) * _itemsPerPage;
+    // Ensure we don't skip more than available
+    if (start >= customers.length) return [];
+    
     return customers.skip(start).take(_itemsPerPage).toList();
   }
 
+  // Not used in UI yet, but kept for future pagination UI
   int get totalPages => (widget.customers.length / _itemsPerPage).ceil();
 
   Color _getStatusColor(bool isActive) =>
@@ -64,7 +68,7 @@ class _CustomerTableState extends State<CustomerTable> {
     }).toList();
   }
 
-  /// 🔹 Cấm hoặc mở khóa khách hàng (update Firestore)
+  /// 🔹 Ban or Activate Customer (update Firestore)
   Future<void> _toggleStatus(UserModel customer) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final newStatus = !customer.isActive;
@@ -75,14 +79,14 @@ class _CustomerTableState extends State<CustomerTable> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              newStatus ? 'Đã mở khóa tài khoản' : 'Đã cấm khách hàng này'),
+              newStatus ? 'Account activated successfully' : 'Customer has been banned'),
           backgroundColor: newStatus ? Colors.green : Colors.red,
         ),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Lỗi khi cập nhật trạng thái: $e'),
+          content: Text('Error updating status: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -258,12 +262,13 @@ class _CustomerTableState extends State<CustomerTable> {
       final numColumns = headerFields.length;
 
       final desktopWidths = [
-        tableWidth * 0.08,
-        tableWidth * 0.25,
-        tableWidth * 0.15,
-        tableWidth * 0.20,
-        tableWidth * 0.10,
-        tableWidth * 0.20,
+        tableWidth * 0.08, // ID
+        tableWidth * 0.25, // Customer
+        tableWidth * 0.15, // Phone
+        tableWidth * 0.20, // Email
+        tableWidth * 0.10, // Points
+        tableWidth * 0.20, // Address
+        tableWidth * 0.10, // Status
       ];
 
       final mobileWidths = [

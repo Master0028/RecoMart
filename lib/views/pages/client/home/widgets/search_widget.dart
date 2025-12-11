@@ -16,15 +16,17 @@ class SearchWidget extends StatefulWidget {
 class _SearchWidgetState extends State<SearchWidget> {
   final TextEditingController _searchController = TextEditingController();
 
+  // Translated mock data
   final List<String> _recentSearches = [
     "Macbook",
     "Lenovo",
     "Asus",
-    "Chuột không dây",
-    "Bàn phím cơ",
-    "Màn hình ",
-    "Tai nghe Gaming"
+    "Wireless Mouse",
+    "Mechanical Keyboard",
+    "Monitor",
+    "Gaming Headset"
   ];
+  
   OverlayEntry? _overlayEntry;
   final LayerLink _layerLink = LayerLink();
 
@@ -94,15 +96,15 @@ class _SearchWidgetState extends State<SearchWidget> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Text(
-                                  "Gần đây",
+                                  "Recent",
                                   style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500),
                                 ),
                                 TextButton(
                                   onPressed: _clearAllSearches,
-                                  child: Text(
-                                    "Xóa tất cả",
+                                  child: const Text(
+                                    "Clear all",
                                     style: TextStyle(
                                       color: AppColors.primary,
                                     ),
@@ -139,7 +141,7 @@ class _SearchWidgetState extends State<SearchWidget> {
                             .isEmpty)
                           const Padding(
                             padding: EdgeInsets.all(8.0),
-                            child: Text("Không có kết quả gần đây nào."),
+                            child: Text("No recent searches found."),
                           )
                       ],
                     ),

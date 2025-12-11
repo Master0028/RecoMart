@@ -25,19 +25,19 @@ class ReviewView extends StatelessWidget {
   const ReviewView({super.key, required this.product});
 
   void _handleSubmitReview() {
-    print("Submit Review Clicked (FE Action)");
+    print("Submit Review Clicked");
   }
   
   void _handleUploadPhoto() {
-    print("Upload Photo Clicked (FE Action)");
+    print("Upload Photo Clicked");
   }
   
   void _handleCancel() {
-    print("Cancel Clicked (FE Action)");
+    print("Cancel Clicked");
   }
   
   void _handleRatingUpdate(double rating) {
-      print("Rating updated to: $rating (FE Action)");
+      print("Rating updated to: $rating");
   }
 
 

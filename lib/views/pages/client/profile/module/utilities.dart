@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:recomart/config/color.dart'; 
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
@@ -95,13 +94,10 @@ class MyUtilitiesPage extends StatelessWidget {
   }
 
   Widget _buildUtilityGrid(BuildContext context, List<Map<String, dynamic>> items) {
-    // 🌟 FIX OVERFLOW: Dùng LayoutBuilder để tính toán tỉ lệ khung hình
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Nếu màn hình nhỏ (< 600px), dùng 2 cột. Lớn hơn dùng nhiều cột hơn.
         int crossAxisCount = constraints.maxWidth < 600 ? 2 : 4;
         
-        // Tỉ lệ khung hình: Mobile cần cao hơn (ratio nhỏ hơn) để chứa chữ
         double childAspectRatio = constraints.maxWidth < 600 ? 0.85 : 1.2;
 
         return GridView.builder(
@@ -157,10 +153,10 @@ class _UtilityCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(16.0), // Giảm padding chút cho mobile
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start, // Đẩy lên trên cùng
+            mainAxisAlignment: MainAxisAlignment.start,
             children: [
               // Icon
               Container(
@@ -172,11 +168,8 @@ class _UtilityCard extends StatelessWidget {
                 child: Icon(icon, color: AppColors.primary, size: 24),
               ),
               
-              // Dùng Spacer hoặc Expanded để đẩy text xuống dưới nếu cần
-              // Nhưng ở đây ta dùng SizedBox cố định để tránh lỗi layout
               const SizedBox(height: 12),
               
-              // Text Title (Cho phép xuống dòng nếu dài quá)
               Text(
                 title,
                 style: const TextStyle(
@@ -191,7 +184,7 @@ class _UtilityCard extends StatelessWidget {
               const SizedBox(height: 4),
               
               // Text Subtitle
-              Expanded( // Dùng Expanded để text con tự chiếm phần còn lại
+              Expanded(
                 child: Text(
                   subtitle,
                   style: const TextStyle(

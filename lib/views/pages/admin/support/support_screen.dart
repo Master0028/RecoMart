@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/services/chat.service.dart';
 import 'package:recomart/views/pages/admin/support/widgets/chat_area.dart';
 import 'package:recomart/views/pages/admin/support/widgets/chat_list.dart';
 
@@ -18,17 +17,34 @@ class _AdminChatScreenState extends State<SupportScreen> {
     setState(() => selectedUser = user);
   }
 
+  Widget _buildEmptyState() {
+    return const Center(
+      key: ValueKey('empty_state'),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.support_agent_outlined, size: 80, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            "Select a customer to view the conversation", // Translated
+            style: TextStyle(fontSize: 18, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: const Text("Hỗ trợ khách hàng (Admin)"),
+        title: const Text("Customer Support (Admin)"), // Translated
         backgroundColor: AppColors.primary,
       ),
       body: Row(
         children: [
-          // Danh sách user bên trái
+          // Left Pane: User List
           Container(
             width: 320,
             color: Colors.white,
@@ -38,26 +54,20 @@ class _AdminChatScreenState extends State<SupportScreen> {
             ),
           ),
 
-          // Khung chat bên phải
           Expanded(
-            child: selectedUser == null
-                ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.support_agent_outlined,
-                      size: 80, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    "Chọn khách hàng để xem cuộc trò chuyện",
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                ],
-              ),
-            )
-                : ChatArea(
-              userId: selectedUser!['id'],
-              userName: selectedUser!['name'],
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              transitionBuilder: (Widget child, Animation<double> animation) {
+                // Fade effect when content changes
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: selectedUser == null
+                  ? _buildEmptyState()
+                  : ChatArea(
+                      key: ValueKey(selectedUser!['id']), 
+                      userId: selectedUser!['id'],
+                      userName: selectedUser!['name'],
+                    ),
             ),
           ),
         ],

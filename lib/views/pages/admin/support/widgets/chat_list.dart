@@ -14,19 +14,18 @@ class ChatList extends StatelessWidget {
     this.selectedUserId,
   });
 
-  /// 🔹 Lấy thông tin user từ Firestore theo userId
   Future<Map<String, dynamic>?> _getUserData(String userId) async {
     try {
       final snapshot = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       if (snapshot.exists) {
         final data = snapshot.data()!;
         return {
-          'name': data['name'] ?? 'Người dùng',
+          'name': data['name'] ?? 'User',
           'avatar': data['avatar'] ?? 'https://placehold.co/60x60/cccccc/ffffff?text=U',
         };
       }
     } catch (e) {
-      debugPrint("Lỗi load user info: $e");
+      debugPrint("Error loading user info: $e");
     }
     return null;
   }
@@ -42,64 +41,94 @@ class ChatList extends StatelessWidget {
 
         final chats = snapshot.data!.docs;
         if (chats.isEmpty) {
-          return const Center(child: Text("Không có cuộc trò chuyện nào."));
+          return const Center(child: Text("No conversations found."));
         }
 
-        return ListView.builder(
-          itemCount: chats.length,
-          itemBuilder: (context, index) {
-            final chat = chats[index].data();
-            final participants = List<String>.from(chat['participants'] ?? []);
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: ListView.separated(
+            itemCount: chats.length,
+            separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
+            itemBuilder: (context, index) {
+              final chat = chats[index].data();
+              final participants = List<String>.from(chat['participants'] ?? []);
 
-            // ✅ Loại admin ra, chỉ lấy userId thật
-            final userId = participants.firstWhere(
-                  (id) => id != ChatService.adminId,
-              orElse: () => 'unknown',
-            );
+              final userId = participants.firstWhere(
+                (id) => id != ChatService.adminId,
+                orElse: () => 'unknown',
+              );
 
-            final isSelected = selectedUserId == userId;
+              final isSelected = selectedUserId == userId;
 
-            // ✅ Dùng FutureBuilder để lấy thông tin user
-            return FutureBuilder<Map<String, dynamic>?>(
-              future: _getUserData(userId),
-              builder: (context, userSnap) {
-                final userData = userSnap.data;
-                final userName = userData?['name'] ?? userId;
-                final userAvatar = userData?['avatar'] ??
-                    'https://placehold.co/60x60/cccccc/ffffff?text=U';
-                final lastMessage = chat['lastMessage'] ?? '';
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: _getUserData(userId),
+                builder: (context, userSnap) {
+                  if (!userSnap.hasData && !userSnap.hasError) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 10),
+                      child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                    );
+                  }
+                  
+                  final userData = userSnap.data;
+                  final userName = userData?['name'] ?? userId;
+                  final userAvatar = userData?['avatar'] ??
+                      'https://placehold.co/60x60/cccccc/ffffff?text=U';
+                  final lastMessage = chat['lastMessage'] ?? 'No message history.';
 
-                return ListTile(
-                  tileColor:
-                  isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(userAvatar),
-                    backgroundColor: Colors.grey.shade300,
-                  ),
-                  title: Text(
-                    userName,
-                    style: TextStyle(
-                      fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: Colors.black87,
+                  // --- MODERNIZED LIST ITEM ---
+                  return InkWell(
+                    onTap: () => onUserSelected({
+                      'id': userId,
+                      'name': userName,
+                      'avatar': userAvatar,
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary.withOpacity(0.08) : Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: NetworkImage(userAvatar),
+                            backgroundColor: Colors.grey.shade300,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  userName,
+                                  style: TextStyle(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                    color: Colors.black87,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  lastMessage,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(color: isSelected ? Colors.black54 : Colors.grey),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(Icons.chevron_right, color: isSelected ? AppColors.primary : Colors.grey.shade400, size: 20),
+                        ],
+                      ),
                     ),
-                  ),
-                  subtitle: Text(
-                    lastMessage,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-                  onTap: () => onUserSelected({
-                    'id': userId,
-                    'name': userName,
-                    'avatar': userAvatar,
-                  }),
-                );
-              },
-            );
-          },
+                  );
+                },
+              );
+            },
+          ),
         );
       },
     );

@@ -33,18 +33,18 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
       child: userProvider.loading
           ? const Center(child: CircularProgressIndicator())
           : userProvider.error != null
-          ? Center(child: Text('Lỗi: ${userProvider.error}'))
-          : SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            customers.isEmpty
-                ? const Center(child: Text('Không có khách hàng nào'))
-                : CustomerTable(customers: customers),
-          ],
-        ),
-      ),
+              ? Center(child: Text('Error: ${userProvider.error}')) // Translated
+              : SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
+                      customers.isEmpty
+                          ? const Center(child: Text('No customers available')) // Translated
+                          : CustomerTable(customers: customers),
+                    ],
+                  ),
+                ),
     );
   }
 }

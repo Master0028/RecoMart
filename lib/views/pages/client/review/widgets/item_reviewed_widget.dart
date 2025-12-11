@@ -58,7 +58,7 @@ class ItemReviewedWidget extends StatelessWidget {
               Text(
                 description,
                 style:
-                    TextStyle(fontSize: FontSizes.large, color: AppColors.black),
+                    const TextStyle(fontSize: FontSizes.large, color: AppColors.black),
                 overflow: TextOverflow.ellipsis,
               maxLines: 3,
               ),
