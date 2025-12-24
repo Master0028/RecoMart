@@ -33,25 +33,33 @@ class CartItemWidget extends StatefulWidget {
 class _CartItemWidgetState extends State<CartItemWidget> {
   bool isProcessing = false;
 
+  /// Handles removing the item from the cart
   void _handleRemoveItem(String productId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    setState(() => isProcessing = true);
     try {
       await Provider.of<CartProvider>(context, listen: false)
-          .removeItemFromCart(user.uid, productId);
+          .removeItem(user.uid, productId);
 
-      showCustomSnackBar(
-        context,
-        'Item removed from cart!',
-        type: SnackBarType.success,
-      );
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          'Item removed from cart!',
+          type: SnackBarType.success,
+        );
+      }
     } catch (e) {
-      showCustomSnackBar(
-        context,
-        'Error removing item: $e',
-        type: SnackBarType.error,
-      );
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          'Error removing item: $e',
+          type: SnackBarType.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => isProcessing = false);
     }
   }
 
@@ -61,7 +69,7 @@ class _CartItemWidgetState extends State<CartItemWidget> {
       children: [
         Container(
           color: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
             child: Row(
@@ -73,18 +81,16 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                   flex: 2,
                   child: Row(
                     children: [
-                      // Display Image
                       Container(
                         width: 80,
                         height: 80,
-                        decoration: const BoxDecoration(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(10))),
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
                         child: CachedNetworkImage(
-                          imageUrl: widget.itemCart.image ?? 'default_url',
+                          imageUrl: widget.itemCart.image ?? '',
                           fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 350,
                           placeholder: (context, url) => const SkeletonImage(
                             imageHeight: 80,
                           ),
@@ -95,26 +101,21 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // Name and Price
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(
-                              width: 200,
-                              child: Text(
-                                widget.itemCart.productName ?? 'Product Name',
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.black,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              widget.itemCart.productName ?? 'Product',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.black,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             Text(
-                              // Price calculation logic
                               formatMoney(
                                 widget.itemCart.unitPrice -
                                     (widget.itemCart.unitPrice *
@@ -151,41 +152,46 @@ class _CartItemWidgetState extends State<CartItemWidget> {
 
                           setState(() => isProcessing = true);
                           try {
+                            // FIXED: Added required named parameters
                             await Provider.of<CartProvider>(context, listen: false)
-                                .updateItemQuantity(user.uid,
-                                    widget.itemCart.productId ?? '', newQuantity);
-
-                            showCustomSnackBar(
-                              context,
-                              'Quantity updated!',
-                              type: SnackBarType.success,
+                                .updateItemQuantity(
+                              userId: user.uid,
+                              productId: widget.itemCart.productId ?? '',
+                              newQuantity: newQuantity,
                             );
 
-                            widget.onQuantityChanged?.call(newQuantity);
+                            if (mounted) {
+                              showCustomSnackBar(
+                                context,
+                                'Quantity updated!',
+                                type: SnackBarType.success,
+                              );
+                              widget.onQuantityChanged?.call(newQuantity);
+                            }
                           } catch (e) {
-                            showCustomSnackBar(
-                              context,
-                              'Error updating quantity: $e',
-                              type: SnackBarType.error,
-                            );
+                            if (mounted) {
+                              showCustomSnackBar(
+                                context,
+                                'Error updating quantity: $e',
+                                type: SnackBarType.error,
+                              );
+                            }
                           } finally {
-                            setState(() => isProcessing = false);
+                            if (mounted) setState(() => isProcessing = false);
                           }
                         },
                         maxQuantity: widget.maxQuantity,
                         isProcessing: isProcessing,
                         onChangeProgressing: (value) {
-                          setState(() {
-                            isProcessing = value;
-                          });
+                          setState(() => isProcessing = value);
                         },
                       ),
                     ],
                   ),
                 ),
 
-                // TOTAL PRICE COLUMN (Hidden on Mobile)
-                if (!Responsive.isMobile(context))
+                // TOTAL PRICE & DELETE (Desktop/Web)
+                if (!Responsive.isMobile(context)) ...[
                   Expanded(
                     flex: 1,
                     child: Text(
@@ -204,32 +210,25 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                       ),
                     ),
                   ),
-
-                // REMOVE BUTTON (Hidden on Mobile)
-                if (!Responsive.isMobile(context))
                   IconButton(
                     onPressed: () =>
                         _handleRemoveItem(widget.itemCart.productId ?? ''),
-                    icon: const Icon(
-                      Icons.delete,
-                      color: Colors.red,
-                      size: 20,
-                    ),
+                    icon: const Icon(Icons.delete, color: Colors.red, size: 20),
                   ),
+                ],
               ],
             ),
           ),
         ),
 
+        // Processing Overlay
         if (isProcessing)
           Positioned.fill(
             child: AbsorbPointer(
-              absorbing: true,
               child: Container(
-                color: Colors.black.withAlpha(50),
-                alignment: Alignment.center,
-                child: const CircularProgressIndicator(
-                  color: AppColors.primary,
+                color: Colors.white.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               ),
             ),

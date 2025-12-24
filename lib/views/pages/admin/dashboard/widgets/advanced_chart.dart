@@ -1,9 +1,10 @@
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 class AdvancedChart extends StatefulWidget {
   final String timeFrame;
-  final List<Map<String, dynamic>> data; 
+  final List<Map<String, dynamic>> data;
   final DateTime? startDate;
   final DateTime? endDate;
 
@@ -20,195 +21,191 @@ class AdvancedChart extends StatefulWidget {
 }
 
 class _AdvancedChartState extends State<AdvancedChart> {
-  late BarChartData _chartData;
+  bool isPlaying = false;
+  int touchedGroupIndex = -1;
+
+  late List<Map<String, dynamic>> _chartData;
+  final Random _random = Random();
 
   @override
   void initState() {
     super.initState();
-    _chartData = _buildChartData(false); 
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 50), () {
-          if (mounted) {
-            setState(() {
-              _chartData = _buildChartData(true); 
-            });
-          }
+    _randomizeAll();
+    _playAnimation();
+  }
+
+  @override
+  void didUpdateWidget(covariant AdvancedChart oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.timeFrame != widget.timeFrame) {
+      setState(() {
+        isPlaying = false;
+        _randomizeAll();
       });
+      _playAnimation();
+    }
+  }
+
+  void _playAnimation() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() => isPlaying = true);
+      }
     });
   }
 
-  double _getFixedMaxY() {
-    return 100.0; 
+  void _randomizeAll() {
+    _chartData = widget.data.map(_randomizeItem).toList();
+  }
+
+  Map<String, dynamic> _randomizeItem(Map<String, dynamic> item) {
+    double r(double min, double max) =>
+        min + _random.nextDouble() * (max - min);
+
+    return {
+      'period': item['period'] ?? '',
+      'orders': r(20, 90),
+      'revenue': r(200000, 900000),
+      'profit': r(100000, 600000),
+      'products': r(10, 70),
+      'categories': r(5, 40),
+    };
   }
 
   double _getRodValue(Map<String, dynamic> item, int rodIndex) {
     switch (rodIndex) {
-      case 0:
-        return item['orders']?.toDouble() ?? 50;
-      case 1:
-        return (item['revenue']?.toDouble() ?? 300000) / 10000;
-      case 2:
-        return (item['profit']?.toDouble() ?? 200000) / 10000;
-      case 3:
-        return item['products']?.toDouble() ?? 20;
-      case 4:
-        return item['categories']?.toDouble() ?? 5;
-      default:
-        return 0;
+      case 0: return item['orders'];
+      case 1: return item['revenue'] / 10000;
+      case 2: return item['profit'] / 10000;
+      case 3: return item['products'];
+      case 4: return item['categories'];
+      default: return 0;
     }
   }
-  
-  String _getMetricName(int rodIndex) {
-      switch (rodIndex) {
-        case 0: return 'Orders';
-        case 1: return 'Revenue';
-        case 2: return 'Profit';
-        case 3: return 'Products';
-        case 4: return 'Categories';
-        default: return 'Value';
+
+  String _getMetricName(int i) =>
+      ['Orders', 'Revenue', 'Profit', 'Products', 'Categories'][i];
+
+  Color _getColor(int i) =>
+      [Colors.blue, Colors.green, Colors.purple, Colors.orange, Colors.pink][i];
+
+  LinearGradient _getGradient(Color c) => LinearGradient(
+        colors: [c.withOpacity(0.6), c],
+        begin: Alignment.bottomCenter,
+        end: Alignment.topCenter,
+      );
+
+  double get _maxY {
+    double max = 0;
+    for (final item in _chartData) {
+      for (int i = 0; i < 5; i++) {
+        max = max < _getRodValue(item, i) ? _getRodValue(item, i) : max;
       }
+    }
+    return (max * 1.2).clamp(20, 120);
   }
 
-  BarChartData _buildChartData(bool showData) {
-    return BarChartData( 
-      alignment: BarChartAlignment.spaceAround,
-      maxY: _getFixedMaxY(), 
-      minY: 0,
-      barTouchData: BarTouchData(
-        enabled: true,
-        touchTooltipData: BarTouchTooltipData(
-          tooltipPadding: const EdgeInsets.all(8),
-          tooltipMargin: 8,
-          getTooltipItem: (group, groupIndex, rod, rodIndex) {
-            final period = widget.data.isNotEmpty && groupIndex < widget.data.length 
-                ? widget.data[groupIndex]['period'] 
-                : 'Period';
-            final metric = _getMetricName(rodIndex);
-            final value = rod.toY.toInt();
-            return BarTooltipItem(
-              '$period\n$metric: $value',
-              const TextStyle(color: Colors.black, fontSize: 12),
+  double get _barWidth =>
+      (_chartData.length > 8) ? 8 : 14;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 350,
+      child: BarChart(
+        BarChartData(
+          maxY: _maxY,
+          minY: 0,
+          groupsSpace: 12,
+          barTouchData: _touchData(),
+          titlesData: _titles(),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (_) => FlLine(
+              color: Colors.grey.withOpacity(0.15),
+              strokeWidth: 1,
+              dashArray: [5, 5],
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(_chartData.length, (x) {
+            final item = _chartData[x];
+            final faded =
+                touchedGroupIndex != -1 && touchedGroupIndex != x;
+
+            return BarChartGroupData(
+              x: x,
+              barRods: List.generate(5, (i) {
+                return BarChartRodData(
+                  toY: isPlaying ? _getRodValue(item, i) : 0,
+                  width: _barWidth,
+                  gradient:
+                      _getGradient(_getColor(i).withOpacity(faded ? 0.4 : 1)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(6)),
+                );
+              }),
             );
-          },
+          }),
         ),
+        swapAnimationDuration: const Duration(milliseconds: 700),
+        swapAnimationCurve: Curves.easeOutCubic,
       ),
-      titlesData: FlTitlesData(
+    );
+  }
+
+  BarTouchData _touchData() => BarTouchData(
+        touchCallback: (e, r) {
+          setState(() {
+            touchedGroupIndex =
+                r?.spot?.touchedBarGroupIndex ?? -1;
+          });
+        },
+        touchTooltipData: BarTouchTooltipData(
+          getTooltipItem: (_, __, rod, i) => BarTooltipItem(
+            '${_getMetricName(i)}\n',
+            const TextStyle(color: Colors.white70),
+            children: [
+              TextSpan(
+                text: rod.toY.toStringAsFixed(1),
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
+              )
+            ],
+          ),
+        ),
+      );
+
+  FlTitlesData _titles() => FlTitlesData(
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            getTitlesWidget: (value, meta) {
-              if (value.toInt() >= widget.data.length) return const Text('');
-              return Text(widget.data[value.toInt()]['period'] ?? '', style: const TextStyle(fontSize: 12));
-            },
+            getTitlesWidget: (v, _) => Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                _chartData[v.toInt()]['period'],
+                style: TextStyle(
+                  fontSize: 11,
+                  color: touchedGroupIndex == v.toInt()
+                      ? Colors.blue
+                      : Colors.grey,
+                ),
+              ),
+            ),
           ),
         ),
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            reservedSize: 40,
-            getTitlesWidget: (value, meta) => Text(
-              value.toInt().toString(),
-              style: const TextStyle(fontSize: 12),
-            ),
+            getTitlesWidget: (v, _) => Text(v.toInt().toString(),
+                style: const TextStyle(fontSize: 10)),
           ),
         ),
         topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-      ),
-      borderData: FlBorderData(show: false),
-      
-      barGroups: List.generate(widget.data.length, (index) {
-        final item = widget.data[index];
-        
-        return BarChartGroupData(
-          x: index,
-          barRods: [
-            _buildAnimatedRod(showData ? _getRodValue(item, 0) : 0, Colors.blue),
-            _buildAnimatedRod(showData ? _getRodValue(item, 1) : 0, Colors.green),
-            _buildAnimatedRod(showData ? _getRodValue(item, 2) : 0, Colors.purple),
-            _buildAnimatedRod(showData ? _getRodValue(item, 3) : 0, Colors.orange),
-            _buildAnimatedRod(showData ? _getRodValue(item, 4) : 0, Colors.red),
-          ],
-        );
-      }),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Performance Comparison (${widget.timeFrame})',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            height: 300,
-            child: BarChart(
-              _chartData, 
-              
-              swapAnimationDuration: const Duration(milliseconds: 750),
-              swapAnimationCurve: Curves.easeInOutCubic,
-            ),
-          ),
-          const SizedBox(height: 16),
-          _buildLegend(),
-        ],
-      ),
-    );
-  }
-
-  BarChartRodData _buildAnimatedRod(double toY, Color color) {
-    return BarChartRodData(
-      toY: toY, // Chỉ cần 'toY'
-      color: color,
-      width: 10,
-      borderRadius: const BorderRadius.only( 
-          topLeft: Radius.circular(3), 
-          topRight: Radius.circular(3),
-      ),
-    );
-  }
-
-  Widget _buildLegend() {
-    return Wrap(
-      spacing: 16,
-      runSpacing: 8,
-      children: [
-        _buildLegendItem('Orders', Colors.blue),
-        _buildLegendItem('Revenue (x10k)', Colors.green),
-        _buildLegendItem('Profit (x10k)', Colors.purple),
-        _buildLegendItem('Products', Colors.orange),
-        _buildLegendItem('Categories', Colors.red),
-      ],
-    );
-  }
-
-  Widget _buildLegendItem(String title, Color color) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 16, height: 16, color: color),
-        const SizedBox(width: 4),
-        Text(title, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
+        rightTitles:
+            const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+      );
 }

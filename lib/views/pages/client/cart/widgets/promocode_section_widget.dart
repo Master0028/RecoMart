@@ -40,8 +40,14 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
   Future<void> _loadUserPoints() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
-    final points = await _userService.getLoyaltyPoints(uid);
-    setState(() => _availablePoints = points);
+    try {
+      final points = await _userService.getLoyaltyPoints(uid);
+      if (mounted) {
+        setState(() => _availablePoints = points.toDouble());
+      }
+    } catch (e) {
+      debugPrint("Error loading points: $e");
+    }
   }
 
   Future<void> _applyCoupon() async {
@@ -57,21 +63,17 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
     setState(() => _isApplyingCoupon = true);
 
     try {
-      // 🔹 Fetch all coupons from Firestore
       final coupons = await _couponService.fetchCoupons();
 
-      // 🔹 Find matching coupon
       final coupon = coupons.firstWhere(
         (c) => c.code.toLowerCase() == code.toLowerCase(),
         orElse: () => throw Exception('Invalid coupon code'),
       );
 
-      // 🔹 Check usage limits
       if (coupon.usedCount >= coupon.maxUsage) {
         throw Exception('Coupon code "$code" usage limit exceeded');
       }
 
-      // 🔹 Apply discount
       setState(() {
         _couponDiscountMoney = coupon.discountValue;
         _isApplyingCoupon = false;
@@ -79,14 +81,18 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
 
       provider.applyCoupon(coupon);
 
-      showCustomSnackBar(
-        context,
-        'Applied code $code successfully (-${formatMoney(coupon.discountValue)})',
-        type: SnackBarType.success,
-      );
+      if (mounted) {
+        showCustomSnackBar(
+          context,
+          'Applied code $code successfully (-${formatMoney(coupon.discountValue)})',
+          type: SnackBarType.success,
+        );
+      }
     } catch (e) {
-      setState(() => _isApplyingCoupon = false);
-      showCustomSnackBar(context, e.toString(), type: SnackBarType.error);
+      if (mounted) {
+        setState(() => _isApplyingCoupon = false);
+        showCustomSnackBar(context, e.toString(), type: SnackBarType.error);
+      }
     }
   }
 
@@ -107,11 +113,12 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
     }
 
     setState(() => _usedPoints = input);
-    provider.setDiscounts(points: _usedPoints);
+
+    provider.applyLoyaltyPoints(_usedPoints);
 
     showCustomSnackBar(
       context,
-      'Used $_usedPoints points (-${formatMoney(_usedPoints * 1000)})',
+      'Used $_usedPoints points (-${formatMoney(_usedPoints * 1000.0)})',
       type: SnackBarType.success,
     );
   }
@@ -166,7 +173,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                           width: 18,
                           child: CircularProgressIndicator(
                               color: Colors.white, strokeWidth: 2))
-                      : const Text('Apply'),
+                      : const Text('Apply', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),
@@ -192,7 +199,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
             ),
             const SizedBox(height: 10),
             Text(
-              'You have ${_availablePoints.toStringAsFixed(0)} points (1 point = 1,000đ).',
+              'Available: ${_availablePoints.toStringAsFixed(0)} points (1 point = 1,000đ).',
               style: const TextStyle(fontSize: 14, color: Colors.black54),
             ),
             const SizedBox(height: 10),
@@ -217,7 +224,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                   onPressed: _applyLoyaltyPoints,
                   style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary),
-                  child: const Text('Use Points'),
+                  child: const Text('Use Points', style: TextStyle(color: Colors.white)),
                 ),
               ],
             ),

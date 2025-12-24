@@ -1,16 +1,20 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/models/order.model.dart';
 import 'package:recomart/services/order.service.dart';
 import 'package:recomart/services/coupon.service.dart';
-import 'package:recomart/services/user.service.dart';
+import 'package:recomart/services/vnpay_service.dart';
+import 'package:recomart/views/pages/client/payment/vnpay_payment_page.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../components/custom/snackbar.dart';
-import '../../../../helpers/formatMoney.dart';
+import '../../../../provider/user_provider.dart';
 
 enum ShippingMethod { pickupAtStore, expressDelivery }
+enum PaymentMethod { cod, vnpay }
 
 class OrderCheckoutPage extends StatefulWidget {
   final String? productId;
@@ -35,39 +39,30 @@ class OrderCheckoutPage extends StatefulWidget {
 }
 
 class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
-  final _auth = FirebaseAuth.instance;
   final _orderService = OrderService();
-  final _userService = UserService();
   final _couponService = CouponService();
+  final _vnpayService = VnpayService();
 
   final _addressCtrl = TextEditingController();
   final _couponCtrl = TextEditingController();
   final _pointsCtrl = TextEditingController();
 
   ShippingMethod _shippingMethod = ShippingMethod.expressDelivery;
+  PaymentMethod _paymentMethod = PaymentMethod.cod;
+
   bool _isLoading = false;
   bool _isApplyingCoupon = false;
+  bool _isAddressInitialized = false;
 
   double _couponDiscountMoney = 0;
   int _usedPoints = 0;
-  double _loyaltyPoints = 0;
 
   @override
-  void initState() {
-    super.initState();
-    _loadUserInfo();
-  }
-
-  Future<void> _loadUserInfo() async {
-    final user = _auth.currentUser;
-    if (user == null) return;
-    final data = await _userService.getUserInfo(user.uid);
-    if (mounted) {
-      setState(() {
-        _addressCtrl.text = data?['address'] ?? '';
-        _loyaltyPoints = (data?['loyaltyPoints'] ?? 0).toDouble();
-      });
-    }
+  void dispose() {
+    _addressCtrl.dispose();
+    _couponCtrl.dispose();
+    _pointsCtrl.dispose();
+    super.dispose();
   }
 
   double get subtotal {
@@ -87,39 +82,22 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
 
   Future<void> _applyCoupon() async {
     final code = _couponCtrl.text.trim();
-
     if (code.isEmpty) {
-      showCustomSnackBar(
-        context,
-        'Please enter a coupon code first',
-        type: SnackBarType.error,
-      );
+      showCustomSnackBar(context, 'Please enter a coupon code first', type: SnackBarType.error);
       return;
     }
-
     setState(() => _isApplyingCoupon = true);
-
     try {
       final coupons = await _couponService.fetchCoupons();
-
       final coupon = coupons.firstWhere(
         (c) => c.code.toLowerCase() == code.toLowerCase(),
         orElse: () => throw Exception('Invalid coupon code'),
       );
-
       if (coupon.usedCount >= coupon.maxUsage) {
-        throw Exception('Coupon code "$code" usage limit exceeded');
+        throw Exception('Coupon code usage limit exceeded');
       }
-
-      setState(() {
-        _couponDiscountMoney = coupon.discountValue;
-      });
-
-      showCustomSnackBar(
-        context,
-        'Applied code $code successfully (-${formatMoney(coupon.discountValue)})',
-        type: SnackBarType.success,
-      );
+      setState(() => _couponDiscountMoney = coupon.discountValue);
+      showCustomSnackBar(context, 'Applied code $code successfully', type: SnackBarType.success);
     } catch (e) {
       showCustomSnackBar(context, e.toString(), type: SnackBarType.error);
     } finally {
@@ -127,40 +105,109 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     }
   }
 
-  void _applyPoints() {
+  void _applyPoints(double currentLoyaltyPoints) {
     final entered = int.tryParse(_pointsCtrl.text.trim()) ?? 0;
     if (entered <= 0) return;
-    if (entered > _loyaltyPoints) {
-      showCustomSnackBar(
-        context,
-        'You do not have enough points!',
-        type: SnackBarType.error,
-      );
+    if (entered > currentLoyaltyPoints) {
+      showCustomSnackBar(context, 'You do not have enough points', type: SnackBarType.error);
       return;
     }
     setState(() => _usedPoints = entered);
   }
 
-  Future<void> _placeOrder() async {
+  void _handleCheckout(dynamic user) async {
     if (_isLoading) return;
-    final user = _auth.currentUser;
-    if (user == null) return;
+    if (user == null || _addressCtrl.text.trim().isEmpty) {
+      showCustomSnackBar(context, 'Please check your login status and shipping address', type: SnackBarType.error);
+      return;
+    }
 
+    setState(() => _isLoading = true);
+
+    try {
+      if (_paymentMethod == PaymentMethod.vnpay) {
+        final orderId = 'ORD${DateTime.now().millisecondsSinceEpoch}';
+        final paymentUrl = _vnpayService.generatePaymentUrl(
+          orderId: orderId,
+          amount: total,
+        );
+
+        if (kIsWeb) {
+          final Uri uri = Uri.parse(paymentUrl);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            if (mounted) {
+              setState(() => _isLoading = false);
+              _showWebPaymentConfirmation(user);
+            }
+          } else {
+            throw 'Could not launch payment gateway';
+          }
+        } else {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => VnpayPaymentPage(paymentUrl: paymentUrl),
+            ),
+          );
+
+          if (result == true) {
+            await _placeOrder(user, paymentMethod: 'VNPAY', paymentStatus: 'PAID');
+          } else {
+            setState(() => _isLoading = false);
+            showCustomSnackBar(context, 'Payment failed or cancelled', type: SnackBarType.warning);
+          }
+        }
+      } else {
+        await _placeOrder(user, paymentMethod: 'COD', paymentStatus: 'UNPAID');
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      showCustomSnackBar(context, 'Error: $e', type: SnackBarType.error);
+    }
+  }
+
+  void _showWebPaymentConfirmation(dynamic user) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Payment"),
+        content: const Text("Did you complete the payment in the new tab?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+            onPressed: () {
+              Navigator.pop(context);
+              _placeOrder(user, paymentMethod: 'VNPAY', paymentStatus: 'PAID');
+            },
+            child: const Text("Yes, Completed", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _placeOrder(dynamic user, {required String paymentMethod, required String paymentStatus}) async {
     setState(() => _isLoading = true);
     try {
       final now = DateTime.now();
       final order = OrderModel(
-        userId: user.uid,
-        userName: user.displayName ?? 'Customer',
+        userId: user.id ?? '',
+        userName: user.fullName ?? 'Customer',
         email: user.email ?? '',
-        address: _addressCtrl.text,
+        address: _addressCtrl.text.trim(),
         totalAmount: total,
         discountAmount: totalDiscount,
         loyaltyPointsUsed: _usedPoints,
         loyaltyPointsEarned: (total / 10000).floorToDouble(),
         status: 'PENDING',
-        paymentMethod: 'COD',
-        paymentStatus: 'UNPAID',
+        paymentMethod: paymentMethod,
+        paymentStatus: paymentStatus,
         items: [
           OrderItemModel(
             productId: widget.productId,
@@ -171,100 +218,117 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
             images: ImageModel(url: widget.imageUrl),
           ),
         ],
-        orderTracking: [
-          OrderTrackingModel(status: 'PENDING', date: now),
-        ],
+        orderTracking: [OrderTrackingModel(status: 'PENDING', date: now)],
         createdAt: now,
         updatedAt: now,
       );
 
       await _orderService.createOrder(order);
-
-      showCustomSnackBar(
-        context,
-        '🎉 Order placed successfully!',
-        type: SnackBarType.success,
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        showCustomSnackBar(context, 'Order placed successfully', type: SnackBarType.success);
+        Navigator.pop(context);
+      }
     } catch (e) {
-      showCustomSnackBar(context, 'Error creating order: $e',
-          type: SnackBarType.error);
+      showCustomSnackBar(context, 'Order creation failed: $e', type: SnackBarType.error);
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  String format(double value) =>
-      NumberFormat.decimalPattern('en_US').format(value);
+  String format(double value) => NumberFormat.decimalPattern('en_US').format(value);
+
+  Widget _buildAddressSection(dynamic user) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Colors.red, size: 20),
+              const SizedBox(width: 8),
+              const Text('Shipping Address', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Spacer(),
+              TextButton(onPressed: () {}, child: const Text('Edit')),
+            ],
+          ),
+          const Divider(height: 20),
+          Text(user?.fullName ?? 'Guest User', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _addressCtrl,
+            maxLines: null,
+            decoration: const InputDecoration(
+              hintText: 'Enter detailed address',
+              border: InputBorder.none,
+              isDense: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final user = Provider.of<UserProvider>(context).user;
+    if (user != null && user.address != null && !_isAddressInitialized) {
+      _addressCtrl.text = user.address!;
+      _isAddressInitialized = true;
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Confirm Purchase'),
-        backgroundColor: AppColors.primary,
-      ),
+      appBar: AppBar(title: const Text('Confirm Purchase'), backgroundColor: AppColors.primary),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- PRODUCT INFORMATION ---
             Card(
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
               elevation: 2,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(widget.imageUrl ?? '',
-                      width: 70, fit: BoxFit.cover),
+                  child: Image.network(widget.imageUrl ?? '', width: 60, height: 60, fit: BoxFit.cover),
                 ),
-                title: Text(widget.productName ?? ''),
-                subtitle: Text(
-                    '${widget.quantity} x ${format(widget.unitPrice ?? 0)} đ'),
-                trailing: Text(
-                  '${format(subtotal)} đ',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
+                title: Text(widget.productName ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('${widget.quantity} x ${format(widget.unitPrice ?? 0)} USD'),
+                trailing: Text('${format(subtotal)} USD', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
               ),
             ),
-
             const SizedBox(height: 20),
-            const Text('Choose Delivery Mode',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const Divider(),
-            _buildShippingOption(
-              ShippingMethod.pickupAtStore,
-              'Store pickup (Ready in 20 min)',
-              'FREE',
-            ),
-            const SizedBox(height: 8),
-            _buildShippingOption(
-              ShippingMethod.expressDelivery,
-              'Express Delivery (2 - 4 business days)',
-              null,
-            ),
-
-            const SizedBox(height: 20),
-            _buildDiscountSection(),
-
-            const SizedBox(height: 20),
+            _buildAddressSection(user),
+            const SizedBox(height: 24),
+            const Text('Delivery Mode', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            _buildShippingOption(ShippingMethod.pickupAtStore, 'Store pickup', 'FREE'),
+            _buildShippingOption(ShippingMethod.expressDelivery, 'Express Delivery', null),
+            const SizedBox(height: 24),
+            const Text('Payment Method', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            _buildPaymentOption(PaymentMethod.cod, 'Cash on Delivery', const Icon(Icons.money, color: Colors.green)),
+            _buildPaymentOption(PaymentMethod.vnpay, 'VNPay Wallet', const Icon(Icons.account_balance_wallet, color: Colors.blue)),
+            const SizedBox(height: 24),
+            _buildDiscountSection((user?.loyaltyPoints ?? 0).toDouble()),
+            const SizedBox(height: 24),
             _buildSummary(),
-
-            const SizedBox(height: 20),
+            const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _placeOrder,
+                onPressed: _isLoading ? null : () => _handleCheckout(user),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child:
-                    Text(_isLoading ? 'Processing...' : 'Confirm Order'),
+                child: _isLoading 
+                    ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                    : const Text('Confirm Order', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
               ),
             ),
           ],
@@ -273,117 +337,63 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
     );
   }
 
-  Widget _buildShippingOption(
-      ShippingMethod method, String label, String? badge) {
+  Widget _buildShippingOption(ShippingMethod method, String label, String? badge) {
     final selected = _shippingMethod == method;
-    return InkWell(
-      onTap: () => setState(() => _shippingMethod = method),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          border: Border.all(
-              color:
-                  selected ? AppColors.primary : Colors.grey.shade300,
-              width: 1.5),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          children: [
-            Radio(
-              value: method,
-              groupValue: _shippingMethod,
-              activeColor: AppColors.primary,
-              onChanged: (_) => setState(() => _shippingMethod = method),
-            ),
-            Expanded(child: Text(label)),
-            if (badge != null)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text(
-                  badge,
-                  style: const TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold),
-                ),
-              )
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: RadioListTile<ShippingMethod>(
+        value: method,
+        groupValue: _shippingMethod,
+        activeColor: AppColors.primary,
+        title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+        secondary: badge != null ? Text(badge, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)) : null,
+        onChanged: (val) => setState(() => _shippingMethod = val!),
       ),
     );
   }
 
-  Widget _buildDiscountSection() {
+  Widget _buildPaymentOption(PaymentMethod method, String label, Widget icon) {
+    final selected = _paymentMethod == method;
+    return Container(
+      decoration: BoxDecoration(
+        color: selected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: RadioListTile<PaymentMethod>(
+        value: method,
+        groupValue: _paymentMethod,
+        activeColor: AppColors.primary,
+        title: Text(label, style: TextStyle(fontWeight: selected ? FontWeight.bold : FontWeight.normal)),
+        secondary: icon,
+        onChanged: (val) => setState(() => _paymentMethod = val!),
+      ),
+    );
+  }
+
+  Widget _buildDiscountSection(double points) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F3FF),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(color: Colors.purple.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Coupon
-          const Row(children: [
-            Icon(Icons.discount, color: Colors.purple),
-            SizedBox(width: 6),
-            Text('Voucher / Coupon',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          ]),
-          const SizedBox(height: 8),
           Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _couponCtrl,
-                decoration: const InputDecoration(
-                  hintText: 'Enter coupon code',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
+            Expanded(child: TextField(controller: _couponCtrl, decoration: const InputDecoration(hintText: 'Coupon code', isDense: true))),
             const SizedBox(width: 8),
             ElevatedButton(
-              onPressed: _isApplyingCoupon ? null : _applyCoupon,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-              ),
-              child: Text(_isApplyingCoupon ? '...' : 'Apply'),
-            )
+              onPressed: _isApplyingCoupon ? null : _applyCoupon, 
+              child: _isApplyingCoupon 
+                  ? const SizedBox(width: 15, height: 15, child: CircularProgressIndicator(strokeWidth: 2)) 
+                  : const Text('Apply')
+            ),
           ]),
-          const Divider(height: 20),
-
-          // Loyalty
-          const Row(children: [
-            Icon(Icons.card_giftcard, color: Colors.indigo),
-            SizedBox(width: 6),
-            Text('Loyalty Points',
-                style: TextStyle(fontWeight: FontWeight.bold)),
-          ]),
-          Text('You have ${_loyaltyPoints.toInt()} points (1 point = 1,000đ)'),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
           Row(children: [
-            Expanded(
-              child: TextField(
-                controller: _pointsCtrl,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  hintText: 'Enter points to use',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-            ),
+            Expanded(child: TextField(controller: _pointsCtrl, decoration: InputDecoration(hintText: 'Use points (Max: ${points.toInt()})', isDense: true))),
             const SizedBox(width: 8),
-            ElevatedButton(
-              onPressed: _applyPoints,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-              ),
-              child: const Text('Use Points'),
-            ),
+            ElevatedButton(onPressed: () => _applyPoints(points), child: const Text('Use')),
           ]),
         ],
       ),
@@ -391,40 +401,25 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
   }
 
   Widget _buildSummary() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            _buildSummaryRow('Subtotal', format(subtotal)),
-            _buildSummaryRow('Shipping Fee', format(shippingFee)),
-            _buildSummaryRow('Discount (Voucher & Points)',
-                '- ${format(totalDiscount)}', color: Colors.pink),
-            const Divider(height: 24),
-            _buildSummaryRow('Total Payment', format(total),
-                bold: true, color: AppColors.primary),
-          ],
-        ),
-      ),
+    return Column(
+      children: [
+        _buildSummaryRow('Subtotal', '${format(subtotal)} USD'),
+        _buildSummaryRow('Shipping', '${format(shippingFee)} USD'),
+        _buildSummaryRow('Discount', '- ${format(totalDiscount)} USD', color: Colors.red),
+        const Divider(),
+        _buildSummaryRow('Total', '${format(total)} USD', bold: true, fontSize: 18, color: AppColors.primary),
+      ],
     );
   }
 
-  Widget _buildSummaryRow(String label, String value,
-      {bool bold = false, Color? color}) {
+  Widget _buildSummaryRow(String label, String value, {bool bold = false, Color? color, double fontSize = 14}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style: TextStyle(
-                  fontWeight: bold ? FontWeight.bold : FontWeight.normal)),
-          Text(value,
-              style: TextStyle(
-                  fontWeight: bold ? FontWeight.bold : FontWeight.normal,
-                  color: color ?? Colors.black87)),
+          Text(label, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize)),
+          Text(value, style: TextStyle(fontWeight: bold ? FontWeight.bold : FontWeight.normal, fontSize: fontSize, color: color)),
         ],
       ),
     );

@@ -69,14 +69,15 @@ class _ProductTableState extends State<ProductTable> {
 
   Future<void> _fetchFromFirebase({int page = 1}) async {
     final provider = Provider.of<ProductProvider>(context, listen: false);
-    await provider.fetchProductsPaginated(page: page, limit: _limit);
+    
+    await provider.fetchProductsPaginated(page: page);
 
     if (!mounted) return;
 
     setState(() {
       _page = page;
       _productsData = provider.products;
-      _hasNextPage = _productsData.length == _limit; 
+      _hasNextPage = provider.hasMore; 
     });
   }
 
@@ -89,7 +90,6 @@ class _ProductTableState extends State<ProductTable> {
       final provider = Provider.of<ProductProvider>(context, listen: false);
 
       setState(() {
-        // Filter locally based on fetched products
         _productsData = text.isEmpty
             ? provider.products
             : provider.products
@@ -103,7 +103,6 @@ class _ProductTableState extends State<ProductTable> {
     return _productsData;
   }
 
-  // Sorts by ID descending
   List<ProductModel> _sortProducts(List<ProductModel> products) {
     return products..sort((a, b) => b.id.compareTo(a.id));
   }
@@ -125,7 +124,7 @@ class _ProductTableState extends State<ProductTable> {
             buttonLabel: 'Save',
             initialProduct: product.toJson(),
             onSubmit: (updatedData) async {
-              debugPrint('Product updated: $updatedData'); // Translated
+              debugPrint('Product updated: $updatedData'); 
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
@@ -136,7 +135,7 @@ class _ProductTableState extends State<ProductTable> {
               if (mounted) await _fetchFromFirebase();
             },
             onDelete: () async {
-              debugPrint('Product deleted: ${product.name}'); // Translated
+              debugPrint('Product deleted: ${product.name}'); 
 
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {

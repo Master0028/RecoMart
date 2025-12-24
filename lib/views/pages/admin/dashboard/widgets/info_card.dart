@@ -9,7 +9,7 @@ class InfoCard extends StatelessWidget {
     super.key,
     required this.title,
     required this.value,
-    required this.color,
+    required this.color, required IconData icon,
   });
 
   @override

@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:recomart/config/color.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
-import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
+import 'package:recomart/views/pages/client/home/widgets/product_widget.dart' hide AppColors;
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
 
 import 'package:recomart/services/recommendation_service.dart';
@@ -210,7 +210,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
                       color: AppColors.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(8)),
                   child: Text("${_searchResults.length} items found",
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppColors.primary)),

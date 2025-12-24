@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:recomart/provider/user_provider.dart';
+import 'package:recomart/views/pages/admin/customer/widgets/customer_detail_screen.dart';
 import 'package:recomart/views/pages/admin/customer/widgets/customer_table.dart';
 import '../../../../models/user.model.dart';
 
@@ -8,8 +9,7 @@ class CustomerManagementScreen extends StatefulWidget {
   const CustomerManagementScreen({super.key});
 
   @override
-  State<CustomerManagementScreen> createState() =>
-      _CustomerManagementScreenState();
+  State<CustomerManagementScreen> createState() => _CustomerManagementScreenState();
 }
 
 class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
@@ -18,6 +18,19 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
     super.initState();
     Future.microtask(() =>
         Provider.of<UserProvider>(context, listen: false).fetchUsers());
+  }
+
+  void _navigateToDetail(UserModel user) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CustomerDetailScreen(
+          userId: user.id,
+          userName: user.fullName,
+          userAvatar: user.avatar ?? 'https://placehold.co/100',
+        ),
+      ),
+    );
   }
 
   @override
@@ -33,15 +46,22 @@ class _CustomerManagementScreenState extends State<CustomerManagementScreen> {
       child: userProvider.loading
           ? const Center(child: CircularProgressIndicator())
           : userProvider.error != null
-              ? Center(child: Text('Error: ${userProvider.error}')) // Translated
+              ? Center(child: Text('Error: ${userProvider.error}'))
               : SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const Text(
+                        "Customer List",
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 16),
                       customers.isEmpty
-                          ? const Center(child: Text('No customers available')) // Translated
-                          : CustomerTable(customers: customers),
+                          ? const Center(child: Text('No customers available'))
+                          : CustomerTable(
+                              customers: customers,
+                              onViewDetail: _navigateToDetail
+                            ),
                     ],
                   ),
                 ),

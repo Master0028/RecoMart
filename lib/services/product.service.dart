@@ -1,161 +1,148 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../models/product.model.dart';
+import 'api_service.dart';
 
 class ProductService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true',
+  };
 
-  Future<List<ProductModel>> getProducts() async {
+  Future<List<ProductModel>> getProducts({
+    int page = 1, 
+    int limit = 10,
+    String? sort,
+  }) async {
     try {
-      final snapshot = await _firestore.collection('products').get();
+      String query = 'page=$page&limit=$limit';
+      if (sort != null) {
+        query += '&sort=$sort';
+      }
 
-      return snapshot.docs.map((doc) {
-        // Lấy id từ doc.id
-        final data = doc.data();
-        return ProductModel.fromSnapshot(doc);
-      }).toList();
+      print("Calling Product API: ${ApiService.baseUrl}/api/products?$query");
+
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/api/products?$query'),
+        headers: _headers, // Dùng header có bypass ngrok
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final List<dynamic> data = body['data'] ?? [];
+        
+        return data.map((json) => ProductModel.fromJson(json)).toList();
+      } else {
+        print("Get Products Failed: ${response.statusCode}");
+        return [];
+      }
     } catch (e) {
-      print('❌ Lỗi khi lấy sản phẩm: $e');
+      print("Get Products Error: $e");
       return [];
     }
   }
 
-  /// 🔹 Lấy sản phẩm theo trang (page, limit)
-  Future<List<ProductModel>> getProductsPaginated({
-    required int page,
-    required int limit,
-  }) async {
-    final snapshot = await FirebaseFirestore.instance.collection('products')
-        .orderBy('name') // hoặc 'createdAt' nếu bạn có trường này
-        .limit(limit)
-        .get();
-
-    if (page > 1) {
-      final lastDocIndex = (page - 1) * limit;
-      final allDocs = await FirebaseFirestore.instance.collection('products')
-          .orderBy('name')
-          .limit(lastDocIndex + limit)
-          .get();
-      final slice = allDocs.docs.skip(lastDocIndex).take(limit).toList();
-      return slice.map((doc) => ProductModel.fromSnapshot(doc)).toList();
-    }
-
-    return snapshot.docs.map((doc) => ProductModel.fromSnapshot(doc)).toList();
-  }
-
-  Future<ProductModel> getProductById(String productId) async {
-    final doc = await FirebaseFirestore.instance.collection('products').doc(productId).get();
-    if (!doc.exists) throw Exception('Sản phẩm không tồn tại');
-
-    final data = doc.data()!;
-    var product = ProductModel.fromMap(data, docId: doc.id);
-
-    // Lấy tên brand
-    if (product.brandId.isNotEmpty) {
-      final b = await FirebaseFirestore.instance.collection('brands').doc(product.brandId).get();
-      final brandName = b.data()?['name'] as String?;
-      product = product.copyWith(brandName: brandName ?? 'Không xác định');
-    }
-
-    // Lấy tên category
-    if (product.categoryId.isNotEmpty) {
-      final c = await FirebaseFirestore.instance.collection('categories').doc(product.categoryId).get();
-      final categoryName = c.data()?['name'] as String?;
-      product = product.copyWith(categoryName: categoryName ?? 'Không xác định');
-    }
-
-    return product;
-  }
-
-  Future<List<ProductModel>> getProductsByCategory(String categoryId) async {
-    final query = await FirebaseFirestore.instance
-        .collection('products')
-        .where('categoryId', isEqualTo: categoryId)
-        .get();
-
-    return query.docs.map((d) => ProductModel.fromSnapshot(d)).toList();
-  }
-
-
-  /// 🔹 Tạo mới sản phẩm
-  Future<void> createProduct(ProductModel product) async {
-    await FirebaseFirestore.instance
-        .collection('products').add(product.toMap());
-  }
-
-  /// 🔹 Cập nhật sản phẩm
-  Future<void> updateProduct(String id, ProductModel data) async {
-    await FirebaseFirestore.instance
-        .collection('products').doc(id).update(data.toMap());
-  }
-
-  /// 🔹 Xóa sản phẩm
-  Future<void> deleteProduct(String id) async {
-    await FirebaseFirestore.instance
-        .collection('products').doc(id).delete();
-  }
-
-  /// 🔹 Lấy danh sách danh mục (categories)
-  Future<Map<String, String>> getCategories() async {
-    try {
-      final snapshot = await  FirebaseFirestore.instance.collection('categories').get();
-      return {
-        for (var doc in snapshot.docs) doc.id: doc['name'] ?? 'Unknown',
-      };
-    } catch (e) {
-      throw Exception('Lỗi tải categories: $e');
-    }
-  }
-
-  /// 🔹 Lấy danh sách thương hiệu (brands)
-  Future<Map<String, String>> getBrands() async {
-    try {
-      final snapshot = await  FirebaseFirestore.instance.collection('brands').get();
-      return {
-        for (var doc in snapshot.docs) doc.id: doc['name'] ?? 'Unknown',
-      };
-    } catch (e) {
-      throw Exception('Lỗi tải brands: $e');
-    }
-  }
-
-  Future<List<ProductModel>> getProductsWithPagination({
-    int limit = 10,
-    DocumentSnapshot? lastDoc,
+  Future<List<ProductModel>> filterProducts({
     String? categoryId,
     String? brandId,
     double? minPrice,
     double? maxPrice,
-    double? minRating,
   }) async {
-    Query query = FirebaseFirestore.instance
-        .collection('products')
-        .where('isActive', isEqualTo: true)
-        .orderBy('price', descending: false)
-        .limit(limit);
+    try {
+      List<String> queryParams = [];
+      if (categoryId != null) queryParams.add('category=$categoryId');
+      if (brandId != null) queryParams.add('brand=$brandId');
+      if (minPrice != null) queryParams.add('min_price=$minPrice');
+      if (maxPrice != null) queryParams.add('max_price=$maxPrice');
 
-    // --- Apply filters ---
-    if (categoryId != null && categoryId.isNotEmpty) {
-      query = query.where('categoryId', isEqualTo: categoryId);
-    }
-    if (brandId != null && brandId.isNotEmpty) {
-      query = query.where('brandId', isEqualTo: brandId);
-    }
-    if (minPrice != null && maxPrice != null) {
-      query = query
-          .where('price', isGreaterThanOrEqualTo: minPrice)
-          .where('price', isLessThanOrEqualTo: maxPrice);
-    }
-    if (minRating != null) {
-      query = query.where('averageRating', isGreaterThanOrEqualTo: minRating);
-    }
+      String queryString = queryParams.join('&');
+      final url = '${ApiService.baseUrl}/api/products/filter?$queryString';
+      
+      print("Calling Filter API: $url");
 
-    // --- Pagination ---
-    if (lastDoc != null) {
-      query = query.startAfterDocument(lastDoc);
+      final response = await http.get(
+        Uri.parse(url),
+        headers: _headers,
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final List<dynamic> data = body['results'] ?? body['data'] ?? [];
+        return data.map((json) => ProductModel.fromJson(json)).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print("Filter Error: $e");
+      return [];
     }
+  }
 
-    final snapshot = await query.get();
+  Future<ProductModel> getProductById(String productId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiService.baseUrl}/api/products/$productId'),
+        headers: _headers,
+      );
 
-    return snapshot.docs.map((doc) => ProductModel.fromSnapshot(doc)).toList();
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final data = body['data'];
+        if (data['id'] == null) data['id'] = productId;
+        return ProductModel.fromJson(data);
+      } else {
+        throw Exception('Product not found');
+      }
+    } catch (e) {
+      throw Exception('Error fetching product detail: $e');
+    }
+  }
+
+  Future<List<ProductModel>> getProductsByCategory(String categoryId) async {
+    return filterProducts(categoryId: categoryId);
+  }
+
+  Future<void> createProduct(ProductModel product) async {
+    final response = await http.post(
+      Uri.parse('${ApiService.baseUrl}/api/products'),
+      headers: _headers,
+      body: jsonEncode(product.toMap()),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to create product');
+    }
+  }
+
+  Future<void> updateProduct(String id, ProductModel data) async {
+    final response = await http.put(
+      Uri.parse('${ApiService.baseUrl}/api/products/$id'),
+      headers: _headers,
+      body: jsonEncode(data.toMap()),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update product');
+    }
+  }
+
+  Future<void> deleteProduct(String id) async {
+    final response = await http.delete(
+      Uri.parse('${ApiService.baseUrl}/api/products/$id'),
+      headers: _headers,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to delete product');
+    }
+  }
+  
+  Future<Map<String, String>> getCategories() async {
+     return {}; 
+  }
+  
+  Future<Map<String, String>> getBrands() async {
+     return {};
   }
 }

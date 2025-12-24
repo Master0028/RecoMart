@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-enum SnackBarType { success, error, info }
+enum SnackBarType { success, error, info, warning }
 
 void showCustomSnackBar(
   BuildContext context,
   String message, {
-  SnackBarType type = SnackBarType.error, // mặc định là lỗi
+  SnackBarType type = SnackBarType.error,
 }) {
-  // Đặt icon và màu theo loại SnackBar
   Color backgroundColor;
   Color textColor;
   IconData icon;
@@ -28,6 +27,9 @@ void showCustomSnackBar(
       textColor = Colors.blue.shade800;
       icon = Icons.info_outline;
       break;
+    case SnackBarType.warning:
+      // TODO: Handle this case.
+      throw UnimplementedError();
   }
 
   ScaffoldMessenger.of(context).showSnackBar(

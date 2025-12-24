@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:math' as math;
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
+import 'package:recomart/services/api_service.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0);
@@ -65,9 +65,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final email = _emailController.text.trim();
     final pass = _passwordController.text.trim();
     final confirmPass = _confirmedPasswordController.text.trim();
-    final address = _addressController.text.trim();
 
-    // Basic Validation
     if (name.isEmpty) {
       _focusAndShowError(_nameFocus, 'Please enter your full name');
       return;
@@ -77,7 +75,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
       return;
     }
     if (pass.isEmpty || pass.length < 6) {
-      _focusAndShowError(_passwordFocus, 'Password must be at least 6 characters');
+      _focusAndShowError(
+          _passwordFocus, 'Password must be at least 6 characters');
       return;
     }
     if (pass != confirmPass) {
@@ -88,36 +87,19 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       setState(() => _loading = true);
 
-      final authResult = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: pass,
-      );
-
-      await FirebaseFirestore.instance.collection('users').doc(authResult.user!.uid).set({
-        'fullName': name,
-        'email': email,
-        'address': address,
-        'role': 'customer', // Default role
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+      await ApiService.register(email, pass, name);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Sign up successful! Redirecting...'),
+          content: Text('Sign up successful! Redirecting to Login...'),
           backgroundColor: Colors.green,
         ));
+        
         context.go('/login');
       }
-    } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Sign up failed';
-      if (e.code == 'weak-password') {
-        errorMessage = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        errorMessage = 'The account already exists for that email.';
-      }
-      if (mounted) _focusAndShowError(_emailFocus, errorMessage);
     } catch (e) {
-      if (mounted) _focusAndShowError(_emailFocus, 'An error occurred. Please try again.');
+      String errorMsg = e.toString().replaceAll("Exception: ", "");
+      if (mounted) _focusAndShowError(_emailFocus, errorMsg);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -158,7 +140,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  // --- ANIMATED INPUT FIELD ---
   Widget buildInputField({
     required String hintText,
     required IconData icon,
@@ -191,9 +172,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(largeRadius),
-            borderSide: BorderSide(color: primaryBlue, width: 2), // Highlight border on focus
+            borderSide: BorderSide(color: primaryBlue, width: 2),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
         ),
       ),
     );
@@ -208,7 +190,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       obscureText: !_isPasswordVisible,
       suffixIcon: IconButton(
         icon: Icon(
-          _isPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          _isPasswordVisible
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
           color: Colors.grey,
         ),
         onPressed: () {
@@ -229,7 +213,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
       obscureText: !_isConfirmPasswordVisible,
       suffixIcon: IconButton(
         icon: Icon(
-          _isConfirmPasswordVisible ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          _isConfirmPasswordVisible
+              ? Icons.visibility_outlined
+              : Icons.visibility_off_outlined,
           color: Colors.grey,
         ),
         onPressed: () {
@@ -263,7 +249,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
             )
           : const Text(
               'Sign Up',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white),
             ),
     );
   }
@@ -277,10 +266,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
         backgroundColor: Colors.grey,
         foregroundColor: cancelTextColor,
         minimumSize: const Size(double.infinity, 56),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(largeRadius)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(largeRadius)),
         elevation: 0,
       ),
-      child: const Text('Cancel', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+      child: const Text('Cancel',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
     );
   }
 
@@ -303,7 +294,8 @@ class _SignUpScreenState extends State<SignUpScreen> {
               color: primaryBlue,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.arrow_forward, color: Colors.white, size: 20),
+            child: const Icon(Icons.arrow_forward,
+                color: Colors.white, size: 20),
           ),
         ],
       ),
@@ -331,7 +323,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 child: IntrinsicHeight(
                   child: Stack(
                     children: [
-                      // Decorative Shape 1
                       Positioned(
                         top: -size.height * 0.15,
                         left: -size.width * 0.5,
@@ -344,7 +335,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
-                      // Decorative Shape 2
                       Positioned(
                         top: size.height * 0.0,
                         right: -size.width * 0.3,
@@ -357,7 +347,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ),
                         ),
                       ),
-
                       SafeArea(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -369,16 +358,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                               const SizedBox(height: 30),
                               buildProfilePicturePlaceholder(),
                               const SizedBox(height: 30),
-
-                              // Name
                               buildInputField(
                                   hintText: 'Full Name',
                                   icon: Icons.person_outline,
                                   controller: _userNameController,
                                   focusNode: _nameFocus),
                               const SizedBox(height: 20),
-
-                              // Email
                               buildInputField(
                                 hintText: 'Email',
                                 icon: Icons.email_outlined,
@@ -387,8 +372,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 keyboardType: TextInputType.emailAddress,
                               ),
                               const SizedBox(height: 20),
-
-                              // Address
                               buildInputField(
                                 hintText: 'Address (Optional)',
                                 icon: Icons.home_outlined,
@@ -396,24 +379,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
                                 focusNode: _addressFocus,
                               ),
                               const SizedBox(height: 20),
-
-                              // Password
                               buildPasswordField(),
                               const SizedBox(height: 20),
-
-                              // Confirm Password
                               buildConfirmPasswordField(),
                               const SizedBox(height: 40),
-
-                              // Buttons
                               buildDoneButton(),
                               const SizedBox(height: 20),
-
                               buildCancelButton(context),
                               const SizedBox(height: 20),
-
                               buildSignInButton(context),
-
                               const SizedBox(height: 40),
                             ],
                           ),
@@ -471,7 +445,7 @@ class _AnimatedInputContainerState extends State<AnimatedInputContainer> {
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
-      scale: _isFocused ? 1.02 : 1.0, // Scale up slightly on focus
+      scale: _isFocused ? 1.02 : 1.0,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeInOut,
       child: AnimatedContainer(

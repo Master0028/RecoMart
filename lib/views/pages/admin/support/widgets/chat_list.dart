@@ -32,105 +32,158 @@ class ChatList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: _chatService.getChatList(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final bool isCompact = constraints.maxWidth < 90;
 
-        final chats = snapshot.data!.docs;
-        if (chats.isEmpty) {
-          return const Center(child: Text("No conversations found."));
-        }
+        return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+          stream: _chatService.getChatList(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: ListView.separated(
-            itemCount: chats.length,
-            separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
-            itemBuilder: (context, index) {
-              final chat = chats[index].data();
-              final participants = List<String>.from(chat['participants'] ?? []);
-
-              final userId = participants.firstWhere(
-                (id) => id != ChatService.adminId,
-                orElse: () => 'unknown',
+            final chats = snapshot.data!.docs;
+            if (chats.isEmpty) {
+              return Center(
+                child: isCompact 
+                  ? const Icon(Icons.chat_bubble_outline, color: Colors.grey)
+                  : const Text("No conversations found.", style: TextStyle(color: Colors.grey)),
               );
+            }
 
-              final isSelected = selectedUserId == userId;
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 10.0),
+              itemCount: chats.length,
+              itemBuilder: (context, index) {
+                final chat = chats[index].data();
+                final participants = List<String>.from(chat['participants'] ?? []);
 
-              return FutureBuilder<Map<String, dynamic>?>(
-                future: _getUserData(userId),
-                builder: (context, userSnap) {
-                  if (!userSnap.hasData && !userSnap.hasError) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 10),
-                      child: Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))),
+                final userId = participants.firstWhere(
+                  (id) => id != ChatService.adminId,
+                  orElse: () => 'unknown',
+                );
+
+                final isSelected = selectedUserId == userId;
+
+                return FutureBuilder<Map<String, dynamic>?>(
+                  future: _getUserData(userId),
+                  builder: (context, userSnap) {
+                    String userName = 'Loading...';
+                    String userAvatar = 'https://placehold.co/60x60/cccccc/ffffff?text=...';
+                    
+                    if (userSnap.hasData) {
+                      userName = userSnap.data!['name'];
+                      userAvatar = userSnap.data!['avatar'];
+                    }
+
+                    final lastMessage = chat['lastMessage'] ?? '';
+                    final bool hasUnread = false;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8.0),
+                      child: InkWell(
+                        onTap: () => onUserSelected({
+                          'id': userId,
+                          'name': userName,
+                          'avatar': userAvatar,
+                        }),
+                        borderRadius: BorderRadius.circular(12),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: EdgeInsets.all(isCompact ? 8 : 12),
+                          decoration: BoxDecoration(
+                            color: isSelected 
+                                ? AppColors.primary.withOpacity(0.1) 
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(12),
+                            border: isSelected 
+                                ? Border.all(color: AppColors.primary.withOpacity(0.3)) 
+                                : Border.all(color: Colors.transparent),
+                          ),
+                          child: isCompact 
+                            ? _buildCompactItem(userAvatar, isSelected)
+                            : _buildFullItem(userAvatar, userName, lastMessage, isSelected),
+                        ),
+                      ),
                     );
-                  }
-                  
-                  final userData = userSnap.data;
-                  final userName = userData?['name'] ?? userId;
-                  final userAvatar = userData?['avatar'] ??
-                      'https://placehold.co/60x60/cccccc/ffffff?text=U';
-                  final lastMessage = chat['lastMessage'] ?? 'No message history.';
-
-                  // --- MODERNIZED LIST ITEM ---
-                  return InkWell(
-                    onTap: () => onUserSelected({
-                      'id': userId,
-                      'name': userName,
-                      'avatar': userAvatar,
-                    }),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary.withOpacity(0.08) : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundImage: NetworkImage(userAvatar),
-                            backgroundColor: Colors.grey.shade300,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  userName,
-                                  style: TextStyle(
-                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                                    color: Colors.black87,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  lastMessage,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(color: isSelected ? Colors.black54 : Colors.grey),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.chevron_right, color: isSelected ? AppColors.primary : Colors.grey.shade400, size: 20),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
-          ),
+                  },
+                );
+              },
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildCompactItem(String avatarUrl, bool isSelected) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: isSelected ? AppColors.primary : Colors.transparent, 
+              width: 2
+            ),
+          ),
+          child: CircleAvatar(
+            radius: 20,
+            backgroundImage: NetworkImage(avatarUrl),
+            backgroundColor: Colors.grey.shade200,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFullItem(String avatarUrl, String name, String message, bool isSelected) {
+    return Row(
+      children: [
+        Stack(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundImage: NetworkImage(avatarUrl),
+              backgroundColor: Colors.grey.shade200,
+            ),
+          ],
+        ),
+        const SizedBox(width: 15),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                  color: const Color(0xFF2B2B2B),
+                  fontSize: 15,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                message.isNotEmpty ? message : 'No messages yet',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isSelected ? AppColors.primary : Colors.grey.shade600,
+                  fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (isSelected)
+          const Icon(Icons.chevron_right, size: 18, color: AppColors.primary),
+      ],
     );
   }
 }

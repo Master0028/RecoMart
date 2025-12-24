@@ -1,8 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/user_provider.dart';
 
 const Color _primaryColor = Colors.blue;
 const Color _secondaryColor = Colors.orange;
@@ -28,9 +29,10 @@ class _MockLocationWidget extends StatelessWidget {
           SizedBox(width: 4),
           Flexible(
             child: Text(
-              'Ward A, Ho Chi Minh City', // Translated
+              'Ward A, Ho Chi Minh City',
               style: TextStyle(fontSize: 13, color: Colors.black87),
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
             ),
           ),
         ],
@@ -48,7 +50,7 @@ class InteractiveGuestAvatar extends StatefulWidget {
     super.key,
     required this.userName,
     this.userId,
-    this.avatarUrl
+    this.avatarUrl,
   });
 
   @override
@@ -63,39 +65,63 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
 
     final List<Map<String, dynamic>> items = [
       {'text': 'Home', 'icon': Icons.home_outlined, 'value': 'Home'},
-      if (isLoggedIn) {'text': 'Profile', 'icon': Icons.person, 'value': 'Profile'},
-      {'text': "Cart", 'icon': Icons.shopping_cart, 'value': "Cart"},
-      {'text': "Support", 'icon': Icons.support, 'value': "Support"},
-      // Toggle Logout/Login text based on state
-      {'text': isLoggedIn ? 'Logout' : 'Login', 'icon': isLoggedIn ? Icons.logout : Icons.login, 'value': isLoggedIn ? 'Logout' : 'Login'},
+      if (isLoggedIn)
+        {'text': 'Profile', 'icon': Icons.person_outline, 'value': 'Profile'},
+      {'text': "Cart", 'icon': Icons.shopping_cart_outlined, 'value': "Cart"},
+      {'text': "Support", 'icon': Icons.help_outline, 'value': "Support"},
+      {
+        'text': isLoggedIn ? 'Logout' : 'Login',
+        'icon': isLoggedIn ? Icons.logout : Icons.login,
+        'value': isLoggedIn ? 'Logout' : 'Login'
+      },
     ];
 
-    final RenderBox renderBox = _menuKey.currentContext!.findRenderObject() as RenderBox;
+    final RenderBox renderBox =
+        _menuKey.currentContext!.findRenderObject() as RenderBox;
     final Offset offset = renderBox.localToGlobal(Offset.zero);
+    final double buttonWidth = renderBox.size.width;
 
     showMenu<String>(
       context: context,
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      constraints: BoxConstraints(
+          minWidth: buttonWidth > 150 ? buttonWidth : 150),
       position: RelativeRect.fromLTRB(
-        offset.dx - 100,
-        offset.dy + renderBox.size.height,
-        offset.dx + renderBox.size.width,
-        offset.dy + renderBox.size.height,
+        offset.dx,
+        offset.dy + renderBox.size.height + 6,
+        offset.dx + buttonWidth,
+        offset.dy + renderBox.size.height + 100,
       ),
       items: items.map((item) {
         return PopupMenuItem<String>(
           value: item['value'],
-          child: Row(children: [Icon(item['icon'], color: _primaryColor, size: 20), const SizedBox(width: 8), Text(item['text'])]),
+          height: 40,
+          child: Row(children: [
+            Icon(item['icon'], color: _primaryColor, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+                child: Text(
+              item['text'],
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
+            ))
+          ]),
         );
       }).toList(),
     ).then((val) async {
       if (val == null) return;
+
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+
       if (val == 'Home') context.go('/home');
       if (val == 'Profile') context.push('/profile');
       if (val == 'Cart') context.push('/cart');
       if (val == 'Support') context.push('/chat');
       if (val == 'Login') context.go('/login');
       if (val == 'Logout') {
-        await FirebaseAuth.instance.signOut();
+        await Provider.of<UserProvider>(context, listen: false).signOut();
         if (mounted) context.go('/login');
       }
     });
@@ -105,20 +131,20 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
   Widget build(BuildContext context) {
     Widget avatarCircle;
     if (widget.avatarUrl != null && widget.avatarUrl!.isNotEmpty) {
-       avatarCircle = CircleAvatar(
-         radius: Responsive.isDesktop(context) ? 15 : 18,
-         backgroundImage: NetworkImage(widget.avatarUrl!),
-         backgroundColor: Colors.grey[200],
-       );
+      avatarCircle = CircleAvatar(
+        radius: Responsive.isDesktop(context) ? 15 : 18,
+        backgroundImage: NetworkImage(widget.avatarUrl!),
+        backgroundColor: Colors.grey[200],
+      );
     } else {
-       avatarCircle = CircleAvatar(
-         radius: Responsive.isDesktop(context) ? 15 : 18,
-         backgroundColor: _secondaryColor,
-         child: Text(
-           widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'G',
-           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)
-         ),
-       );
+      avatarCircle = CircleAvatar(
+        radius: Responsive.isDesktop(context) ? 15 : 18,
+        backgroundColor: _secondaryColor,
+        child: Text(
+            widget.userName.isNotEmpty ? widget.userName[0].toUpperCase() : 'G',
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+      );
     }
 
     if (!Responsive.isDesktop(context)) {
@@ -144,9 +170,17 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
           children: [
             avatarCircle,
             const SizedBox(width: 8),
-            Text(widget.userName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+            Flexible(
+              child: Text(
+                widget.userName,
+                style:
+                    const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
             const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down, color: Colors.black54, size: 18),
+            const Icon(Icons.keyboard_arrow_down,
+                color: Colors.black54, size: 18),
           ],
         ),
       ),
@@ -164,25 +198,42 @@ class _DesktopSearchAndCart extends StatelessWidget {
         Expanded(
           child: Container(
             constraints: const BoxConstraints(maxWidth: 600),
-            decoration: BoxDecoration(color: _searchBarBackground, borderRadius: BorderRadius.circular(5)),
+            decoration: BoxDecoration(
+                color: _searchBarBackground,
+                borderRadius: BorderRadius.circular(5)),
             child: Row(children: [
-              Expanded(child: TextField(
-                decoration: const InputDecoration(hintText: 'Search products...', border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 12)),
+              Expanded(
+                  child: TextField(
+                decoration: const InputDecoration(
+                    hintText: 'Search products...',
+                    border: InputBorder.none,
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 15, vertical: 12)),
                 onSubmitted: (_) => context.push('/search'),
               )),
               Container(
-                decoration: BoxDecoration(color: _actionButtonColor, borderRadius: BorderRadius.circular(5)),
-                width: 50, height: 48,
-                child: IconButton(icon: const Icon(Icons.search, color: Colors.white), onPressed: () => print('Search')),
+                decoration: BoxDecoration(
+                    color: _actionButtonColor,
+                    borderRadius: BorderRadius.circular(5)),
+                width: 50,
+                height: 48,
+                child: IconButton(
+                    icon: const Icon(Icons.search, color: Colors.white),
+                    onPressed: () => context.push('/search')),
               ),
             ]),
           ),
         ),
         const SizedBox(width: 20),
-        AddToCartIcon(
-          key: cartKey,
-          icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87, size: 28),
-          badgeOptions: const BadgeOptions(active: true, backgroundColor: Colors.red),
+        IconButton(
+          onPressed: () => context.push('/cart'),
+          icon: AddToCartIcon(
+            key: cartKey,
+            icon: const Icon(Icons.shopping_cart_outlined,
+                color: Colors.black87, size: 28),
+            badgeOptions:
+                const BadgeOptions(active: true, backgroundColor: Colors.red),
+          ),
         ),
       ],
     );
@@ -206,61 +257,61 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
       titleSpacing: 0,
       elevation: 0,
       toolbarHeight: isDesktop ? 80 : 60,
-
       title: isDesktop
           ? Padding(
               padding: const EdgeInsets.only(left: 32),
               child: Row(
                 children: [
-                  SvgPicture.asset('assets/logo/logo.png', height: 30, width: 30),
+                  SvgPicture.asset('assets/logo/logo.png',
+                      height: 30, width: 30),
                   const SizedBox(width: 8),
                   const Text.rich(TextSpan(children: [
-                    TextSpan(text: 'Reco', style: TextStyle(color: _primaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
-                    TextSpan(text: 'Mart', style: TextStyle(color: _secondaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
+                    TextSpan(
+                        text: 'Reco',
+                        style: TextStyle(
+                            color: _primaryColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
+                    TextSpan(
+                        text: 'Mart',
+                        style: TextStyle(
+                            color: _secondaryColor,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold)),
                   ])),
-                  Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 40), child: _DesktopSearchAndCart(cartKey: cartKey))),
+                  Expanded(
+                      child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: _DesktopSearchAndCart(cartKey: cartKey))),
                 ],
               ),
             )
           : const _MockLocationWidget(),
-
       actions: [
         if (!isDesktop) ...[
           IconButton(
-            onPressed: () => context.push('/search'),
-            icon: const Icon(Icons.search, color: Colors.black87),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: AddToCartIcon(
+            onPressed: () => context.push('/cart'),
+            icon: AddToCartIcon(
               key: cartKey,
-              icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87),
-              badgeOptions: const BadgeOptions(active: true, backgroundColor: Colors.red),
+              icon: const Icon(Icons.shopping_cart_outlined,
+                  color: Colors.black87),
+              badgeOptions:
+                  const BadgeOptions(active: true, backgroundColor: Colors.red),
             ),
           ),
         ],
-
         Padding(
-          padding: EdgeInsets.only(right: isDesktop ? 32 : 16),
-          child: StreamBuilder<User?>(
-            stream: FirebaseAuth.instance.userChanges(),
-            builder: (context, snapshot) {
-              final user = snapshot.data;
-              final isLoggedIn = user != null;
-
-              String displayName = 'Guest';
-              String? photoUrl;
-              String? uid;
-
-              if (isLoggedIn) {
-                displayName = user.displayName ?? user.email?.split('@')[0] ?? 'User';
-                photoUrl = user.photoURL;
-                uid = user.uid;
-              }
+          padding: EdgeInsets.only(right: isDesktop ? 32 : 10, left: 8),
+          child: Consumer<UserProvider>(
+            builder: (context, userProvider, child) {
+              final isLoggedIn = userProvider.isLoggedIn;
+              final displayName = isLoggedIn ? userProvider.userName : 'Guest';
+              final photoUrl = userProvider.userInfo?.avatar;
+              final uid = userProvider.userId;
 
               return InteractiveGuestAvatar(
                 userName: displayName,
-                userId: uid,
+                userId: isLoggedIn ? uid : null,
                 avatarUrl: photoUrl,
               );
             },

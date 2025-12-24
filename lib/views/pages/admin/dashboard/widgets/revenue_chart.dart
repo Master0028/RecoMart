@@ -1,241 +1,320 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
-class RevenueChart extends StatelessWidget {
+class RevenueChart extends StatefulWidget {
   const RevenueChart({super.key});
 
-  Widget _buildLegendItem(String title, Color color) {
-    return Row(
-      children: [
-        Container(
-          width: 16,
-          height: 16,
-          color: color,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          title,
-          style: const TextStyle(fontSize: 12),
-        ),
-      ],
+  @override
+  State<RevenueChart> createState() => _RevenueChartState();
+}
+
+class _RevenueChartState extends State<RevenueChart> {
+  bool isPlaying = false;
+  int touchedGroupIndex = -1;
+
+  final Random _random = Random();
+
+  late List<List<double>> _chartData;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _chartData = List.generate(4, (_) => _randomMonthData());
+
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted) {
+        setState(() {
+          isPlaying = true;
+        });
+      }
+    });
+  }
+
+  List<double> _randomMonthData() {
+    double r(double min, double max) =>
+        min + _random.nextDouble() * (max - min);
+
+    return [
+      r(200, 700), // Prod A
+      r(250, 750), // Prod B
+      r(300, 800), // Prod C
+      r(180, 650), // Prod D
+    ];
+  }
+
+  LinearGradient _getGradient(Color color) {
+    return LinearGradient(
+      colors: [color.withOpacity(0.5), color],
+      begin: Alignment.bottomCenter,
+      end: Alignment.topCenter,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            color: const Color(0xFF9E9E9E).withOpacity(0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            "Overview",
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            "-99% from 2019",
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.red,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegendItem("Product A", Colors.teal),
-              const SizedBox(width: 8),
-              _buildLegendItem("Product B", Colors.blue),
-              const SizedBox(width: 8),
-              _buildLegendItem("Product C", Colors.purple),
-              const SizedBox(width: 8),
-              _buildLegendItem("Product D", Colors.indigo),
-            ],
-          ),
+          _buildHeader(),
           const SizedBox(height: 16),
-          SizedBox(
-            height: 250,
-            child: BarChart(
-              BarChartData(
-                alignment: BarChartAlignment.spaceAround,
-                maxY: 800,
-                minY: 0,
-                barTouchData: BarTouchData(
-                  enabled: true,
-                  touchTooltipData: BarTouchTooltipData(
-                    tooltipPadding: const EdgeInsets.all(8),
-                    tooltipMargin: 8,
-                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                      final rods = group.barRods;
-                      final month = ['Jan', 'Feb', 'Mar', 'Apr'][groupIndex];
-
-                      List<TextSpan> tooltipItems = [];
-                      for (int i = 0; i < rods.length; i++) {
-                        String product;
-                        Color color;
-                        switch (i) {
-                          case 0:
-                            product = "Product A";
-                            color = Colors.teal;
-                            break;
-                          case 1:
-                            product = "Product B";
-                            color = Colors.blue;
-                            break;
-                          case 2:
-                            product = "Product C";
-                            color = Colors.purple;
-                            break;
-                          case 3:
-                            product = "Product D";
-                            color = Colors.indigo;
-                            break;
-                          default:
-                            product = "";
-                            color = Colors.grey;
-                        }
-                        tooltipItems.add(
-                          TextSpan(
-                            text: '● ',
-                            style: TextStyle(
-                              color: color,
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                        tooltipItems.add(
-                          TextSpan(
-                            text: '$product \$${rods[i].toY.toInt()}\n',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                            ),
-                          ),
-                        );
-                      }
-
-                      return BarTooltipItem(
-                        '$month\n',
-                        const TextStyle(
-                          color: Colors.black,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        children: tooltipItems,
-                      );
-                    },
-                    getTooltipColor: (group) => Colors.white,
-                  ),
-                  handleBuiltInTouches: true,
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      getTitlesWidget: (value, meta) {
-                        const style = TextStyle(
-                          color: Colors.black,
-                          fontSize: 14,
-                        );
-                        switch (value.toInt()) {
-                          case 0:
-                            return const Text('Jan', style: style);
-                          case 1:
-                            return const Text('Feb', style: style);
-                          case 2:
-                            return const Text('Mar', style: style);
-                          case 3:
-                            return const Text('Apr', style: style);
-                          default:
-                            return const Text('', style: style);
-                        }
-                      },
-                    ),
-                  ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toInt().toString(),
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontSize: 14,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                ),
-                borderData: FlBorderData(show: false),
-                barGroups: [
-                  BarChartGroupData(
-                    x: 0, 
-                    barRods: [
-                      BarChartRodData(toY: 400, color: Colors.teal, width: 15),
-                      BarChartRodData(toY: 300, color: Colors.blue, width: 15),
-                      BarChartRodData(toY: 500, color: Colors.purple, width: 15),
-                      BarChartRodData(toY: 200, color: Colors.indigo, width: 15),
-                    ],
-                    showingTooltipIndicators: [], 
-                  ),
-                  BarChartGroupData(
-                    x: 1, 
-                    barRods: [
-                      BarChartRodData(toY: 450, color: Colors.teal, width: 15),
-                      BarChartRodData(toY: 350, color: Colors.blue, width: 15),
-                      BarChartRodData(toY: 550, color: Colors.purple, width: 15),
-                      BarChartRodData(toY: 250, color: Colors.indigo, width: 15),
-                    ],
-                    showingTooltipIndicators: [], 
-                  ),
-                  BarChartGroupData(
-                    x: 2, 
-                    barRods: [
-                      BarChartRodData(toY: 500, color: Colors.teal, width: 15),
-                      BarChartRodData(toY: 400, color: Colors.blue, width: 15),
-                      BarChartRodData(toY: 400, color: Colors.purple, width: 15),
-                      BarChartRodData(toY: 300, color: Colors.indigo, width: 15),
-                    ],
-                    showingTooltipIndicators: [], 
-                  ),
-                  BarChartGroupData(
-                    x: 3, 
-                    barRods: [
-                      BarChartRodData(toY: 450, color: Colors.teal, width: 15),
-                      BarChartRodData(toY: 350, color: Colors.blue, width: 15),
-                      BarChartRodData(toY: 550, color: Colors.purple, width: 15),
-                      BarChartRodData(toY: 200, color: Colors.indigo, width: 15),
-                    ],
-                    showingTooltipIndicators: [], 
-                  ),
-                ],
-              ),
-            ),
-          ),
+          _buildChart(),
+          const SizedBox(height: 12),
+          _buildLegend(),
         ],
       ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Revenue Overview",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.blueGrey[800],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                const Icon(Icons.arrow_downward, color: Colors.red, size: 16),
+                Text(
+                  " 2.5% ",
+                  style: TextStyle(
+                    color: Colors.red[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  "vs last month",
+                  style: TextStyle(
+                    color: Colors.grey[500],
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(Icons.more_horiz, color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChart() {
+    return SizedBox(
+      height: 260,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceBetween,
+          maxY: 800,
+          minY: 0,
+          barTouchData: _buildTouchData(),
+          titlesData: _buildTitles(),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.grey[200],
+              strokeWidth: 1,
+              dashArray: [5, 5],
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: List.generate(_chartData.length, (index) {
+            final data = _chartData[index];
+            final isTouched = touchedGroupIndex == index;
+            final opacity =
+                (touchedGroupIndex == -1 || isTouched) ? 1.0 : 0.4;
+
+            return BarChartGroupData(
+              x: index,
+              barRods: [
+                _makeRod(data[0], Colors.teal, opacity),
+                _makeRod(data[1], Colors.blue, opacity),
+                _makeRod(data[2], Colors.purple, opacity),
+                _makeRod(data[3], Colors.indigo, opacity),
+              ],
+            );
+          }),
+        ),
+        swapAnimationDuration: const Duration(milliseconds: 800),
+        swapAnimationCurve: Curves.easeOutCubic,
+      ),
+    );
+  }
+
+  BarTouchData _buildTouchData() {
+    return BarTouchData(
+      enabled: true,
+      touchCallback: (event, response) {
+        setState(() {
+          if (!event.isInterestedForInteractions ||
+              response?.spot == null) {
+            touchedGroupIndex = -1;
+            return;
+          }
+          touchedGroupIndex =
+              response!.spot!.touchedBarGroupIndex;
+        });
+      },
+      touchTooltipData: BarTouchTooltipData(
+        tooltipRoundedRadius: 8,
+        getTooltipItem: (group, groupIndex, rod, rodIndex) {
+          const labels = ["Prod A", "Prod B", "Prod C", "Prod D"];
+          return BarTooltipItem(
+            '${labels[rodIndex]}\n',
+            const TextStyle(color: Colors.white70, fontSize: 12),
+            children: [
+              TextSpan(
+                text: '\$${rod.toY.toInt()}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  FlTitlesData _buildTitles() {
+    const months = ["Jan", "Feb", "Mar", "Apr"];
+
+    return FlTitlesData(
+      bottomTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          getTitlesWidget: (value, meta) {
+            final isTouched = touchedGroupIndex == value.toInt();
+            return SideTitleWidget(
+              axisSide: meta.axisSide,
+              child: Text(
+                months[value.toInt()],
+                style: TextStyle(
+                  fontSize: isTouched ? 13 : 12,
+                  fontWeight: FontWeight.bold,
+                  color: isTouched
+                      ? Colors.blue[800]
+                      : Colors.grey,
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+      leftTitles: AxisTitles(
+        sideTitles: SideTitles(
+          showTitles: true,
+          reservedSize: 40,
+          getTitlesWidget: (value, meta) {
+            if (value == 0) return const SizedBox.shrink();
+            return Text(
+              value.toInt().toString(),
+              style: TextStyle(color: Colors.grey[400], fontSize: 10),
+            );
+          },
+        ),
+      ),
+      topTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+      rightTitles: const AxisTitles(
+        sideTitles: SideTitles(showTitles: false),
+      ),
+    );
+  }
+
+  BarChartRodData _makeRod(double yValue, Color color, double opacity) {
+    return BarChartRodData(
+      toY: isPlaying ? yValue : 0,
+      gradient: _getGradient(color.withOpacity(opacity)),
+      width: 10,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+      backDrawRodData: BackgroundBarChartRodData(
+        show: true,
+        toY: 800,
+        color: Colors.grey.withOpacity(0.05),
+      ),
+    );
+  }
+
+  Widget _buildLegend() {
+    return const Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _LegendItem("Prod A", Colors.teal),
+        SizedBox(width: 16),
+        _LegendItem("Prod B", Colors.blue),
+        SizedBox(width: 16),
+        _LegendItem("Prod C", Colors.purple),
+        SizedBox(width: 16),
+        _LegendItem("Prod D", Colors.indigo),
+      ],
+    );
+  }
+}
+
+class _LegendItem extends StatelessWidget {
+  final String title;
+  final Color color;
+
+  const _LegendItem(this.title, this.color);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[700],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }

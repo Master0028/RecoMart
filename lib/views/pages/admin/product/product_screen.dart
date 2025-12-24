@@ -17,7 +17,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) { 
-        Provider.of<ProductProvider>(context, listen: false).fetchProducts();
+        Provider.of<ProductProvider>(context, listen: false).fetchProductsPaginated();
       }
     });
     

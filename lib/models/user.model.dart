@@ -1,13 +1,13 @@
 class UserModel {
-  final String id;                // Firestore docId
+  final String id;
   final String email;
   final String fullName;
   final String? phone;
   final String? address;
   final String? avatar;
-  final String? role;             // e.g., "admin", "user"
+  final String? role;
   final double loyaltyPoints;
-  bool isActive;                  // có thể toggle cấm / mở khóa
+  bool isActive;
 
   UserModel({
     required this.id,
@@ -21,7 +21,6 @@ class UserModel {
     this.isActive = true,
   });
 
-  /// ✅ Tạo UserModel từ Firestore document
   factory UserModel.fromMap(Map<String, dynamic> data, String docId) {
     return UserModel(
       id: docId,
@@ -36,7 +35,6 @@ class UserModel {
     );
   }
 
-  /// ✅ Tạo từ JSON API (nếu cần tương thích REST)
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
       id: json['id'] ?? json['_id'] ?? '',
@@ -51,7 +49,6 @@ class UserModel {
     );
   }
 
-  /// ✅ Chuyển về Map để ghi lên Firestore
   Map<String, dynamic> toMap() => {
     'email': email,
     'fullName': fullName,
@@ -63,7 +60,6 @@ class UserModel {
     'isActive': isActive,
   };
 
-  /// ✅ Tạo bản sao có cập nhật (dùng khi chỉnh sửa người dùng)
   UserModel copyWith({
     String? email,
     String? fullName,

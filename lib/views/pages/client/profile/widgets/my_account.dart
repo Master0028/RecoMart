@@ -1,10 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
+import 'package:recomart/provider/user_provider.dart';
 
 class ModernAccountListTile extends StatelessWidget {
   const ModernAccountListTile({
@@ -60,128 +60,27 @@ class MyAccountView extends StatefulWidget {
 }
 
 class _MyAccountView extends State<MyAccountView> {
-  Map<String, dynamic>? userInfo;
-  bool isLoading = true;
-  bool isExistUser = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchUserData();
-  }
-
-  Future<void> _fetchUserData() async {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser != null) {
-      try {
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUser.email)
-            .limit(1)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          if (mounted) {
-            setState(() {
-              userInfo = querySnapshot.docs.first.data();
-              isExistUser = true;
-              isLoading = false;
-            });
-          }
-        } else {
-          if (mounted) {
-            setState(() {
-              userInfo = {
-                'fullName': currentUser.displayName ?? 'No Name',
-                'email': currentUser.email,
-                'avatar': currentUser.photoURL ?? 'https://placehold.co/200',
-              };
-              isExistUser = true;
-              isLoading = false;
-            });
-          }
-        }
-      } catch (e) {
-        print("Error loading user: $e");
-        if (mounted) setState(() => isLoading = false);
-      }
-    } else {
-      if (mounted) setState(() => isLoading = false);
-    }
-  }
-
-  Future<void> _handleLogout() async {
-    await FirebaseAuth.instance.signOut();
-    if (mounted) {
-      showCustomSnackBar(context, 'Logout successful!', type: SnackBarType.success);
-      context.go('/login');
-    }
+  Future<void> _handleLogout(BuildContext context) async {
+    context.read<UserProvider>().logout();
+    
+    showCustomSnackBar(context, 'Logout successful!', type: SnackBarType.success);
+    context.go('/login');
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    final userProvider = context.watch<UserProvider>();
+    final user = userProvider.users;
+    // ignore: unnecessary_null_comparison
+    final bool isExistUser = user != null;
 
-    Widget buildUserHeader() {
-      if (!isExistUser || userInfo == null) {
-        return const Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Text("You are not logged in."),
-        );
-      }
-      
-      String avatarUrl = "https://placehold.co/200";
-      
-      final dynamic avatarData = userInfo!['avatar'];
-      
-      if (avatarData is Map) {
-        avatarUrl = avatarData['url'] ?? avatarUrl;
-      } else if (avatarData is String) {
-        if (avatarData.isNotEmpty) {
-          avatarUrl = avatarData;
-        }
-      }
-
-      return Container(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 40,
-              backgroundImage: NetworkImage(avatarUrl),
-              onBackgroundImageError: (_, __) {
-                // Handle image error if necessary
-              },
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    userInfo?['fullName'] ?? userInfo?['name'] ?? 'User',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(userInfo?['email'] ?? '', style: const TextStyle(color: Colors.grey)),
-                  
-                  if (userInfo?['phone'] != null && userInfo!['phone'].toString().isNotEmpty)
-                    Text(userInfo!['phone'], style: const TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          ],
-        ),
-      );
-    }
-
+    // Layout chính
     return SingleChildScrollView(
       child: Column(
         children: [
-          buildUserHeader(),
+          _buildUserHeader(user, isExistUser),
+          
           const Divider(),
           
           // Menu Items
@@ -196,7 +95,6 @@ class _MyAccountView extends State<MyAccountView> {
               title: 'Rewards & Utilities',
               onTap: () {
                 context.push('/utilities');
-                showCustomSnackBar(context, 'Loyalty Points: ${userInfo?['loyaltyPoints'] ?? 0}', type: SnackBarType.info);
               },
             ),
             ModernAccountListTile(
@@ -209,14 +107,88 @@ class _MyAccountView extends State<MyAccountView> {
           ModernAccountListTile(
             icon: isExistUser ? CupertinoIcons.arrow_right_square : CupertinoIcons.arrow_left_square,
             title: isExistUser ? 'Logout' : 'Login Now',
+            subtitle: isExistUser ? null : 'Access your account',
             onTap: () {
               if (isExistUser) {
-                _handleLogout();
+                _handleLogout(context);
               } else {
                 context.push('/login');
               }
             },
           ),
+          
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUserHeader(dynamic user, bool isExistUser) {
+    if (!isExistUser) {
+      return const Padding(
+        padding: EdgeInsets.all(32.0),
+        child: Column(
+          children: [
+            Icon(CupertinoIcons.person_circle, size: 80, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "Guest User",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text("Please login to access full features", style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    String avatarUrl = "https://placehold.co/200";
+    String fullName = "User";
+    String email = "";
+    String? phone;
+
+    try {
+      if (user is Map) {
+         avatarUrl = user['avatar'] ?? avatarUrl;
+         fullName = user['fullName'] ?? user['name'] ?? fullName;
+         email = user['email'] ?? "";
+         phone = user['phone'];
+      } else {
+         avatarUrl = user.avatar ?? avatarUrl;
+         fullName = user.fullName ?? fullName;
+         email = user.email ?? "";
+         phone = user.phone;
+      }
+    } catch (e) {
+      print("Error parsing user data: $e");
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 40,
+            backgroundImage: NetworkImage(avatarUrl),
+            onBackgroundImageError: (_, __) => const Icon(Icons.error),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fullName,
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                Text(email, style: const TextStyle(color: Colors.grey)),
+                
+                if (phone != null && phone.isNotEmpty)
+                  Text(phone, style: const TextStyle(color: Colors.grey)),
+              ],
+            ),
+          )
         ],
       ),
     );

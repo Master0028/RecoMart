@@ -1,19 +1,20 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
+import 'package:recomart/services/api_service.dart';
 import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/views/pages/client/login/widgets/button.dart';
 import '../../../../../provider/user_provider.dart';
 
 class PersonelInformationPage extends StatefulWidget {
-  const PersonelInformationPage({super.key, this.userInfo});
-  final Map<String, dynamic>? userInfo;
+  const PersonelInformationPage({super.key});
 
   @override
   State<PersonelInformationPage> createState() => _PersonelInformationPageState();
@@ -32,23 +33,42 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
 
   bool _isLoading = false;
   File? _selectedFile;
-  Uint8List? _selectedImageBytes;
 
   @override
   void initState() {
     super.initState();
+    _initializeData();
+  }
 
-    Future.microtask(() async {
-      final userProvider = Provider.of<UserProvider>(context, listen: false);
-      await userProvider.fetchUserInfo();
-      final user = userProvider.userInfo; // ✅ Get from Firestore model
+  void _initializeData() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final user = userProvider.user;
 
-      if (user != null) {
-        _fullNameController.text = user.fullName;
-        _emailController.text = user.email;
-        _phoneNumberController.text = user.phone ?? '';
-        _addressController.text = user.address ?? '';
-      }
+    if (user != null) {
+      _fullNameController.text = user.fullName;
+      _emailController.text = user.email;
+      _phoneNumberController.text = user.phone ?? '';
+      _addressController.text = user.address ?? '';
+    }
+  }
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50, // Nén ảnh để upload nhanh hơn
+    );
+
+    if (image != null) {
+      setState(() {
+        _selectedFile = File(image.path);
+      });
+    }
+  }
+
+  void _removeImage() {
+    setState(() {
+      _selectedFile = null;
     });
   }
 
@@ -56,41 +76,53 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
     final fullName = _fullNameController.text.trim();
     if (fullName.isEmpty) {
       if (!mounted) return;
-      showCustomSnackBar(context, 'Please fill in Full Name', type: SnackBarType.error);
+      showCustomSnackBar(context, 'Full Name is required', type: SnackBarType.error);
       return;
     }
 
     setState(() => _isLoading = true);
 
-    // 🔹 Update Firestore via Provider
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    await userProvider.updateUserInfo(
-      name: _fullNameController.text,
-      phone: _phoneNumberController.text,
-      address: _addressController.text,
-    );
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userId = userProvider.userId;
 
-    if (!mounted) return;
-    showCustomSnackBar(context, 'Information updated successfully', type: SnackBarType.success);
-    setState(() => _isLoading = false);
-  }
+      // 1. Nếu có chọn file mới, upload ảnh đại diện trước
+      if (_selectedFile != null) {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('${ApiService.baseUrl}/api/upload-avatar/$userId'),
+        );
+        request.files.add(await http.MultipartFile.fromPath('file', _selectedFile!.path));
+        
+        final response = await request.send();
+        if (response.statusCode != 200) {
+          throw Exception("Failed to upload avatar");
+        }
+      }
 
-  Future<void> _pickImage() async {
-    showCustomSnackBar(context, 'Image Picker disabled', type: SnackBarType.info);
-  }
+      // 2. Cập nhật thông tin text qua Provider/API
+      await userProvider.updateUserInfo(
+        name: fullName,
+        phone: _phoneNumberController.text.trim(),
+        address: _addressController.text.trim(),
+      );
 
-  void _removeImage() {
-    setState(() {
-      _selectedFile = null;
-      _selectedImageBytes = null;
-    });
+      if (!mounted) return;
+      showCustomSnackBar(context, 'Information updated successfully', type: SnackBarType.success);
+      context.pop();
+    } catch (e) {
+      if (!mounted) return;
+      showCustomSnackBar(context, 'Update failed: $e', type: SnackBarType.error);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
-    final user = userProvider.userInfo;
-    final avatarUrl = user?.avatar ?? widget.userInfo?['avatar']?['url'];
+    final user = userProvider.user;
+    final avatarUrl = user?.avatar;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -106,9 +138,8 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Avatar
+                      // Avatar Section
                       Stack(
                         clipBehavior: Clip.none,
                         children: [
@@ -130,12 +161,11 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                               radius: 60,
                               backgroundImage: _selectedFile != null
                                   ? FileImage(_selectedFile!)
-                                  : (_selectedImageBytes != null
-                                      ? MemoryImage(_selectedImageBytes!)
-                                      : (avatarUrl != null && avatarUrl.isNotEmpty
-                                          ? NetworkImage(avatarUrl)
-                                          : const AssetImage('assets/logo/logo.png')))
-                                      as ImageProvider,
+                                  : (avatarUrl != null && avatarUrl.isNotEmpty
+                                      ? NetworkImage(avatarUrl.startsWith('http') 
+                                          ? avatarUrl 
+                                          : '${ApiService.baseUrl}$avatarUrl')
+                                      : const AssetImage('assets/logo/logo.png')) as ImageProvider,
                             ),
                           ),
                           Positioned(
@@ -150,16 +180,14 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                               child: IconButton(
                                 padding: const EdgeInsets.all(8),
                                 onPressed: () {
-                                  if (_selectedFile != null || _selectedImageBytes != null) {
+                                  if (_selectedFile != null) {
                                     _removeImage();
                                   } else {
                                     _pickImage();
                                   }
                                 },
                                 icon: Icon(
-                                  (_selectedFile != null || _selectedImageBytes != null)
-                                      ? CupertinoIcons.xmark
-                                      : CupertinoIcons.camera,
+                                  _selectedFile != null ? CupertinoIcons.xmark : CupertinoIcons.camera,
                                   color: Colors.white,
                                   size: 20,
                                 ),
@@ -169,12 +197,10 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                         ],
                       ),
                       const SizedBox(height: 30),
-
-                      // Form
+                      // Fields Section
                       Card(
                         elevation: 5,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        margin: EdgeInsets.zero,
                         child: Padding(
                           padding: const EdgeInsets.all(24.0),
                           child: Column(
@@ -183,22 +209,22 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                                 label: 'Full Name',
                                 controller: _fullNameController,
                                 focusNode: _fullNameFocusNode,
-                                hint: 'e.g. John Doe',
+                                hint: 'Enter your full name',
                                 icon: CupertinoIcons.person,
                               ),
                               _buildLabeledTextField(
                                 label: 'Phone Number',
                                 controller: _phoneNumberController,
                                 focusNode: _phoneNumberFocusNode,
-                                hint: 'e.g. +1 234 567 890',
+                                hint: 'Enter your phone number',
                                 icon: CupertinoIcons.phone,
                                 fieldType: TextInputType.phone,
                               ),
                               _buildLabeledTextField(
-                                label: 'Email (Disabled)',
+                                label: 'Email Address',
                                 controller: _emailController,
                                 focusNode: _emailFocusNode,
-                                hint: 'example@gmail.com',
+                                hint: 'Email cannot be changed',
                                 icon: CupertinoIcons.envelope,
                                 disable: true,
                               ),
@@ -206,7 +232,7 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                                 label: 'Address',
                                 controller: _addressController,
                                 focusNode: _addressFocusNode,
-                                hint: 'e.g. 123 Main St, City',
+                                hint: 'Enter your address',
                                 icon: CupertinoIcons.location,
                               ),
                             ],
@@ -214,21 +240,19 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                         ),
                       ),
                       const SizedBox(height: 30),
-
+                      // Buttons Section
                       ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 350),
                         child: Column(
                           children: [
                             MyButton(
-                              text: 'Update Information',
+                              text: 'Save Changes',
                               isLoading: _isLoading,
-                              onTap: (_) => {handleChangeInfomation()},
+                              onTap: (_) => handleChangeInfomation(),
                             ),
                             const SizedBox(height: 16),
                             OutlinedButton(
-                              onPressed: () {
-                                context.pop();
-                              },
+                              onPressed: () => context.pop(),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 side: BorderSide(color: AppColors.primary, width: 2),

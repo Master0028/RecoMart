@@ -1,4 +1,3 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:feather_icons/feather_icons.dart';
@@ -15,9 +14,9 @@ import 'package:recomart/utils/widget/footer.dart';
 import '../../../../models/cart.model.dart';
 import '../../../../models/order.model.dart';
 import '../../../../provider/cart_provider.dart';
+import '../../../../provider/user_provider.dart';
 import '../../../../services/coupon.service.dart';
 import '../../../../services/order.service.dart';
-import '../../../../services/user.service.dart';
 import 'widgets/cart_item_widget.dart';
 import 'widgets/promocode_section_widget.dart';
 
@@ -32,23 +31,27 @@ class CartView extends StatefulWidget {
 
 class _CartViewState extends State<CartView> {
   ShippingMethod _selectedMethod = ShippingMethod.expressDelivery;
-  // ignore: unused_field
-  int? _itemToRemove;
-
+  
   final TextEditingController _shippingAddressController = TextEditingController();
   final TextEditingController _contactPhoneController = TextEditingController();
 
-  final _userService = UserService();
   final _orderService = OrderService();
 
   @override
   void initState() {
     super.initState();
+    
     Future.microtask(() async {
-      if (FirebaseAuth.instance.currentUser != null) {
+      // ignore: use_build_context_synchronously
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      
+      if (userProvider.isLoggedIn) {
+        // ignore: use_build_context_synchronously
         final cartProvider = Provider.of<CartProvider>(context, listen: false);
-        await cartProvider.loadCart();
-        await _loadUserInfo();
+        final String userId = userProvider.userId;
+        await cartProvider.loadCart(userId);
+              
+        _loadUserInfo();
       }
     });
   }
@@ -60,30 +63,20 @@ class _CartViewState extends State<CartView> {
     super.dispose();
   }
 
-  // ignore: unused_element
-  void _cancelRemoveItem() => setState(() => _itemToRemove = null);
+  void _loadUserInfo() {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userInfo = userProvider.userInfo;
 
-  Future<void> _loadUserInfo() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    try {
-      final userData = await _userService.getUserInfo(user.uid);
-
-      if (mounted && userData != null) {
-        _shippingAddressController.text =
-            userData['address'] ?? 'No address provided';
-        _contactPhoneController.text =
-            userData['phone'] ?? 'No phone number provided';
-      }
-    } catch (e) {
-      debugPrint('Error loading user info: $e');
+    if (userInfo != null) {
+      _shippingAddressController.text = userInfo.address ?? '';
+      _contactPhoneController.text = userInfo.phone ?? '';
     }
   }
 
   Future<void> _createOrder(CartProvider provider) async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
+    if (!userProvider.isLoggedIn) {
       showCustomSnackBar(context, 'Please login to proceed with checkout',
           type: SnackBarType.error);
       return;
@@ -105,20 +98,16 @@ class _CartViewState extends State<CartView> {
     }
 
     try {
-      // 🔹 Get user info from Firestore
-      final userData = await _userService.getUserInfo(user.uid);
-      final userName = userData?['name'] ?? 'Unknown User';
-      final email = userData?['email'] ?? user.email ?? '';
-      final currentPoints = (userData?['loyaltyPoints'] ?? 0).toDouble();
+      final userId = userProvider.userId;
+      final userName = userProvider.userName;
+      final email = userProvider.userInfo?.email ?? ''; 
 
-      // 🔹 Calculate totals
       final subtotal = provider.totalPrice;
       final shippingFee =
           _selectedMethod == ShippingMethod.pickupAtStore ? 0 : 20000;
       final discount = provider.couponDiscount + (provider.usedPoints * 1000);
       final total = (subtotal + shippingFee - discount).clamp(0, double.infinity);
 
-      // 🔹 Create Order Items
       final orderItems = cartItems.map((p) {
         return OrderItemModel(
           productId: p.productId,
@@ -130,9 +119,8 @@ class _CartViewState extends State<CartView> {
         );
       }).toList();
 
-      // 🔹 Create OrderModel
       final order = OrderModel(
-        userId: user.uid,
+        userId: userId,
         userName: userName,
         email: email,
         address: address,
@@ -151,7 +139,6 @@ class _CartViewState extends State<CartView> {
         updatedAt: DateTime.now(),
       );
 
-      // Save order to Firestore
       await _orderService.createOrder(order);
 
       if (provider.selectedCoupon != null) {
@@ -172,13 +159,6 @@ class _CartViewState extends State<CartView> {
         }
       }
 
-      // Update User Points
-      final newPoints = (currentPoints - provider.usedPoints +
-              (total / 10000).floorToDouble())
-          .clamp(0, double.infinity);
-      await _userService.updateUserPoints(user.uid, newPoints);
-
-      // Clear Cart
       await provider.clearCart();
 
       showCustomSnackBar(context, 'Order placed successfully!',
@@ -196,14 +176,14 @@ class _CartViewState extends State<CartView> {
 
   Future<void> _handleRemoveItem(BuildContext context, String productId) async {
     final provider = Provider.of<CartProvider>(context, listen: false);
-    final userId = provider.cart?.userId ?? '';
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.userId;
 
-    await provider.removeItemFromCart(userId, productId);
+    await provider.removeItem(userId, productId);
     showCustomSnackBar(context, 'Item removed from cart',
         type: SnackBarType.success);
   }
 
-  // --- NEW: View for unauthenticated users ---
   Widget _buildLoginRequiredView() {
     return Scaffold(
       appBar: CustomAppBarMobile(title: 'Shopping Cart', isBack: true),
@@ -247,7 +227,6 @@ class _CartViewState extends State<CartView> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to Login Page
                     context.push('/login'); 
                   },
                   style: ElevatedButton.styleFrom(
@@ -276,9 +255,8 @@ class _CartViewState extends State<CartView> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. CHECK LOGIN STATUS FIRST
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
+    final userProvider = Provider.of<UserProvider>(context);
+    if (!userProvider.isLoggedIn) {
       return _buildLoginRequiredView();
     }
 
@@ -420,8 +398,8 @@ class _CartViewState extends State<CartView> {
   }
 
   Widget _buildCartList(List<ProductForCartModel> cartItems, bool isVertical) {
-    final provider = Provider.of<CartProvider>(context, listen: false);
-    final userId = provider.cart?.userId ?? '';
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final userId = userProvider.userId;
 
     return SlidableAutoCloseBehavior(
       child: ListView.separated(
@@ -461,8 +439,11 @@ class _CartViewState extends State<CartView> {
                 child: CartItemWidget(
                   itemCart: item,
                   onQuantityChanged: (newQty) async {
-                    await provider.updateItemQuantity(
-                        userId, item.productId ?? '', newQty);
+                    await Provider.of<CartProvider>(context, listen: false).updateItemQuantity(
+                      userId: userId,
+                      productId: item.productId ?? '',
+                      newQuantity: newQty,
+                    );
                     showCustomSnackBar(context, 'Quantity updated successfully',
                         type: SnackBarType.success);
                   },
@@ -670,7 +651,6 @@ class _CartViewState extends State<CartView> {
     double couponDiscount,
     int usedPoints,
   ) {
-    // 🔹 Calculate subtotal
     final subtotal = provider.cart?.items.fold<double>(
           0,
           (sum, item) =>
@@ -680,14 +660,11 @@ class _CartViewState extends State<CartView> {
         ) ??
         0;
 
-    // 🔹 Shipping fee
     final shippingFee =
         selectedMethod == ShippingMethod.pickupAtStore ? 0.0 : 20000.0;
 
-    // 🔹 Discount (voucher + points)
     final totalDiscount = couponDiscount + (usedPoints * 1000);
 
-    // 🔹 Final payment total
     final totalPayment =
         (subtotal + shippingFee - totalDiscount).clamp(0, double.infinity);
 

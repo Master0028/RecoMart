@@ -99,7 +99,7 @@ final GoRouter appRouter = GoRouter(
     //Profile
     GoRoute(
       path: '/personal-information',
-      builder: (context, state) => const PersonelInformationPage(userInfo: {},),
+      builder: (context, state) => const PersonelInformationPage(),
     ),
 
     GoRoute(

@@ -17,6 +17,8 @@ class SimilarProductWidget extends StatefulWidget {
 
 class _SimilarProductWidgetState extends State<SimilarProductWidget> {
   final RecommendationService _service = RecommendationService();
+  final Map<String, Stream<DocumentSnapshot>> _productStreams = {};
+
   List<ProductRecommendation> _similarItems = [];
   bool _isLoading = true;
 
@@ -36,14 +38,23 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
 
   void _loadData() async {
     setState(() => _isLoading = true);
-    // Call AI API
-    var data = await _service.getSimilarProducts(widget.productId);
-    if (mounted) {
-      setState(() {
-        _similarItems = data;
-        _isLoading = false;
-      });
-    }
+    final data = await _service.getSimilarProducts(widget.productId);
+    if (!mounted) return;
+
+    setState(() {
+      _similarItems = data;
+      _isLoading = false;
+    });
+  }
+
+  Stream<DocumentSnapshot> _getProductStream(String id) {
+    return _productStreams.putIfAbsent(
+      id,
+      () => FirebaseFirestore.instance
+          .collection('products')
+          .doc(id)
+          .snapshots(),
+    );
   }
 
   @override
@@ -60,9 +71,8 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- Header Section ---
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
               Container(
@@ -79,8 +89,6 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
-                  color: Colors.black87,
-                  letterSpacing: 0.5,
                 ),
               ),
             ],
@@ -98,16 +106,13 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
               final item = _similarItems[index];
 
               return StreamBuilder<DocumentSnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('products')
-                    .doc(item.id.toString())
-                    .snapshots(),
+                stream: _getProductStream(item.id.toString()),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const SizedBox.shrink();
                   }
 
-                  var data = snapshot.data!.data() as Map<String, dynamic>;
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
 
                   return _ModernProductCard(
                     data: data,
@@ -133,7 +138,11 @@ class _ModernProductCard extends StatelessWidget {
   });
 
   String formatCurrency(num price) {
-    final format = NumberFormat.currency(locale: 'en_US', symbol: '', decimalDigits: 0);
+    final format = NumberFormat.currency(
+      locale: 'en_US',
+      symbol: '',
+      decimalDigits: 0,
+    );
     return '${format.format(price)} đ';
   }
 
@@ -153,7 +162,7 @@ class _ModernProductCard extends StatelessWidget {
       },
       child: Container(
         width: 160,
-        margin: const EdgeInsets.only(bottom: 10), // Margin for shadow
+        margin: const EdgeInsets.only(bottom: 10),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -168,27 +177,22 @@ class _ModernProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Product Image
+            // IMAGE (giữ Expanded)
             Expanded(
-              flex: 3,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                 child: Stack(
                   children: [
-                    Container(
-                      color: Colors.grey[50], // Background placeholder
+                    Image.network(
+                      data['imageUrl'] ?? '',
                       width: double.infinity,
                       height: double.infinity,
-                      child: Image.network(
-                        data['imageUrl'] ?? '',
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.image_not_supported_outlined,
-                          color: Colors.grey,
-                        ),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.grey,
                       ),
                     ),
-                    // Optional: Discount Badge
                     if (data['discount'] != null && data['discount'] > 0)
                       Positioned(
                         top: 8,
@@ -214,53 +218,44 @@ class _ModernProductCard extends StatelessWidget {
               ),
             ),
 
-            // Product Details
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          data['name'] ?? 'Unknown Product',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                            height: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Rating star example
-                        Row(
-                          children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 12),
-                            const SizedBox(width: 4),
-                            Text(
-                              "${data['rating'] ?? '4.5'}",
-                              style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                            ),
-                          ],
-                        )
-                      ],
+            // DETAILS (❌ bỏ Expanded → hết overflow)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    data['name'] ?? 'Unknown Product',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.2,
                     ),
-                    Text(
-                      formatCurrency(data['price'] ?? 0),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w800,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, size: 12, color: Colors.amber),
+                      const SizedBox(width: 4),
+                      Text(
+                        "${data['rating'] ?? '4.5'}",
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    formatCurrency(data['price'] ?? 0),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ],

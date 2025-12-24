@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/services/chat.service.dart';
+import 'package:recomart/services/api_service.dart';
 
 class ChatMessage {
   final String text;
   final bool isUser;
-  final List<dynamic>? products;
-  bool shouldAnimate; 
+  final String type; // 'text', 'product_list', 'order_list'
+  final List<dynamic>? data;
+  bool shouldAnimate;
 
   ChatMessage({
     required this.text,
     required this.isUser,
-    this.products,
-    this.shouldAnimate = false, // Default false
+    this.type = 'text',
+    this.data,
+    this.shouldAnimate = false,
   });
 }
 
@@ -26,14 +29,13 @@ class ChatBody extends StatefulWidget {
 
 class _ChatBodyState extends State<ChatBody> {
   final TextEditingController _controller = TextEditingController();
-  final ChatService _chatService = ChatService();
   final ScrollController _scrollController = ScrollController();
 
   final List<ChatMessage> _messages = [
     ChatMessage(
-      text: "Hello! I am RecoMart AI Assistant. What product are you looking for? (e.g., 'Gaming Laptop', 'Sony Headphones', 'Cheap Mouse')",
+      text: "Hello! I am RecoMart AI Assistant. How can I help you today?",
       isUser: false,
-      shouldAnimate: true, // Animate the welcome message
+      shouldAnimate: true,
     ),
   ];
 
@@ -50,19 +52,38 @@ class _ChatBodyState extends State<ChatBody> {
     });
     _scrollToBottom();
 
-    final response = await _chatService.sendMessageToAI(text);
+    try {
+      final response = await ApiService.chatWithAI(text);
+      
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          final replyText = response['response'] ?? "I didn't understand that.";
+          final type = response['type'] ?? 'text';
+          final data = response['data'] ?? [];
 
-    if (mounted) {
-      setState(() {
-        _isTyping = false;
-        _messages.add(ChatMessage(
-          text: response['reply'] ?? "I didn't understand that.",
-          isUser: false,
-          products: response['products'],
-          shouldAnimate: true, 
-        ));
-      });
-      _scrollToBottom();
+          _messages.add(ChatMessage(
+            text: replyText,
+            isUser: false,
+            type: type,
+            data: data,
+            shouldAnimate: true,
+          ));
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isTyping = false;
+          _messages.add(ChatMessage(
+            text: "Sorry, connection error. Please try again.",
+            isUser: false,
+            shouldAnimate: true,
+          ));
+        });
+        _scrollToBottom();
+      }
     }
   }
 
@@ -82,7 +103,6 @@ class _ChatBodyState extends State<ChatBody> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // MESSAGE LIST
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
@@ -95,28 +115,23 @@ class _ChatBodyState extends State<ChatBody> {
                   child: Padding(
                     padding: EdgeInsets.all(8.0),
                     child: Text(
-                      "AI is searching...",
-                      style: TextStyle(
-                          fontStyle: FontStyle.italic, color: Colors.grey),
+                      "AI is typing...",
+                      style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey),
                     ),
                   ),
                 );
               }
-
-              final msg = _messages[index];
-              return _buildMessageBubble(msg);
+              return _buildMessageBubble(_messages[index]);
             },
           ),
         ),
 
-        // INPUT FIELD
         Container(
           padding: const EdgeInsets.all(10),
           decoration: const BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(
-                  color: Colors.black12, blurRadius: 5, offset: Offset(0, -2))
+              BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, -2))
             ],
           ),
           child: Row(
@@ -125,14 +140,13 @@ class _ChatBodyState extends State<ChatBody> {
                 child: TextField(
                   controller: _controller,
                   decoration: InputDecoration(
-                    hintText: 'Ask AI about products...',
+                    hintText: 'Ask about products or orders...',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
                         borderSide: BorderSide.none),
                     filled: true,
                     fillColor: Colors.grey[100],
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   ),
                   onSubmitted: (_) => _handleSend(),
                 ),
@@ -152,20 +166,17 @@ class _ChatBodyState extends State<ChatBody> {
     );
   }
 
-  // CHAT BUBBLE WIDGET
   Widget _buildMessageBubble(ChatMessage msg) {
     final isMe = msg.isUser;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 8),
-        constraints:
-            BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
         child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            // Text content
+            // Text Bubble
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -178,38 +189,36 @@ class _ChatBodyState extends State<ChatBody> {
                 ),
               ),
               child: isMe || !msg.shouldAnimate
-                  ? Text(
-                      msg.text,
-                      style: TextStyle(
-                          color: isMe ? Colors.white : Colors.black87),
-                    )
+                  ? Text(msg.text, style: TextStyle(color: isMe ? Colors.white : Colors.black87))
                   : TypewriterText(
                       text: msg.text,
-                      style: TextStyle(
-                          color: isMe ? Colors.white : Colors.black87),
+                      style: TextStyle(color: isMe ? Colors.white : Colors.black87),
                       onFinished: () {
-                        // Once finished, set flag to false to prevent re-animation on scroll
                         msg.shouldAnimate = false;
                       },
                     ),
             ),
 
-            // Suggested Products
-            if (!isMe && msg.products != null && msg.products!.isNotEmpty) ...[
+            // --- PRODUCT LIST (Carousel) ---
+            if (!isMe && msg.type == 'product_list' && msg.data != null) ...[
               const SizedBox(height: 10),
               SizedBox(
-                height: 160,
+                height: 200,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: msg.products!.length,
-                  itemBuilder: (context, pIndex) {
-                    final product = msg.products![pIndex];
+                  itemCount: msg.data!.length,
+                  itemBuilder: (context, index) {
+                    final product = msg.data![index];
+                    final imgUrl = product['image'] ?? product['imageUrl'] ?? '';
+                    
                     return GestureDetector(
                       onTap: () {
-                        context.push('/product-detail/${product['id']}');
+                        if (product['id'] != null) {
+                          context.push('/product-detail/${product['id']}');
+                        }
                       },
                       child: Container(
-                        width: 120,
+                        width: 140,
                         margin: const EdgeInsets.only(right: 10),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -220,15 +229,16 @@ class _ChatBodyState extends State<ChatBody> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[100],
-                                  borderRadius: const BorderRadius.vertical(
-                                      top: Radius.circular(10)),
-                                ),
-                                child: const Center(
-                                    child: Icon(Icons.image,
-                                        color: Colors.grey)),
+                              child: ClipRRect(
+                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                                child: imgUrl.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: imgUrl,
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        errorWidget: (_, __, ___) => const Icon(Icons.image, color: Colors.grey),
+                                      )
+                                    : const Center(child: Icon(Icons.image, color: Colors.grey)),
                               ),
                             ),
                             Padding(
@@ -240,16 +250,12 @@ class _ChatBodyState extends State<ChatBody> {
                                     product['name'] ?? 'Unknown',
                                     maxLines: 2,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold),
+                                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    "ID: ${product['id']}",
-                                    style: const TextStyle(
-                                        fontSize: 10,
-                                        color: AppColors.primary),
+                                    "${product['price']} VND",
+                                    style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),
@@ -262,6 +268,57 @@ class _ChatBodyState extends State<ChatBody> {
                 ),
               ),
             ],
+
+            // --- ORDER LIST (Vertical Cards) ---
+            if (!isMe && msg.type == 'order_list' && msg.data != null) ...[
+              const SizedBox(height: 10),
+              Column(
+                children: msg.data!.map<Widget>((order) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.orange.shade200),
+                      boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.1), blurRadius: 5)],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text("Order #${order['id'].toString().substring(0, 5)}", 
+                                style: const TextStyle(fontWeight: FontWeight.bold)),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.orange.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(order['status'], 
+                                  style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                        const Divider(height: 16),
+                        Text("Items: ${(order['items'] as List).join(', ')}", 
+                            style: const TextStyle(fontSize: 12, color: Colors.black87), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text("Date: ${order['date']}", style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text("${order['total']} đ", style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black)),
+                          ],
+                        )
+                      ],
+                    ),
+                  );
+                }).toList(),
+              )
+            ]
           ],
         ),
       ),

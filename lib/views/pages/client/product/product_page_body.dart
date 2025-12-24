@@ -7,21 +7,22 @@ import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/range_slider.dart';
 import 'package:recomart/components/custom/skeleton.dart';
 import 'package:recomart/components/custom/snackbar.dart';
-// Import model và service của bạn (đảm bảo đường dẫn đúng)
+// import 'package:recomart/config/color.dart'; // Bỏ dòng này để dùng class AppColors bên dưới
+import 'package:recomart/utils/responsive.dart';
 import '../../../../../models/category.model.dart';
 import '../../../../../provider/product_provider.dart';
 import '../../../../../services/category.service.dart';
 
-// ================= ĐỊNH NGHĨA ENUM & CONSTANT =================
-enum RatingFilterValue { all, fiveStar, fourStar, threeStar, twoStar, oneStar }
-
+// ================= CONSTANTS & COLORS (FIX LỖI THIẾU MÀU) =================
 class AppColors {
   static const Color primary = Color(0xFF1976D2);
   static const Color orangePastel = Color(0xFFFFCC80);
   static const Color backgroundLight = Color(0xFFF5F5F5);
-  static const Color darkText = Color(0xFF212121);
-  static const Color lightGray = Color(0xFFF0F0F0);
+  static const Color darkText = Color(0xFF212121); // Đã thêm
+  static const Color lightGray = Color(0xFFF0F0F0); // Đã thêm
 }
+
+enum RatingFilterValue { all, fiveStar, fourStar, threeStar, twoStar, oneStar }
 
 // ================= MODELS GIẢ LẬP =================
 class CategoryModelFE { final String id; final String name; CategoryModelFE({required this.id, required this.name}); }
@@ -43,19 +44,6 @@ class ProductPromotion {
     required this.imageUrl,
     required this.category,
   });
-}
-
-// ================= UTILS =================
-class Responsive {
-  static bool isDesktop(BuildContext context) {
-    return MediaQuery.of(context).size.width >= 1000;
-  }
-  static bool isTablet(BuildContext context) {
-    return MediaQuery.of(context).size.width >= 600 && MediaQuery.of(context).size.width < 1000;
-  }
-  static bool isMobile(BuildContext context) {
-    return MediaQuery.of(context).size.width < 600;
-  }
 }
 
 // ================= WIDGETS PHỤ TRỢ =================
@@ -84,21 +72,6 @@ class MyButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       child: Text(text),
-    );
-  }
-}
-
-class SkeletonCategoryItem extends StatelessWidget {
-  const SkeletonCategoryItem({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 60, height: 60, decoration: BoxDecoration(color: Colors.grey[300], shape: BoxShape.circle)),
-        const SizedBox(height: 8),
-        Container(width: 50, height: 12, color: Colors.grey[300]),
-      ],
     );
   }
 }
@@ -197,13 +170,13 @@ class ProductCardWidget extends StatelessWidget {
                           children: [
                             Text(productsPromotion.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.darkText), overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 2),
-                            Text('${productsPromotion.discount}% OFF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
+                            Text('${productsPromotion.discount}% OFF', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary)),
                             const SizedBox(height: 2),
                             Text('${productsPromotion.price.toStringAsFixed(0)} VND', style: const TextStyle(fontSize: 12, color: Colors.black87, decoration: TextDecoration.lineThrough)),
                           ],
                         ),
                       ),
-                      Container(width: 40, height: 40, decoration: BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: IconButton(onPressed: () {}, icon: const Icon(Icons.add, color: Colors.white, size: 20), padding: EdgeInsets.zero)),
+                      Container(width: 40, height: 40, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle), child: IconButton(onPressed: () {}, icon: const Icon(Icons.add, color: Colors.white, size: 20), padding: EdgeInsets.zero)),
                     ],
                   ),
                 ),
@@ -268,8 +241,8 @@ class _DropdownCustomState extends State<DropdownCustom> {
   void initState() { super.initState(); _selectedValue = widget.value; }
   @override
   void didUpdateWidget(DropdownCustom oldWidget) {
-     super.didUpdateWidget(oldWidget);
-     if (widget.value != oldWidget.value) setState(() => _selectedValue = widget.value);
+      super.didUpdateWidget(oldWidget);
+      if (widget.value != oldWidget.value) setState(() => _selectedValue = widget.value);
   }
   @override
   Widget build(BuildContext context) {
@@ -280,8 +253,6 @@ class _DropdownCustomState extends State<DropdownCustom> {
     );
   }
 }
-
-// ================= WIDGETS CHÍNH =================
 
 // 1. CATEGORY WIDGET
 class CategoryWidget extends StatefulWidget {
@@ -312,7 +283,6 @@ class _CategoryWidgetState extends State<CategoryWidget> {
       final data = await _categoryService.getCategories();
       if (mounted) setState(() { categories = data; isLoading = false; });
     } catch (e) {
-      print('Lỗi tải categories: $e');
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -389,13 +359,25 @@ class ShowListProductWidget extends StatefulWidget {
 
 class _ShowListProductWidgetState extends State<ShowListProductWidget> {
   final List<String> sortOptions = ['All Products', 'Name: A to Z', 'Name: Z to A', 'Price: Low to High', 'Price: High to Low'];
-  void _handleRemoveFilterFE(String removedFilter) { showCustomSnackBar(context, '$removedFilter removed'); }
+
+  void _removeFilter(String type) {
+    final provider = Provider.of<ProductProvider>(context, listen: false);
+    // Logic: Nếu đang hiển thị tên Sort, reset về Default
+    if (type == provider.currentSort) {
+       provider.sortProducts('All Products');
+    } else {
+       // Nếu là các filter khác, gọi reset chung (hoặc bạn có thể nâng cấp provider để reset từng cái)
+       provider.resetFilters();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final List<String> filters = ['Category: PC', 'Price: > 5M'];
     final bool isMobile = Responsive.isMobile(context);
     final provider = Provider.of<ProductProvider>(context);
+
+    List<String> activeFilters = [];
+    if (provider.currentSort != 'All Products') activeFilters.add(provider.currentSort);
 
     return Container(
       padding: !isMobile ? const EdgeInsets.all(16) : null,
@@ -421,20 +403,23 @@ class _ShowListProductWidgetState extends State<ShowListProductWidget> {
             ],
           ),
           const SizedBox(height: 20),
-          Wrap(
-            spacing: 16, runSpacing: 16,
-            children: List.generate(filters.length, (index) {
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(color: AppColors.primary.withAlpha(25), borderRadius: BorderRadius.circular(16)),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text(filters[index], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                  const SizedBox(width: 10),
-                  IconButton(onPressed: () => _handleRemoveFilterFE(filters[index]), icon: const Icon(Icons.close, color: AppColors.primary), iconSize: 16, constraints: const BoxConstraints(), padding: EdgeInsets.zero),
-                ]),
-              );
-            }),
-          ),
+          
+          if (activeFilters.isNotEmpty)
+            Wrap(
+              spacing: 16, runSpacing: 16,
+              children: List.generate(activeFilters.length, (index) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(color: AppColors.primary.withAlpha(25), borderRadius: BorderRadius.circular(16)),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text(activeFilters[index], style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    const SizedBox(width: 10),
+                    IconButton(onPressed: () => _removeFilter(activeFilters[index]), icon: const Icon(Icons.close, color: AppColors.primary), iconSize: 16, constraints: const BoxConstraints(), padding: EdgeInsets.zero),
+                  ]),
+                );
+              }),
+            ),
+            
           const SizedBox(height: 20),
           ProductList(categoryId: widget.categoryId),
         ],
@@ -443,7 +428,6 @@ class _ShowListProductWidgetState extends State<ShowListProductWidget> {
   }
 }
 
-// 👇 ĐỊNH NGHĨA LẠI WIDGET HIỂN THỊ CARD SẢN PHẨM 👇
 class ProductView extends StatelessWidget {
   final String id;
   final String? categoryId;
@@ -475,7 +459,12 @@ class ProductView extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                child: Image.network(image, fit: BoxFit.cover, width: double.infinity),
+                child: Image.network(
+                    image, 
+                    fit: BoxFit.cover, 
+                    width: double.infinity,
+                    errorBuilder: (context, error, stackTrace) => Image.asset('assets/images/image_default_error.png', fit: BoxFit.cover),
+                ),
               ),
             ),
             Padding(
@@ -485,7 +474,7 @@ class ProductView extends StatelessWidget {
                 children: [
                   Text(name, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold)),
                   const SizedBox(height: 4),
-                  Text('$price VND', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
+                  Text('${price.toStringAsFixed(0)} VND', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
                   Row(children: [
                     const Icon(Icons.star, size: 14, color: Colors.amber),
@@ -514,13 +503,20 @@ class _ProductListState extends State<ProductList> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<ProductProvider>(context, listen: false).fetchProductsFilter(reset: true);
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      if (widget.categoryId != null) {
+          provider.updateFilters(categoryId: widget.categoryId);
+      } else {
+          // --- SỬA LỖI: Gọi hàm đúng tên ---
+          provider.fetchProductsPaginated(refresh: true);
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ProductProvider>(context);
+    
     if (provider.loading && provider.products.isEmpty) {
       return GridView.builder(
         itemCount: 10, physics: const NeverScrollableScrollPhysics(), shrinkWrap: true,
@@ -528,6 +524,7 @@ class _ProductListState extends State<ProductList> {
         itemBuilder: (context, index) => const Skeleton(),
       );
     }
+    
     if (provider.products.isEmpty) return const Center(child: Text('No products found!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)));
 
     return Column(
@@ -537,16 +534,20 @@ class _ProductListState extends State<ProductList> {
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: Responsive.isDesktop(context) ? 4 : 2, childAspectRatio: 0.55, crossAxisSpacing: 20, mainAxisSpacing: 20, mainAxisExtent: 350),
           itemBuilder: (context, index) {
             final p = provider.products[index];
-            return ProductView(id: p.id, categoryId: p.categoryId, name: p.name, image: p.imageUrl, price: p.price, averageRating: p.averageRating.toString());
+            return ProductView(id: p.id!, categoryId: p.categoryId, name: p.name, image: p.imageUrl, price: p.price, averageRating: p.averageRating.toString());
           },
         ),
         const SizedBox(height: 20),
-        PaginationWidget(
-          currentPage: provider.currentPage, totalPages: 9,
-          onPageChanged: (page) async {
-            if (provider.hasMore) await provider.nextPage(); else showCustomSnackBar(context, "No more products!");
-          },
-        ),
+        
+        // --- SỬA LỖI: Fix cú pháp if và gọi hàm đúng tên ---
+        if (provider.hasMore)
+            ElevatedButton(
+                onPressed: () => provider.fetchProductsPaginated(page: provider.currentPage + 1),
+                child: const Text("Load More")
+            )
+        else 
+            const Padding(padding: EdgeInsets.all(16), child: Text("End of list")),
+            
         const SizedBox(height: 20),
       ],
     );
@@ -564,26 +565,32 @@ class _FilterWidgetState extends State<FilterWidget> {
   late double minPrice; late double maxPrice;
   late RangeValues _rangeValues;
   late RatingFilterValue _selectedRatingValue;
-  List<CategoryModelFE> categories = []; List<BrandModelFE> brands = [];
-  Map<String, bool> isExpanded = {'Category': false, 'Brand': false};
-  Map<String, Set<String>> selectedItems = {'Category': {}, 'Brand': {}};
-
-  Future<void> fetchData() async {
-     final provider = Provider.of<ProductProvider>(context, listen: false);
-     await Future.wait([provider.fetchCategories(), provider.fetchBrands()]);
-     setState(() {
-       categories = provider.categoriesMap.entries.map((entry) => CategoryModelFE(id: entry.key, name: entry.value)).toList();
-       brands = provider.brandsMap.entries.map((entry) => BrandModelFE(id: entry.key, name: entry.value)).toList();
-     });
-  }
-
+  
   @override
   void initState() {
     super.initState();
-    minPrice = 100000; maxPrice = 100000000;
+    minPrice = 0; maxPrice = 50000000;
     _rangeValues = RangeValues(minPrice, maxPrice);
     _selectedRatingValue = RatingFilterValue.all;
-    fetchData();
+  }
+
+  void _applyFilters() {
+      final provider = Provider.of<ProductProvider>(context, listen: false);
+      
+      double? rating;
+      if (_selectedRatingValue == RatingFilterValue.fiveStar) rating = 5;
+      else if (_selectedRatingValue == RatingFilterValue.fourStar) rating = 4;
+      
+      provider.updateFilters(
+          minPrice: _rangeValues.start,
+          maxPrice: _rangeValues.end,
+          minRating: rating
+      );
+      
+      // --- SỬA LỖI: Thêm ngoặc nhọn cho if ---
+      if (Responsive.isMobile(context)) {
+        Navigator.pop(context);
+      }
   }
 
   @override
@@ -602,19 +609,37 @@ class _FilterWidgetState extends State<FilterWidget> {
                   if (Responsive.isMobile(context)) TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(fontSize: 14, color: Colors.black))),
                ]),
               const SizedBox(height: 16),
-              RangeSliderCustom(title: 'Price', divisions: 50, minValue: minPrice, maxValue: maxPrice, rangeValues: _rangeValues, onChanged: (values) => setState(() => _rangeValues = values)),
+              
+              RangeSliderCustom(
+                  title: 'Price Range', 
+                  divisions: 100, 
+                  minValue: minPrice, 
+                  maxValue: maxPrice, 
+                  rangeValues: _rangeValues, 
+                  onChanged: (values) => setState(() => _rangeValues = values)
+              ),
+              
               const SizedBox(height: 16),
-              RatingFilter(selectedRatingValue: _selectedRatingValue, onChanged: (value) => setState(() => _selectedRatingValue = value)),
+              
+              RatingFilter(
+                  selectedRatingValue: _selectedRatingValue, 
+                  onChanged: (value) => setState(() => _selectedRatingValue = value)
+              ),
+              
               const SizedBox(height: 16),
+              
                Row(
                 children: [
                   Expanded(child: MyButton(text: 'Reset', variantIsOutline: true, onTap: (_) {
                     Provider.of<ProductProvider>(context, listen: false).resetFilters();
-                    setState(() { selectedItems = {'Category': {}, 'Brand': {}}; _rangeValues = RangeValues(minPrice, maxPrice); _selectedRatingValue = RatingFilterValue.all; });
+                    setState(() { 
+                        _rangeValues = RangeValues(minPrice, maxPrice); 
+                        _selectedRatingValue = RatingFilterValue.all; 
+                    });
                     if (Responsive.isMobile(context)) Navigator.pop(context);
                   })),
                   const SizedBox(width: 10),
-                  Expanded(child: MyButton(text: 'Apply', onTap: (_) { if (Responsive.isMobile(context)) Navigator.pop(context); })),
+                  Expanded(child: MyButton(text: 'Apply', onTap: (_) => _applyFilters())),
                 ],
               )
             ],
@@ -624,6 +649,8 @@ class _FilterWidgetState extends State<FilterWidget> {
     );
   }
 }
+
+// 5. MAIN PAGE BODY
 class ProductPageBody extends StatelessWidget {
   const ProductPageBody({
     super.key,
@@ -635,7 +662,6 @@ class ProductPageBody extends StatelessWidget {
   Widget build(BuildContext context) {
     bool isMobile = Responsive.isMobile(context);
     
-    // Lấy arguments an toàn (tránh lỗi null)
     final args = ModalRoute.of(context)?.settings.arguments;
     final Map<String, dynamic>? arguments = args is Map<String, dynamic> ? args : null;
     final showBackButton = arguments?['showBackButton'] ?? false;
@@ -644,14 +670,13 @@ class ProductPageBody extends StatelessWidget {
         if (context.canPop()) {
           context.pop();
         } else {
-          context.go('/home'); // Fallback nếu không pop được
+          context.go('/home');
         }
     }
 
     return SafeArea(
       child: ListView(
         children: [
-          // 1. Nút Back (Chỉ hiện trên Mobile nếu được yêu cầu)
           if (isMobile && showBackButton)
             Container(
               padding: const EdgeInsets.only(top: 16, left: 16),
@@ -670,7 +695,6 @@ class ProductPageBody extends StatelessWidget {
               ),
             ),
 
-          // 2. Nội dung chính
           Container(
             color: Colors.white,
             padding: const EdgeInsets.all(16),
@@ -678,13 +702,12 @@ class ProductPageBody extends StatelessWidget {
                 ? Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nút Filter cho Mobile
                       ElevatedButton.icon(
                         onPressed: () {
                           showModalBottomSheet(
                             context: context,
                             isScrollControlled: true,
-                            backgroundColor: Colors.transparent, // Để bo góc đẹp hơn
+                            backgroundColor: Colors.transparent, 
                             builder: (context) => DraggableScrollableSheet(
                               initialChildSize: 0.9,
                               minChildSize: 0.5,
@@ -709,14 +732,7 @@ class ProductPageBody extends StatelessWidget {
                           style: TextStyle(color: Colors.black, fontSize: 14),
                         ),
                         style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.resolveWith<Color?>(
-                            (states) {
-                              if (states.contains(WidgetState.hovered)) {
-                                return Colors.grey[100];
-                              }
-                              return Colors.white;
-                            },
-                          ),
+                          backgroundColor: WidgetStateProperty.all(Colors.white),
                           elevation: WidgetStateProperty.all(0),
                           shape: WidgetStateProperty.all(
                             RoundedRectangleBorder(
@@ -731,23 +747,22 @@ class ProductPageBody extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Danh sách sản phẩm
                       ShowListProductWidget(
                         categoryId: categoryId,
                       ),
                     ],
                   )
-                : Column( // Layout cho Desktop/Tablet
+                : Column(
                     children: [
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ConstrainedBox(
-                            constraints: BoxConstraints(
+                            constraints: const BoxConstraints(
                               minWidth: 200,
                               maxWidth: 300,
                             ),
-                            child: FilterWidget(),
+                            child: const FilterWidget(),
                           ),
                           const SizedBox(width: 16),
                           

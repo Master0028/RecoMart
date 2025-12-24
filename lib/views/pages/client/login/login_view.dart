@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/user_provider.dart';
+import 'package:recomart/services/api_service.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0);
@@ -27,7 +28,9 @@ class _LoginViewState extends State<LoginView> {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkLoginStatus();
+    });
   }
 
   @override
@@ -48,16 +51,11 @@ class _LoginViewState extends State<LoginView> {
     ));
   }
 
-  Future<void> _checkLoginStatus() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      debugPrint("Logged in as: ${user.email}");
-      if (user.email == 'admin@gmail.com') {
-        context.go('/admin');
-      } else {
-        context.go('/home');
-      }
+  void _checkLoginStatus() {
+    final userProvider = context.read<UserProvider>();
+    if (userProvider.isLoggedIn) {
+      debugPrint("User already logged in. Redirecting...");
+      if (mounted) context.go('/home');
     }
   }
 
@@ -77,32 +75,26 @@ class _LoginViewState extends State<LoginView> {
     setState(() => _loading = true);
 
     try {
-      final userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
+      final data = await ApiService.login(email, password);
+
+      if (!mounted) return;
+
+      await context.read<UserProvider>().loginSuccess(
+        data['user_id'].toString(), 
+        data['name'], 
+        data['access_token']
       );
 
-      final token = await userCredential.user?.getIdToken();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('accessToken', token ?? '');
-
-      _checkLoginStatus();
-    } on FirebaseAuthException catch (e) {
-      String errorMsg;
-      switch (e.code) {
-        case 'user-not-found':
-        case 'invalid-email':
-          errorMsg = 'Account does not exist.';
-          break;
-        case 'wrong-password':
-        case 'invalid-credential':
-          errorMsg = 'Incorrect password or email.';
-          break;
-        default:
-          errorMsg = e.message ?? 'Login failed. Please try again.';
+      debugPrint("Login success: ${data['name']}");
+      
+      if (email.contains('admin')) {
+        context.go('/admin');
+      } else {
+        context.go('/home');
       }
+
+    } catch (e) {
+      String errorMsg = e.toString().replaceAll("Exception: ", "");
       _focusAndShowError(_emailFocus, errorMsg);
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -174,7 +166,6 @@ class _LoginViewState extends State<LoginView> {
       canPop: false,
       onPopInvoked: (didPop) {
         if (!didPop) {
-          context.go('/splash');
         }
       },
       child: Scaffold(
@@ -184,7 +175,6 @@ class _LoginViewState extends State<LoginView> {
             height: size.height,
             child: Stack(
               children: [
-                // Background Shapes
                 Positioned(
                   top: -size.height * 0.15,
                   left: -size.width * 0.5,

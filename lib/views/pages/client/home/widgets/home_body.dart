@@ -1,13 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:recomart/utils/widget/footer.dart';
 import 'package:recomart/views/pages/client/home/widgets/banner_widget.dart';
-import 'package:recomart/views/pages/client/home/widgets/category_widget.dart' hide Responsive;
-import 'package:recomart/views/pages/client/home/widgets/product_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/recommendation_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/search_widget.dart';
+import 'package:recomart/views/pages/client/home/widgets/category_widget.dart' as cat_widget;
+import 'package:recomart/views/pages/client/product/product_page_body.dart';
 
 class HomeBody extends StatefulWidget {
   const HomeBody({super.key});
@@ -27,47 +27,18 @@ class _HomeBodyState extends State<HomeBody> {
   }
 
   Future<void> _fetchCurrentUserId() async {
-    User? currentUser = FirebaseAuth.instance.currentUser;
-
-    if (currentUser != null) {
-      try {
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('users')
-            .where('email', isEqualTo: currentUser.email)
-            .limit(1)
-            .get();
-
-        if (querySnapshot.docs.isNotEmpty) {
-          final userData = querySnapshot.docs.first.data();
-          
-          if (userData.containsKey('user_id')) {
-            if (mounted) {
-              setState(() {
-                aiModelUserId = userData['user_id'];
-                isLoadingUser = false;
-              });
-            }
-            print("Found AI Model User ID: $aiModelUserId");
-          } else {
-            if (mounted) {
-              setState(() {
-                aiModelUserId = 0; 
-                isLoadingUser = false;
-              });
-            }
-            print("New User (No Model ID) -> Fallback to Popular Items");
-          }
-        } else {
-          if (mounted) setState(() => isLoadingUser = false);
-        }
-      } catch (e) {
-        print("Error fetching User ID: $e");
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    
+    if (!userProvider.isLoggedIn) {
         if (mounted) setState(() => isLoadingUser = false);
-      }
-    } else {
-      print("Guest User -> Fallback to Popular Items");
-      if (mounted) setState(() => isLoadingUser = false);
+        return;
     }
+
+    final String uidStr = userProvider.userId;
+    
+    aiModelUserId = 0; 
+
+    if (mounted) setState(() => isLoadingUser = false);
   }
   
   @override
@@ -85,17 +56,20 @@ class _HomeBodyState extends State<HomeBody> {
                 Responsive.isTablet(context) || Responsive.isMobile(context)
                     ? const SearchWidget()
                     : const SizedBox(),               
+                
                 BannerWidget(),
-                const CategoryWidget(),               
+                
+                const cat_widget.CategoryWidget(),               
+                
                 const SizedBox(height: 16),
+                
                 isLoadingUser 
                     ? const Center(child: CircularProgressIndicator())
                     : RecommendationWidget(userId: aiModelUserId),
 
                 const SizedBox(height: 16),               
-                const FilterHomeProduct(),              
-                const SizedBox(height: 16),             
-                const ProductListViewWidget(),
+                
+                const ShowListProductWidget(categoryId: null),               
               ],
             ),
           ),

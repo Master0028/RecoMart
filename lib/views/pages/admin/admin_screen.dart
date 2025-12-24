@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
+import 'package:go_router/go_router.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/views/pages/admin/brand/brand_screen.dart';
 import 'package:recomart/views/pages/admin/category/category_screen.dart';
 import 'package:recomart/views/pages/admin/dashboard/dashboard_screen.dart';
 import 'package:recomart/views/pages/admin/customer/customer_screen.dart';
+import 'package:recomart/views/pages/admin/log_screen.dart'; 
 import 'package:recomart/views/pages/admin/order/order_screen.dart';
 import 'package:recomart/views/pages/admin/invoice/invoice_screen.dart';
 import 'package:recomart/views/pages/admin/product/product_screen.dart';
@@ -34,6 +36,7 @@ class AdminSidebar extends StatelessWidget {
       "Customer": FeatherIcons.users,
       "Coupon": FeatherIcons.gift,
       "Support": FeatherIcons.messageCircle,
+      "System Logs": FeatherIcons.activity,
       "Logout": FeatherIcons.logOut,
     };
 
@@ -57,7 +60,6 @@ class AdminSidebar extends StatelessWidget {
             ),
           ),
           const Divider(color: Color(0xFF334155), height: 1),
-          // Danh sách Menu
           Expanded(
             child: ListView(
               padding: const EdgeInsets.only(top: 10),
@@ -111,6 +113,7 @@ class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _AdminScreenState createState() => _AdminScreenState();
 }
 
@@ -125,13 +128,41 @@ class _AdminScreenState extends State<AdminScreen> {
     _currentScreen = const DashboardScreen(); 
   }
   
-  void _logoutFE() {
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, 'login'); 
-    }
+  void _handleLogout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Confirm Logout"),
+        content: const Text("Are you sure you want to log out?"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              context.push('/login');
+            },
+            child: const Text("Logout"),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onMenuTap(String menu) {
+    if (menu == "Logout") {
+      _handleLogout();
+      return;
+    }
+
     setState(() {
       _selectedMenu = menu;
       _hideAppBar = false; 
@@ -163,9 +194,9 @@ class _AdminScreenState extends State<AdminScreen> {
         case "Support":
           _currentScreen = const SupportScreen();
           break;
-        case "Logout":
-          _logoutFE();
-          return;
+        case "System Logs":
+          _currentScreen = const LogViewerScreen();
+          break;
         default:
           _currentScreen = const DashboardScreen();
       }
@@ -202,14 +233,13 @@ class _AdminScreenState extends State<AdminScreen> {
               child: AdminSidebar(
                 selectedMenu: _selectedMenu,
                 onMenuTap: (menu) {
-                  _onMenuTap(menu);
                   Navigator.pop(context);
+                  _onMenuTap(menu);
                 },
               ),
             )
           : null,
           
-      // Nội dung chính
       body: Responsive.isDesktop(context)
           ? Row(
               children: [

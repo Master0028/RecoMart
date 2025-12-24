@@ -27,7 +27,7 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    final duration = Duration(milliseconds: widget.text.length * 30); // 30ms per char
+    final duration = Duration(milliseconds: widget.text.length * 30);
     
     _controller = AnimationController(
       vsync: this,
@@ -39,7 +39,6 @@ class _TypewriterTextState extends State<TypewriterText> with SingleTickerProvid
       end: widget.text.length,
     ).animate(_controller);
     
-    // Start animation if it's an incoming message and widget is first built
     if (!widget.isMe) {
         _controller.forward();
     }

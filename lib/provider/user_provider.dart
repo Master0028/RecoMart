@@ -1,55 +1,111 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.model.dart';
-import '../services/user.service.dart';
+import '../services/api_service.dart';
 
 class UserProvider with ChangeNotifier {
-  final UserService _service = UserService();
+  String? _userId;
+  String? _userName;
+  String? _accessToken;
+  
+  UserModel? _userInfo;
+  
   List<UserModel> _users = [];
+
   bool _loading = false;
   String? _error;
-  double _loyaltyPoints = 0;
-  double get loyaltyPoints => _loyaltyPoints;
 
-  List<UserModel> get users => _users;
   bool get loading => _loading;
   String? get error => _error;
-
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  User? _currentUser;
-
-  UserModel? _userInfo;
+  String get userId => _userId ?? "";
+  String get userName => _userName ?? "Guest";
+  String? get accessToken => _accessToken;
+  
+  UserModel? get user => _userInfo;
   UserModel? get userInfo => _userInfo;
+  
+  List<UserModel> get users => _users;
+
+  bool get isLoggedIn => _userId != null && _userId!.isNotEmpty;
 
   UserProvider() {
-    _auth.authStateChanges().listen((user) {
-      _currentUser = user;
-      notifyListeners();
-    });
+    _loadFromPrefs();
   }
 
-  User? get currentUser => _currentUser;
-
-  bool get isLoggedIn => _currentUser != null;
-
-  Future<void> signOut() async {
-    await _auth.signOut();
-    _currentUser = null;
+  Future<void> loginSuccess(String id, String name, String token) async {
+    _userId = id;
+    _userName = name;
+    _accessToken = token;
+    
+    _userInfo = UserModel(
+      id: id,
+      email: "",
+      fullName: name,
+      isActive: true,
+      role: "user",
+    );
+    
+    await _saveToPrefs();
+    notifyListeners();
+  }
+  
+  void setUser(UserModel user) {
+    _userInfo = user;
+    _userId = user.id;
+    _userName = user.fullName;
     notifyListeners();
   }
 
-  Future<void> reloadUser() async {
-    await _currentUser?.reload();
-    _currentUser = _auth.currentUser;
+  Future<void> logout() async {
+    await signOut();
+  }
+
+  Future<void> signOut() async {
+    _userId = null;
+    _userName = null;
+    _accessToken = null;
+    _userInfo = null;
+    _users = [];
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
+
+    notifyListeners();
+  }
+
+  Future<void> _saveToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_userId != null) await prefs.setString('user_id', _userId!);
+    if (_userName != null) await prefs.setString('user_name', _userName!);
+    if (_accessToken != null) await prefs.setString('access_token', _accessToken!);
+  }
+
+  Future<void> _loadFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    _userId = prefs.getString('user_id');
+    _userName = prefs.getString('user_name');
+    _accessToken = prefs.getString('access_token');
+    
+    if (_userId != null) {
+      _userInfo = UserModel(
+        id: _userId!,
+        email: "", 
+        fullName: _userName ?? "User",
+        isActive: true,
+        role: "user"
+      );
+    }
+    
     notifyListeners();
   }
 
   Future<void> fetchUsers() async {
+    _loading = true;
+    notifyListeners();
+
     try {
-      _loading = true;
-      notifyListeners();
-      _users = await _service.fetchUsers();
+      final data = await ApiService.getAllUsers();
+      _users = data.map((json) => UserModel.fromJson(json)).toList();
       _error = null;
     } catch (e) {
       _error = e.toString();
@@ -59,41 +115,36 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchUserInfo() async {
+  Future<void> toggleUserStatus(String id, bool newStatus) async {
     try {
-      _loading = true;
-      notifyListeners();
+      await ApiService.toggleUserStatus(id, newStatus);
 
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        print("No Firebase user logged in");
-        _currentUser = null;
-        _loading = false;
-        notifyListeners();
-        return;
-      }
-
-      final userData = await _service.getUserById(user.uid);
-      if (userData != null) {
-        _userInfo = userData;
-        print("User info fetched: ${_userInfo!.fullName}");
-      } else {
-        print("No user data found for UID ${user.uid}");
+      final index = _users.indexWhere((u) => u.id == id);
+      if (index != -1) {
+        _users[index] = _users[index].copyWith(isActive: newStatus);
+        notifyListeners(); 
       }
     } catch (e) {
-      print('fetchUserInfo error: $e');
-    } finally {
-      _loading = false;
+      print("Error toggling status: $e");
+      _error = e.toString();
       notifyListeners();
+      rethrow; 
     }
   }
 
-  Future<void> updateUser(UserModel user) async {
+  Future<void> fetchUserInfo() async {
+    if (!isLoggedIn) return;
+    
+    _loading = true;
+    notifyListeners();
+
     try {
-      await _service.updateUser(user);
-      await fetchUsers();
+      print("Fetching user info for $_userId...");
     } catch (e) {
+      print('fetchUserInfo error: $e');
       _error = e.toString();
+    } finally {
+      _loading = false;
       notifyListeners();
     }
   }
@@ -103,63 +154,54 @@ class UserProvider with ChangeNotifier {
     String? phone,
     String? address,
   }) async {
-    final user = _auth.currentUser;
-    if (user == null) return;
+    if (!isLoggedIn) return;
 
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'fullName': name,
-        'phone': phone,
-        'address': address,
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+      _loading = true;
+      notifyListeners();
 
-      // Cập nhật local model
+      _userName = name;
       _userInfo = _userInfo?.copyWith(
         fullName: name,
         phone: phone,
         address: address,
       );
-
+      
+      await _saveToPrefs();
       notifyListeners();
-      print("User info updated successfully");
-    } catch (e) {
-      print("Error updating user info: $e");
-      _error = e.toString();
-    }
-  }
-
-
-  Future<void> toggleUserStatus(String id, bool isActive) async {
-    try {
-      await _service.toggleUserStatus(id, isActive);
-      await fetchUsers();
     } catch (e) {
       _error = e.toString();
+    } finally {
+      _loading = false;
       notifyListeners();
     }
   }
-
-  Future<void> deleteUser(String id) async {
+  
+  Future<void> updateUser(UserModel updatedUser) async {
     try {
-      await _service.deleteUser(id);
-      await fetchUsers();
+      _loading = true;
+      notifyListeners();
+      await ApiService.updateUser(updatedUser);
+
+      final index = _users.indexWhere((u) => u.id == updatedUser.id);
+      if (index != -1) {
+        _users[index] = updatedUser;
+      }
+      
+      if (_userId == updatedUser.id) {
+        _userInfo = updatedUser;
+        _userName = updatedUser.fullName;
+        await _saveToPrefs();
+      }
+
     } catch (e) {
+      print("Error updating user: $e");
       _error = e.toString();
+      rethrow;
+    } finally {
+      _loading = false;
       notifyListeners();
     }
   }
-
-  Future<void> fetchLoyaltyPoints() async {
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
-      final points = await _service.getLoyaltyPoints(user.uid);
-      _loyaltyPoints = points;
-      notifyListeners();
-      print("Loyalty points fetched: $_loyaltyPoints");
-    } catch (e) {
-      print("Error fetching loyalty points: $e");
-    }
-  }
+  
 }

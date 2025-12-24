@@ -1,5 +1,5 @@
 class ProductRecommendation {
-  final int id;
+  final String id;
   final String name;
 
   ProductRecommendation({
@@ -9,8 +9,8 @@ class ProductRecommendation {
 
   factory ProductRecommendation.fromJson(Map<String, dynamic> json) {
     return ProductRecommendation(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? "Unknown Product",
+      id: json['id'].toString(),
+      name: json['name'] ?? 'Unknown Product',
     );
   }
 }
