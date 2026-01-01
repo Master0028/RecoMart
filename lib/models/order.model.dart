@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class OrderModel {
   String? id;
   String? userId;
@@ -35,25 +37,67 @@ class OrderModel {
     this.updatedAt,
   });
 
+  OrderModel copyWith({
+    String? id,
+    String? userId,
+    String? userName,
+    String? email,
+    String? address,
+    double? totalAmount,
+    List<OrderItemModel>? items,
+    double? discountAmount,
+    int? loyaltyPointsUsed,
+    double? loyaltyPointsEarned,
+    String? status,
+    String? paymentMethod,
+    String? paymentStatus,
+    List<OrderTrackingModel>? orderTracking,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) {
+    return OrderModel(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      userName: userName ?? this.userName,
+      email: email ?? this.email,
+      address: address ?? this.address,
+      totalAmount: totalAmount ?? this.totalAmount,
+      items: items ?? this.items,
+      discountAmount: discountAmount ?? this.discountAmount,
+      loyaltyPointsUsed: loyaltyPointsUsed ?? this.loyaltyPointsUsed,
+      loyaltyPointsEarned:
+          loyaltyPointsEarned ?? this.loyaltyPointsEarned,
+      status: status ?? this.status,
+      paymentMethod: paymentMethod ?? this.paymentMethod,
+      paymentStatus: paymentStatus ?? this.paymentStatus,
+      orderTracking: orderTracking ?? this.orderTracking,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id'] as String?,
-      userId: json['userId'] as String?,  // ✅ đúng key
+      userId: json['userId'] as String?,
       userName: json['userName'] as String?,
       email: json['email'] as String?,
       address: json['address'] as String?,
-      totalAmount: (json['totalAmount'] as num?)?.toDouble(),  // ✅
+      totalAmount: (json['totalAmount'] as num?)?.toDouble(),
       items: (json['items'] as List<dynamic>?)
-          ?.map((e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
+          ?.map(
+              (e) => OrderItemModel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      discountAmount: (json['discountAmount'] as num?)?.toDouble(),  // ✅
-      loyaltyPointsUsed: (json['loyaltyPointsUsed'] as num?)?.toInt(), // ✅
-      loyaltyPointsEarned: (json['loyaltyPointsEarned'] as num?)?.toDouble(),
+      discountAmount: (json['discountAmount'] as num?)?.toDouble(),
+      loyaltyPointsUsed: (json['loyaltyPointsUsed'] as num?)?.toInt(),
+      loyaltyPointsEarned:
+          (json['loyaltyPointsEarned'] as num?)?.toDouble(),
       status: json['status'] as String?,
       paymentMethod: json['paymentMethod'] as String?,
       paymentStatus: json['paymentStatus'] as String?,
       orderTracking: (json['orderTracking'] as List<dynamic>?)
-          ?.map((e) => OrderTrackingModel.fromJson(e as Map<String, dynamic>))
+          ?.map((e) =>
+              OrderTrackingModel.fromJson(e as Map<String, dynamic>))
           .toList(),
       createdAt: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'])
@@ -84,6 +128,72 @@ class OrderModel {
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
+
+  factory OrderModel.fromFirestore(
+  DocumentSnapshot<Map<String, dynamic>> doc,
+) {
+  final data = doc.data();
+  if (data == null) {
+    throw Exception('Order document is empty');
+  }
+
+  return OrderModel(
+    id: doc.id,
+    userId: data['userId'] as String?,
+    userName: data['userName'] as String?,
+    email: data['email'] as String?,
+    address: data['address'] as String?,
+    totalAmount: (data['totalAmount'] as num?)?.toDouble(),
+    discountAmount: (data['discountAmount'] as num?)?.toDouble(),
+    loyaltyPointsUsed: (data['loyaltyPointsUsed'] as num?)?.toInt(),
+    loyaltyPointsEarned:
+        (data['loyaltyPointsEarned'] as num?)?.toDouble(),
+    status: data['status'] as String?,
+    paymentMethod: data['paymentMethod'] as String?,
+    paymentStatus: data['paymentStatus'] as String?,
+
+    items: (data['items'] as List<dynamic>?)
+        ?.map((e) =>
+            OrderItemModel.fromJson(e as Map<String, dynamic>))
+        .toList(),
+
+    orderTracking: (data['orderTracking'] as List<dynamic>?)
+        ?.map((e) =>
+            OrderTrackingModel.fromFirestore(e as Map<String, dynamic>))
+        .toList(),
+
+    createdAt: data['createdAt'] is Timestamp
+        ? (data['createdAt'] as Timestamp).toDate()
+        : null,
+
+    updatedAt: data['updatedAt'] is Timestamp
+        ? (data['updatedAt'] as Timestamp).toDate()
+        : null,
+  );
+}
+
+Map<String, dynamic> toFirestore() {
+  return {
+    'userId': userId,
+    'userName': userName,
+    'email': email,
+    'address': address,
+    'totalAmount': totalAmount,
+    'discountAmount': discountAmount,
+    'loyaltyPointsUsed': loyaltyPointsUsed,
+    'loyaltyPointsEarned': loyaltyPointsEarned,
+    'status': status,
+    'paymentMethod': paymentMethod,
+    'paymentStatus': paymentStatus,
+    'items': items?.map((e) => e.toJson()).toList(),
+    'orderTracking':
+        orderTracking?.map((e) => e.toFirestore()).toList(),
+    'createdAt':
+        createdAt != null ? Timestamp.fromDate(createdAt!) : null,
+    'updatedAt':
+        updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+  };
+}
 }
 
 class OrderItemModel {
@@ -105,7 +215,7 @@ class OrderItemModel {
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
     return OrderItemModel(
-      productId: json['productId'] ?? json['product_id'], // đọc cả 2 loại key
+      productId: json['productId'] ?? json['product_id'],
       productName: json['productName'] ?? json['product_name'],
       quantity: (json['quantity'] as num?)?.toInt(),
       unit_price: (json['unit_price'] ?? json['unitPrice'])?.toDouble(),
@@ -167,4 +277,20 @@ class OrderTrackingModel {
       'date': date?.toIso8601String(),
     };
   }
+  
+  factory OrderTrackingModel.fromFirestore(Map<String, dynamic> data) {
+  return OrderTrackingModel(
+    status: data['status'] as String?,
+    date: data['date'] is Timestamp
+        ? (data['date'] as Timestamp).toDate()
+        : null,
+  );
+}
+
+Map<String, dynamic> toFirestore() {
+  return {
+    'status': status,
+    'date': date != null ? Timestamp.fromDate(date!) : null,
+  };
+}
 }

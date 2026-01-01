@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class VnpayPaymentPage extends StatefulWidget {
   final String paymentUrl;
@@ -19,16 +20,23 @@ class _VnpayPaymentPageState extends State<VnpayPaymentPage> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (String url) {
+          onNavigationRequest: (NavigationRequest request) async {
+            if (!request.url.startsWith('http') && !request.url.startsWith('https')) {
+              if (await canLaunchUrl(Uri.parse(request.url))) {
+                await launchUrl(Uri.parse(request.url), mode: LaunchMode.externalApplication);
+                return NavigationDecision.prevent;
+              }
+            }
+            return NavigationDecision.navigate;
+          },
+          onPageFinished: (String url) {
             if (url.contains('vnp_ResponseCode')) {
               final uri = Uri.parse(url);
               final responseCode = uri.queryParameters['vnp_ResponseCode'];
 
               if (responseCode == '00') {
-                print("Payment sucessfully!");
                 Navigator.pop(context, true);
               } else {
-                print("Payment failed!");
                 Navigator.pop(context, false);
               }
             }
@@ -41,7 +49,13 @@ class _VnpayPaymentPageState extends State<VnpayPaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("VNPay Payment")),
+      appBar: AppBar(
+        title: const Text("VNPay Payment"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context, false),
+        ),
+      ),
       body: WebViewWidget(controller: _controller),
     );
   }

@@ -21,14 +21,12 @@ class OrderDetailDialog extends StatefulWidget {
 class _OrderDetailDialogState extends State<OrderDetailDialog> {
   late String _selectedStatus;
   final List<String> _orderStatuses = ['PENDING', 'SHIPPING', 'DELIVERED', 'CANCELLED'];
-  late TextEditingController _statusController;
   final OrderService _orderService = OrderService();
 
   @override
   void initState() {
     super.initState();
     _selectedStatus = widget.order['status'] ?? 'PENDING';
-    _statusController = TextEditingController(text: _selectedStatus);
   }
 
   String _formatMoney(double amount) {
@@ -198,7 +196,7 @@ class _OrderDetailDialogState extends State<OrderDetailDialog> {
                               const Divider(),
                           ],
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),

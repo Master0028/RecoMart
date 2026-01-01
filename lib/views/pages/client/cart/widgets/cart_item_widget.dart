@@ -33,15 +33,17 @@ class CartItemWidget extends StatefulWidget {
 class _CartItemWidgetState extends State<CartItemWidget> {
   bool isProcessing = false;
 
-  /// Handles removing the item from the cart
   void _handleRemoveItem(String productId) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     setState(() => isProcessing = true);
+
     try {
-      await Provider.of<CartProvider>(context, listen: false)
-          .removeItem(user.uid, productId);
+      await Provider.of<CartProvider>(context, listen: false).removeItem(
+        userId: user.uid,
+        productId: productId,
+      );
 
       if (mounted) {
         showCustomSnackBar(

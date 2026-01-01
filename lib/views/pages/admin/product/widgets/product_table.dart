@@ -24,7 +24,6 @@ class _ProductTableState extends State<ProductTable> {
   List<ProductModel> _productsData = [];
   Map<String, String> _categoryMap = {};
   int _page = 1;
-  final int _limit = FE_LIMIT;
   bool _hasNextPage = true;
 
   @override

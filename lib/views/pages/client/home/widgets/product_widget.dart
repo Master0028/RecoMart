@@ -3,17 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:recomart/components/custom/pagination.dart';
 import 'package:recomart/components/custom/range_slider.dart';
 import 'package:recomart/components/custom/skeleton.dart';
-import 'package:recomart/components/custom/snackbar.dart';
-import 'package:recomart/config/color.dart'; 
 import 'package:recomart/utils/responsive.dart';
 import '../../../../../models/category.model.dart';
 import '../../../../../provider/product_provider.dart';
 import '../../../../../services/category.service.dart';
 
-// ================= FIX MISSING COLORS =================
 class AppColors {
   static const Color primary = Color(0xFF1976D2);
   static const Color orangePastel = Color(0xFFFFCC80);
@@ -529,7 +525,7 @@ class _ProductListState extends State<ProductList> {
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: Responsive.isDesktop(context) ? 4 : 2, childAspectRatio: 0.55, crossAxisSpacing: 20, mainAxisSpacing: 20, mainAxisExtent: 350),
           itemBuilder: (context, index) {
             final p = provider.products[index];
-            return ProductView(id: p.id!, categoryId: p.categoryId, name: p.name, image: p.imageUrl, price: p.price, averageRating: p.averageRating.toString());
+            return ProductView(id: p.id, categoryId: p.categoryId, name: p.name, image: p.imageUrl, price: p.price, averageRating: p.averageRating.toString());
           },
         ),
         const SizedBox(height: 20),

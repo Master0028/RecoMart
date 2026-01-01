@@ -5,6 +5,8 @@ import '../services/cart.service.dart';
 
 class CartProvider with ChangeNotifier {
   final CartService _cartService = CartService();
+  final List<ProductForCartModel> _items = [];
+  List<ProductForCartModel> get items => _items;
 
   CartModel? _cart;
   bool _isLoading = false;
@@ -18,10 +20,9 @@ class CartProvider with ChangeNotifier {
   double get couponDiscount => _couponDiscount;
   int get usedPoints => _usedPoints;
   CouponModel? get selectedCoupon => _selectedCoupon;
-  
-  double get finalTotal {
-    double total = totalPrice - _couponDiscount - (_usedPoints / 100);
-    return total < 0 ? 0 : total;
+
+  int get totalItems {
+    return _items.fold(0, (sum, item) => sum + item.quantity);
   }
 
   double get totalPrice {
@@ -29,13 +30,14 @@ class CartProvider with ChangeNotifier {
     return _cart!.items.fold(
       0,
       (sum, item) =>
-          sum + (item.unitPrice * (1 - item.discount / 100)) * item.quantity,
+          sum +
+          (item.unitPrice * (1 - item.discount / 100)) * item.quantity,
     );
   }
 
-  int get totalItems {
-    if (_cart == null) return 0;
-    return _cart!.items.fold(0, (sum, item) => sum + item.quantity);
+  double get finalTotal {
+    final total = totalPrice - _couponDiscount - (_usedPoints * 1000);
+    return total < 0 ? 0 : total;
   }
 
   void applyCoupon(CouponModel coupon) {
@@ -44,7 +46,7 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  void setUsedPoints(int points) {
+  void applyLoyaltyPoints(int points) {
     _usedPoints = points;
     notifyListeners();
   }
@@ -56,8 +58,8 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchCart(String? userId) async {
-    if (userId == null || userId.isEmpty) {
+  Future<void> fetchCart(String userId) async {
+    if (userId.isEmpty) {
       _cart = null;
       notifyListeners();
       return;
@@ -67,10 +69,9 @@ class CartProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final fetchedCart = await _cartService.getCartByUserId(userId);
-      _cart = fetchedCart;
+      _cart = await _cartService.getCartByUserId(userId);
     } catch (e) {
-      debugPrint('Error fetching cart: $e');
+      debugPrint('fetchCart error: $e');
       _cart = null;
     } finally {
       _isLoading = false;
@@ -78,17 +79,26 @@ class CartProvider with ChangeNotifier {
     }
   }
 
-  Future<void> addToCart(ProductForCartModel item, String? userId) async {
-    if (userId == null) throw Exception("User not logged in");
-    
+  Future<void> addToCart({
+    required String userId,
+    required ProductForCartModel item,
+  }) async {
+    if (userId.isEmpty) {
+      throw Exception("User not logged in");
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
-      
-      await _cartService.addToCart(item);
+
+      await _cartService.addToCart(
+        userId: userId,
+        item: item,
+      );
+
       await fetchCart(userId);
     } catch (e) {
-      debugPrint('Error adding to cart: $e');
+      debugPrint('addToCart error: $e');
       rethrow;
     } finally {
       _isLoading = false;
@@ -101,56 +111,57 @@ class CartProvider with ChangeNotifier {
     required String productId,
     required int newQuantity,
   }) async {
+    if (userId.isEmpty) return;
+
     try {
       await _cartService.updateItemQuantity(
         userId: userId,
         productId: productId,
         newQuantity: newQuantity,
       );
+
       await fetchCart(userId);
     } catch (e) {
-      debugPrint('Error updating quantity: $e');
+      debugPrint('updateItemQuantity error: $e');
     }
   }
 
-  Future<void> removeItem(String userId, String productId) async {
+  Future<void> removeItem({
+    required String userId,
+    required String productId,
+  }) async {
+    if (userId.isEmpty) return;
+
     try {
       await _cartService.removeItemFromCart(
         userId: userId,
         productId: productId,
       );
+
       await fetchCart(userId);
     } catch (e) {
-      debugPrint('Error removing item: $e');
+      debugPrint('removeItem error: $e');
     }
   }
 
-  Future<void> clearCart() async {
+  Future<void> clearCart(String userId) async {
+    if (userId.isEmpty) return;
+
     try {
-      await _cartService.clearCart();
+      await _cartService.clearCart(userId);
       _cart = null;
       clearDiscounts();
       notifyListeners();
     } catch (e) {
-      debugPrint('Error clearing cart: $e');
+      debugPrint('clearCart error: $e');
     }
   }
 
-  void applyLoyaltyPoints(int points) {
-    _usedPoints = points;
+  void resetCart() {
+    _cart = null;
+    _isLoading = false;
+    clearDiscounts();
     notifyListeners();
   }
 
-  Future<void> loadCart(String userId) async {
-    _isLoading = true;
-    notifyListeners();
-
-    try {
-    } catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
 }

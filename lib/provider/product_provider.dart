@@ -21,6 +21,7 @@ class ProductProvider with ChangeNotifier {
   String? _brandId;
   double? _minPrice;
   double? _maxPrice;
+  // ignore: unused_field
   double? _minRating;
   String _currentSort = 'All Products';
 

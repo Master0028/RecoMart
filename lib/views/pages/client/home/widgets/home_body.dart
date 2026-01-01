@@ -17,7 +17,7 @@ class HomeBody extends StatefulWidget {
 }
 
 class _HomeBodyState extends State<HomeBody> {
-  int aiModelUserId = 0;
+  int? aiModelUserId;
   bool isLoadingUser = true;
 
   @override
@@ -28,19 +28,27 @@ class _HomeBodyState extends State<HomeBody> {
 
   Future<void> _fetchCurrentUserId() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    
+
     if (!userProvider.isLoggedIn) {
-        if (mounted) setState(() => isLoadingUser = false);
-        return;
+      if (mounted) {
+        aiModelUserId = null;
+        isLoadingUser = false;
+        setState(() {});
+      }
+      return;
     }
 
-    final String uidStr = userProvider.userId;
-    
-    aiModelUserId = 0; 
+    // map UID Firebase -> userId cho AI
+    // aiModelUserId = await userService.getAiUserId(userProvider.userId);
 
-    if (mounted) setState(() => isLoadingUser = false);
+    aiModelUserId = int.tryParse(userProvider.userId);
+
+    if (mounted) {
+      isLoadingUser = false;
+      setState(() {});
+    }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -53,23 +61,18 @@ class _HomeBodyState extends State<HomeBody> {
                 : const EdgeInsets.only(top: 16, left: 16, right: 16),
             child: Column(
               children: [
-                Responsive.isTablet(context) || Responsive.isMobile(context)
-                    ? const SearchWidget()
-                    : const SizedBox(),               
-                
-                BannerWidget(),
-                
-                const cat_widget.CategoryWidget(),               
-                
-                const SizedBox(height: 16),
-                
-                isLoadingUser 
-                    ? const Center(child: CircularProgressIndicator())
-                    : RecommendationWidget(userId: aiModelUserId),
+                if (Responsive.isTablet(context) || Responsive.isMobile(context))
+                  const SearchWidget(),
 
-                const SizedBox(height: 16),               
-                
-                const ShowListProductWidget(categoryId: null),               
+                BannerWidget(),
+                const cat_widget.CategoryWidget(),
+                const SizedBox(height: 16),
+
+                if (!isLoadingUser && aiModelUserId != null)
+                  RecommendationWidget(userId: aiModelUserId!),
+
+                const SizedBox(height: 16),
+                const ShowListProductWidget(categoryId: null),
               ],
             ),
           ),

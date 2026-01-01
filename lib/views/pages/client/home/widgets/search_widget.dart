@@ -154,10 +154,8 @@ class _SearchWidgetState extends State<SearchWidget> {
       ),
     );
 
-    if (Overlay.of(context) != null) {
-      Overlay.of(context).insert(_overlayEntry!);
+    Overlay.of(context).insert(_overlayEntry!);
     }
-  }
 
   void _removeOverlay() {
     _overlayEntry?.remove();

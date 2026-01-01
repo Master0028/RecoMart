@@ -78,7 +78,6 @@ class ChatList extends StatelessWidget {
                     }
 
                     final lastMessage = chat['lastMessage'] ?? '';
-                    final bool hasUnread = false;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8.0),

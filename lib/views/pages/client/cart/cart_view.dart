@@ -40,17 +40,13 @@ class _CartViewState extends State<CartView> {
   @override
   void initState() {
     super.initState();
-    
+
     Future.microtask(() async {
-      // ignore: use_build_context_synchronously
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      
+
       if (userProvider.isLoggedIn) {
-        // ignore: use_build_context_synchronously
         final cartProvider = Provider.of<CartProvider>(context, listen: false);
-        final String userId = userProvider.userId;
-        await cartProvider.loadCart(userId);
-              
+        await cartProvider.fetchCart(userProvider.userId);
         _loadUserInfo();
       }
     });
@@ -159,7 +155,7 @@ class _CartViewState extends State<CartView> {
         }
       }
 
-      await provider.clearCart();
+      await provider.clearCart(userId);
 
       showCustomSnackBar(context, 'Order placed successfully!',
           type: SnackBarType.success);
@@ -174,14 +170,25 @@ class _CartViewState extends State<CartView> {
     }
   }
 
-  Future<void> _handleRemoveItem(BuildContext context, String productId) async {
+  Future<void> _handleRemoveItem(
+    BuildContext context,
+    String productId,
+  ) async {
     final provider = Provider.of<CartProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final userId = userProvider.userId;
 
-    await provider.removeItem(userId, productId);
-    showCustomSnackBar(context, 'Item removed from cart',
-        type: SnackBarType.success);
+    if (!userProvider.isLoggedIn) return;
+
+    await provider.removeItem(
+      userId: userProvider.userId,
+      productId: productId,
+    );
+
+    showCustomSnackBar(
+      context,
+      'Item removed from cart',
+      type: SnackBarType.success,
+    );
   }
 
   Widget _buildLoginRequiredView() {

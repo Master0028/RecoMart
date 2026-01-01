@@ -164,8 +164,12 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
 
-    if (userProvider.user == null) {
-      showCustomSnackBar(context, 'Please login to add to cart!', type: SnackBarType.warning);
+    if (!userProvider.isLoggedIn) {
+      showCustomSnackBar(
+        context,
+        'Please login to add to cart!',
+        type: SnackBarType.warning,
+      );
       return;
     }
 
@@ -183,11 +187,23 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
         image: _product!.imageUrl,
       );
 
-      await cartProvider.addToCart(newItem, userProvider.user!.id);
-      showCustomSnackBar(context, 'Added to cart!', type: SnackBarType.success);
+      await cartProvider.addToCart(
+        userId: userProvider.userId,
+        item: newItem,
+      );
+
+      showCustomSnackBar(
+        context,
+        'Added to cart!',
+        type: SnackBarType.success,
+      );
     } catch (e) {
       if (mounted) {
-        showCustomSnackBar(context, 'Error: $e', type: SnackBarType.error);
+        showCustomSnackBar(
+          context,
+          'Error: $e',
+          type: SnackBarType.error,
+        );
       }
     }
   }
@@ -241,12 +257,39 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(right: 16),
-                    child: AddToCartIcon(
-                      key: cartKey,
-                      icon: const Icon(FeatherIcons.shoppingCart, color: Colors.black),
-                      badgeOptions: const BadgeOptions(active: true, backgroundColor: Colors.red),
+                    child: Consumer<CartProvider>(
+                      builder: (context, cartProvider, _) {
+                        final int count = cartProvider.totalItems;
+
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (cartKey.currentState != null) {
+                            cartKey.currentState!.updateBadge(count.toString());
+                          }
+                        });
+
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: () {
+                              context.push('/cart');
+                            },
+                            child: AddToCartIcon(
+                              key: cartKey,
+                              icon: const Icon(
+                                FeatherIcons.shoppingCart,
+                                color: Colors.black,
+                              ),
+                              badgeOptions: const BadgeOptions(
+                                active: true,
+                                backgroundColor: Colors.red,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  )
+                  ),
                 ],
               ),
         

@@ -21,7 +21,6 @@ class OrderHistoryPage extends StatefulWidget {
 class _OrderHistoryPageState extends State<OrderHistoryPage> {
   String selectedTab = 'All';
 
-  // Mapping English tabs to status codes
   final Map<String, String> _statusMap = {
     'All': '',
     'Pending': 'pending',
@@ -34,7 +33,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   void initState() {
     super.initState();
     Future.microtask(() =>
-        Provider.of<OrderProvider>(context, listen: false).fetchOrders());
+        Provider.of<OrderProvider>(context, listen: false).fetchOrderHistory());
   }
 
   @override

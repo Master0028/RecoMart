@@ -149,7 +149,7 @@ class _ListCategoryWidgetState extends State<ListCategoryWidget> {
                         ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               ConstrainedBox(
                 constraints: const BoxConstraints(
                   maxWidth: 75,
@@ -191,7 +191,7 @@ class ProductCardWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(18),
             child: Container(
               height: 270,
-              width: 280,
+              width: MediaQuery.of(context).size.width * 0.6,
               decoration: BoxDecoration(
                 image: DecorationImage(
                   image: AssetImage(productsPromotion.imageUrl),
@@ -219,7 +219,7 @@ class ProductCardWidget extends StatelessWidget {
                 child: Container(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  height: 90,
+                  height: 100,
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     border: Border.all(
@@ -449,9 +449,9 @@ class _CategoryWidgetState extends State<CategoryWidget> {
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 0.9,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: Responsive.isDesktop(context) ? 0.8 : 0.65,
                   ),
                   itemCount: itemCount,
                   itemBuilder: (context, index) => ListCategoryWidget(

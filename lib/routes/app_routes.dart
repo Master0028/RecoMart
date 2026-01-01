@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:recomart/components/custom/bottom_navigation_bar.dart';
+import 'package:recomart/models/order.model.dart';
 import 'package:recomart/views/pages/admin/admin_screen.dart';
 import 'package:recomart/views/pages/client/login/changepassword.dart';
 import 'package:recomart/views/pages/client/login/passwordrecoverymethods.dart';
 import 'package:recomart/views/pages/client/login/signup_screen.dart';
 import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
+import 'package:recomart/views/pages/client/order/order_details.dart';
+import 'package:recomart/views/pages/client/order/order_list.dart';
 import 'package:recomart/views/pages/client/profile/module/address.dart';
 import 'package:recomart/views/pages/client/profile/module/atm.dart';
 import 'package:recomart/views/pages/client/profile/module/epay.dart';
@@ -215,6 +218,21 @@ final GoRouter appRouter = GoRouter(
       },
     ),
 
+    GoRoute(
+    path: '/history',
+    builder: (context, state) {
+      final userId = state.extra as String;
+      return OrderListScreen(userId: userId);
+    },
+  ),
+
+  GoRoute(
+    path: '/order-detail',
+    builder: (context, state) {
+      final order = state.extra as OrderModel;
+      return OrderDetailScreen(order: order, orderId: '',);
+    },
+  ),
 
     GoRoute(
       path: '/admin',

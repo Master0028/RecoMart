@@ -14,23 +14,26 @@ class OrderManagement extends StatefulWidget {
 }
 
 class _OrderManagementState extends State<OrderManagement> {
-  List<Map<String, dynamic>> orderItems = [
+  final List<Map<String, dynamic>> orderItems = [
     {
       'title': 'Order History',
       'icon': FeatherIcons.archive,
-      'route': '/history'
+      'route': '/history',
     },
   ];
 
   void _handleNavigation(BuildContext context, String routeName) {
-    if (context.mounted) {
-      context.push(routeName);
-    }
+    if (!context.mounted) return;
+
+    context.push(
+      routeName,
+      extra: widget.userId,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    bool isExistUser = widget.userId.isNotEmpty;
+    final bool isExistUser = widget.userId.isNotEmpty;
 
     if (!isExistUser) {
       return Padding(
@@ -45,7 +48,7 @@ class _OrderManagementState extends State<OrderManagement> {
             ),
             const SizedBox(height: 16),
             const Text(
-              '🔒 Access Restricted',
+              'Access Restricted',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -63,9 +66,7 @@ class _OrderManagementState extends State<OrderManagement> {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () {
-                _handleNavigation(context, '/login');
-              },
+              onPressed: () => context.push('/login'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 shape: RoundedRectangleBorder(
@@ -88,7 +89,7 @@ class _OrderManagementState extends State<OrderManagement> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -110,9 +111,8 @@ class _OrderManagementState extends State<OrderManagement> {
               title: item['title'],
               isFirst: index == 0,
               isLast: index == orderItems.length - 1,
-              onTap: () {
-                _handleNavigation(context, item['route']);
-              },
+              onTap: () =>
+                  _handleNavigation(context, item['route'] as String),
             );
           }),
         ),
@@ -142,7 +142,7 @@ class ModernOrderListTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0, horizontal: 16.0),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
         child: Column(
           children: [
             Row(
@@ -179,7 +179,7 @@ class ModernOrderListTile extends StatelessWidget {
             ),
             if (!isLast)
               Padding(
-                padding: const EdgeInsets.only(top: 16.0, left: 56.0),
+                padding: const EdgeInsets.only(top: 16, left: 56),
                 child: Divider(
                   color: Colors.grey.shade200,
                   thickness: 1,
