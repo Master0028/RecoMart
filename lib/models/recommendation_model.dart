@@ -9,7 +9,7 @@ class ProductRecommendation {
 
   factory ProductRecommendation.fromJson(Map<String, dynamic> json) {
     return ProductRecommendation(
-      id: json['id'].toString(),
+      id: json['id'].toString().trim(),
       name: json['name'] ?? 'Unknown Product',
     );
   }

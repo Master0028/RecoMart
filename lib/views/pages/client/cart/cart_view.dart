@@ -109,7 +109,7 @@ class _CartViewState extends State<CartView> {
           productId: p.productId,
           productName: p.productName,
           quantity: p.quantity,
-          unit_price: p.unitPrice,
+          unitPrice: p.unitPrice,
           discount: p.discount,
           images: p.image != null ? ImageModel(url: p.image) : null,
         );

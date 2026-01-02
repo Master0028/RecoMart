@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:recomart/config/color.dart';
@@ -6,11 +7,10 @@ import 'package:feather_icons/feather_icons.dart';
 import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart' hide AppColors;
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
-
 import 'package:recomart/services/recommendation_service.dart';
 
 class SearchProductScreen extends StatefulWidget {
-  final Function(String) onSearch; 
+  final Function(String) onSearch;
   final String initialQuery;
 
   const SearchProductScreen({
@@ -28,10 +28,9 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
   final GlobalKey<CartIconKey> cartKey = GlobalKey<CartIconKey>();
   late Function(GlobalKey) runAddToCartAnimation;
 
-  // Variables to store search results from API
   List<dynamic> _searchResults = [];
   bool _isLoading = false;
-  bool _hasSearched = false; 
+  bool _hasSearched = false;
 
   @override
   void initState() {
@@ -46,18 +45,17 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
     final keyword = _searchController.text.trim();
     if (keyword.isEmpty) return;
 
-    setState(() {
-      _isLoading = true;
-      _hasSearched = true;
-      _searchResults = []; 
-    });
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _hasSearched = true;
+        _searchResults = [];
+      });
+    }
 
     try {
-      // Get base URL from service
-      final baseUrl = RecommendationService.baseUrl;
+      const baseUrl = RecommendationService.baseUrl;
       final url = '$baseUrl/api/search?keyword=$keyword';
-
-      print("📡 Calling Search API: $url");
 
       final response = await http.get(
         Uri.parse(url),
@@ -65,13 +63,11 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
           "ngrok-skip-browser-warning": "true",
           "Content-Type": "application/json",
         },
-      );
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final List<dynamic> results = data['results'] ?? [];
-        
-        print("Found ${results.length} products.");
 
         if (mounted) {
           setState(() {
@@ -80,11 +76,9 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
           });
         }
       } else {
-        print("API Error: ${response.statusCode}");
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      print("Connection Error: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -96,73 +90,17 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
       height: 30,
       width: 30,
       opacity: 0.85,
-      dragAnimation: const DragToCartAnimationOptions(
-        rotation: true,
-      ),
+      dragAnimation: const DragToCartAnimationOptions(rotation: true),
       jumpAnimation: const JumpAnimationOptions(),
       createAddToCartAnimation: (run) => runAddToCartAnimation = run,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFF8F9FD),
         appBar: AppBarHomeCustom(cartKey: cartKey),
         body: Column(
           children: [
-            // SEARCH BAR
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black12, blurRadius: 5, offset: Offset(0, 2))
-                ]
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onSubmitted: (_) => _performSearch(),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: 'Search (Apple, Dell...)...',
-                        prefixIcon: const Icon(FeatherIcons.search, color: Colors.grey),
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                        suffixIcon: _searchController.text.isNotEmpty 
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                _searchController.clear();
-                                setState(() => _searchResults = []);
-                              },
-                            ) : null,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  SizedBox(
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed: _performSearch,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Icon(FeatherIcons.search, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // SEARCH RESULTS
+            _buildModernSearchBar(),
             Expanded(
-              child: _buildBody(),
+              child: _buildContent(),
             ),
           ],
         ),
@@ -170,81 +108,155 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildModernSearchBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(25)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F2F6),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: TextField(
+                controller: _searchController,
+                onSubmitted: (_) => _performSearch(),
+                textInputAction: TextInputAction.search,
+                decoration: InputDecoration(
+                  hintText: 'Search products...',
+                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
+                  prefixIcon: const Icon(FeatherIcons.search, size: 18, color: Colors.grey),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.cancel, size: 18, color: Colors.grey),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() {
+                              _searchResults = [];
+                              _hasSearched = false;
+                            });
+                          },
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: _performSearch,
+            child: Container(
+              height: 48,
+              width: 48,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withOpacity(0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: const Icon(FeatherIcons.sliders, color: Colors.white, size: 18),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: CupertinoActivityIndicator(radius: 15));
     }
 
     if (_hasSearched && _searchResults.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(FeatherIcons.frown, size: 64, color: Colors.grey),
-            SizedBox(height: 10),
-            Text("No products found.", style: TextStyle(color: Colors.grey)),
+            Icon(FeatherIcons.search, size: 60, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text("No results found", style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
           ],
         ),
       );
     }
 
     if (!_hasSearched) {
-      return const Center(
-          child: Text("Enter a keyword to search",
-              style: TextStyle(color: Colors.grey)));
+      return Center(
+        child: Text("Enter a keyword to explore", style: TextStyle(color: Colors.grey.shade400)),
+      );
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10),
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text("Search Results:", style: TextStyle(fontSize: 16)),
+                const Text("Search Results", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(8)),
-                  child: Text("${_searchResults.length} items found",
-                      style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.primary)),
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "${_searchResults.length} items",
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
                 ),
               ],
             ),
           ),
-          Expanded(
-            child: GridView.builder(
-              itemCount: _searchResults.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.60, 
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemBuilder: (context, index) {
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.68,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) {
                 final item = _searchResults[index];
-                
                 return ProductView(
-                  id: item['id'].toString(),
-                  categoryId: item['category'] ?? '', 
-                  name: item['name'] ?? 'No Name',
-                  image: item['imageUrl'] ?? '',
+                  id: (item['id'] ?? '').toString(),
+                  categoryId: (item['category'] ?? '').toString(),
+                  name: (item['name'] ?? 'N/A').toString(),
+                  image: (item['imageUrl'] ?? '').toString(),
                   price: (item['price'] ?? 0).toDouble(),
                   averageRating: (item['rating'] ?? 0).toString(),
-                  // If you want to trigger cart animation from here, 
-                  // pass runAddToCartAnimation down to ProductView
                 );
               },
+              childCount: _searchResults.length,
             ),
           ),
-        ],
-      ),
+        ),
+        const SliverToBoxAdapter(child: SizedBox(height: 30)),
+      ],
     );
   }
 

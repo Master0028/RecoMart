@@ -40,22 +40,15 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
 
   Future<void> _loadData() async {
     if (!mounted) return;
-
     setState(() => _isLoading = true);
-
     try {
-      debugPrint("DEBUG: Fetching recommendations for UserID: ${widget.userId}");
       final data = await _service.getRecommendations(widget.userId);
-      debugPrint("DEBUG: API returned ${data.length} items");
-
       if (!mounted) return;
-
       setState(() {
         _recommendations = data;
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint("DEBUG ERROR in _loadData: $e");
       if (!mounted) return;
       setState(() => _isLoading = false);
     }
@@ -71,7 +64,6 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     }
 
     if (_recommendations.isEmpty) {
-      debugPrint("DEBUG: Recommendations list is empty, hiding widget.");
       return const SizedBox.shrink();
     }
 
@@ -96,41 +88,30 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
             itemCount: _recommendations.length,
             itemBuilder: (context, index) {
               final item = _recommendations[index];
-              // FORCE ID TO STRING TO MATCH FIRESTORE
-              final String productId = item.id.toString();
-
-              return StreamBuilder<QuerySnapshot>(
+              
+              return StreamBuilder<DocumentSnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('products')
-                    .where('id', isEqualTo: productId)
-                    .limit(1)
+                    .doc(item.id.toString())
                     .snapshots(),
                 builder: (context, snapshot) {
-                  if (snapshot.hasError) {
-                    debugPrint("DEBUG ERROR for Product $productId: ${snapshot.error}");
-                    return const SizedBox.shrink();
-                  }
+                  if (snapshot.hasError) return const SizedBox.shrink();
 
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return _buildLoadingCard();
                   }
 
-                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                    debugPrint("DEBUG: No Firestore doc found for ID: '$productId' (Type: String)");
-                    return _buildLoadingCard(); // This will loop if ID doesn't exist
+                  if (!snapshot.hasData || !snapshot.data!.exists) {
+                    return const SizedBox.shrink();
                   }
 
-                  final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-
+                  final data = snapshot.data!.data() as Map<String, dynamic>;
                   final String imageUrl = data['imageUrl'] ?? '';
                   final String name = data['name'] ?? item.name;
-                  final num priceVal = data['price'] ?? 0;
-                  final double price = priceVal.toDouble();
+                  final double price = (data['price'] ?? 0).toDouble();
 
                   return GestureDetector(
-                    onTap: () {
-                      context.push('/product-detail/$productId');
-                    },
+                    onTap: () => context.push('/product-detail/${item.id}'),
                     child: Container(
                       width: 150,
                       margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
@@ -151,31 +132,15 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                         children: [
                           Expanded(
                             child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(12),
-                              ),
+                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                               child: imageUrl.isNotEmpty
                                   ? Image.network(
                                       imageUrl,
                                       fit: BoxFit.cover,
                                       width: double.infinity,
-                                      errorBuilder: (_, __, ___) {
-                                        return const Center(
-                                          child: Icon(
-                                            Icons.image_not_supported,
-                                            size: 40,
-                                            color: Colors.grey,
-                                          ),
-                                        );
-                                      },
+                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
                                     )
-                                  : const Center(
-                                      child: Icon(
-                                        Icons.image,
-                                        size: 40,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
+                                  : const Icon(Icons.image, color: Colors.grey),
                             ),
                           ),
                           Padding(

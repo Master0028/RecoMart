@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.model.dart';
@@ -139,7 +140,27 @@ class UserProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      print("Fetching user info for $_userId...");
+      final String targetId = _userId.toString();
+      print("DEBUG: Fetching Firestore doc for ID: '$targetId'");
+
+      final docSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(targetId)
+          .get();
+
+      if (docSnap.exists) {
+        final data = docSnap.data();
+        if (data != null && _userInfo != null) {
+          _userInfo = _userInfo!.copyWith(
+            avatar: data['avatar'] ?? '',
+            loyaltyPoints: data['loyaltyPoints'] ?? 0,
+          );
+          print("DEBUG: Firestore data synced for $targetId");
+        }
+      } else {
+        print("DEBUG: No Firestore doc found for ID: '$targetId' at path: users/$targetId");
+      }
+      _error = null;
     } catch (e) {
       print('fetchUserInfo error: $e');
       _error = e.toString();

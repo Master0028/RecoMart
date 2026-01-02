@@ -25,7 +25,7 @@ class ProductService {
 
       final response = await http.get(
         Uri.parse('${ApiService.baseUrl}/api/products?$query'),
-        headers: _headers, // Dùng header có bypass ngrok
+        headers: _headers,
       );
 
       if (response.statusCode == 200) {

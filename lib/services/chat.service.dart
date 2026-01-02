@@ -11,32 +11,40 @@ class ChatService {
   final _auth = FirebaseAuth.instance;
 
   static const String adminId = "pvIwRP6zV8cSfcH7rqGe6bbfzNz1";
-  
+
   Future<Map<String, dynamic>> sendMessageToAI(String query) async {
-    final String baseUrl = RecommendationService.baseUrl; 
-    final String url = '$baseUrl/api/chat?query=$query';
+    const String baseUrl = RecommendationService.baseUrl;
+    final Uri url = Uri.parse('$baseUrl/api/chat');
+    final user = _auth.currentUser;
 
     try {
-      final response = await http.get(
-        Uri.parse(url),
+      final response = await http.post(
+        url,
         headers: {
           "ngrok-skip-browser-warning": "true",
           "Content-Type": "application/json",
+          "Accept": "application/json",
         },
-      );
+        body: jsonEncode({
+          "query": query,
+          "user_id": user?.uid ?? "guest",
+        }),
+      ).timeout(const Duration(seconds: 30));
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        return jsonDecode(utf8.decode(response.bodyBytes));
       } else {
         return {
-          "reply": "Xin lỗi, AI đang bận (Lỗi ${response.statusCode}).",
-          "products": []
+          "response": "AI is busy (Error ${response.statusCode}).",
+          "data": [],
+          "type": "text"
         };
       }
     } catch (e) {
       return {
-        "reply": "Lỗi kết nối AI: $e. Vui lòng kiểm tra lại Server.",
-        "products": []
+        "response": "Connection error: $e",
+        "data": [],
+        "type": "text"
       };
     }
   }
@@ -66,7 +74,6 @@ class ChatService {
     }, SetOptions(merge: true));
   }
 
-  /// 🔹 Gửi tin nhắn có hình ảnh
   Future<void> sendImage(File imageFile, String receiverId) async {
     final user = _auth.currentUser;
     if (user == null) return;
@@ -95,11 +102,11 @@ class ChatService {
 
       await _firestore.collection('chats').doc(chatId).set({
         'participants': [user.uid, receiverId],
-        'lastMessage': '[Hình ảnh]',
+        'lastMessage': '[Image]',
         'updatedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     } catch (e) {
-      print("Lỗi upload ảnh: $e");
+      throw Exception("Upload failed: $e");
     }
   }
 

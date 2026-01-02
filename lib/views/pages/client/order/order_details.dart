@@ -90,7 +90,7 @@ class OrderDetailScreen extends StatelessWidget {
                   ),
                   subtitle: Text('Qty: ${item.quantity}'),
                   trailing: Text(
-                    formatMoney(item.unit_price ?? 0),
+                    formatMoney(item.unitPrice ?? 0),
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 );

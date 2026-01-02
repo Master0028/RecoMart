@@ -12,7 +12,8 @@ import 'package:recomart/models/order.model.dart';
 import 'package:recomart/provider/order_provider.dart';
 
 class OrderHistoryPage extends StatefulWidget {
-  const OrderHistoryPage({super.key});
+  const OrderHistoryPage({super.key, required this.userId});
+  final String userId;
 
   @override
   State<OrderHistoryPage> createState() => _OrderHistoryPageState();
@@ -33,7 +34,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   void initState() {
     super.initState();
     Future.microtask(() =>
-        Provider.of<OrderProvider>(context, listen: false).fetchOrderHistory());
+        Provider.of<OrderProvider>(context, listen: false).fetchOrderHistory(widget.userId));
   }
 
   @override
@@ -239,7 +240,7 @@ class _OrderItemTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(formatMoney(item.unit_price ?? 0),
+          Text(formatMoney(item.unitPrice ?? 0),
               style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87, fontSize: 15)),
         ],
       ),

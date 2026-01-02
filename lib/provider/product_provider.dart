@@ -30,16 +30,17 @@ class ProductProvider with ChangeNotifier {
   bool get hasMore => _hasMore;
   int get currentPage => _currentPage;
   String get currentSort => _currentSort;
+  String sortValue = "";
 
   final ProductService _productService = ProductService();
   final ReviewService _reviewService = ReviewService();
 
-  Map<String, String> _categoriesMap = {};
+  final Map<String, String> _categoriesMap = {};
   Map<String, String> get categoriesMap => _categoriesMap;
-  Map<String, String> _brandsMap = {};
+  final Map<String, String> _brandsMap = {};
   Map<String, String> get brandsMap => _brandsMap;
   
-  Map<String, List<ReviewModel>> _productReviews = {};
+  final Map<String, List<ReviewModel>> _productReviews = {};
   Map<String, List<ReviewModel>> get productReviews => _productReviews;
 
   Future<void> fetchProductsPaginated({int page = 1, bool refresh = false}) async {
@@ -119,9 +120,23 @@ class ProductProvider with ChangeNotifier {
   }
 
   void sortProducts(String sortOption) {
-    if (_currentSort == sortOption) return;
-    
     _currentSort = sortOption;
+    switch (sortOption) {
+    case 'Name: A to Z':
+      sortValue = 'name_asc';
+      break;
+    case 'Name: Z to A':
+      sortValue = 'name_desc';
+      break;
+    case 'Price: Low to High':
+      sortValue = 'price_asc';
+      break;
+    case 'Price: High to Low':
+      sortValue = 'price_desc';
+      break;
+    default:
+      sortValue = '';
+  }
     fetchProductsPaginated(refresh: true);
   }
 

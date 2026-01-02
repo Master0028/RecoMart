@@ -213,7 +213,7 @@ class _OrderCheckoutPageState extends State<OrderCheckoutPage> {
             productId: widget.productId,
             productName: widget.productName,
             quantity: widget.quantity,
-            unit_price: widget.unitPrice,
+            unitPrice: widget.unitPrice,
             discount: widget.discount,
             images: ImageModel(url: widget.imageUrl),
           ),

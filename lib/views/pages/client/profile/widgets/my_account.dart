@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/models/user.model.dart';
@@ -17,81 +18,85 @@ class MyAccountView extends StatelessWidget {
     final UserModel? user = userProvider.user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildPremiumHeader(context, user, isLoggedIn),
-            const SizedBox(height: 25),
-            _buildMenuSection(context, isLoggedIn),
-          ],
-        ),
+      backgroundColor: const Color(0xFFF8F9FD),
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 280,
+            collapsedHeight: 100,
+            pinned: true,
+            stretch: true,
+            backgroundColor: AppColors.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              stretchModes: const [StretchMode.zoomBackground],
+              background: _buildModernHeader(user, isLoggedIn),
+            ),
+          ),
+          
+          // Menu Section
+          SliverToBoxAdapter(
+            child: Transform.translate(
+              offset: const Offset(0, -30),
+              child: _buildMenuContent(context, isLoggedIn),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildPremiumHeader(BuildContext context, UserModel? user, bool isLoggedIn) {
-    const String bgUrl = "https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000";
-    final avatarUrl = user?.avatar;
-
+  Widget _buildModernHeader(UserModel? user, bool isLoggedIn) {
+    const String bgUrl = "https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=1000";
+    
     return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
+      fit: StackFit.expand,
       children: [
+        CachedNetworkImage(
+          imageUrl: bgUrl,
+          fit: BoxFit.cover,
+          errorWidget: (context, url, error) => Container(color: AppColors.primary),
+        ),
+        
         Container(
-          height: 240,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: NetworkImage(bgUrl),
-              fit: BoxFit.cover,
-            ),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.6)],
-              ),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.transparent,
+                Colors.black.withOpacity(0.8),
+              ],
             ),
           ),
         ),
-        Positioned(
-          top: 60,
+
+        Padding(
+          padding: const EdgeInsets.only(bottom: 60),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.grey[200],
-                  backgroundImage: (isLoggedIn && avatarUrl != null && avatarUrl.isNotEmpty)
-                      ? NetworkImage(avatarUrl)
-                      : null,
-                  child: (avatarUrl == null || avatarUrl.isEmpty)
-                      ? const Icon(CupertinoIcons.person_fill, size: 55, color: Colors.grey)
-                      : null,
-                ),
-              ),
-              const SizedBox(height: 12),
+              _buildAvatar(user?.avatar, isLoggedIn),
+              const SizedBox(height: 15),
               Text(
-                isLoggedIn ? (user?.fullName ?? 'Customer') : 'Welcome',
+                isLoggedIn ? (user?.fullName ?? 'Customer') : 'Welcome to Recomart',
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
-                  shadows: [Shadow(blurRadius: 10, color: Colors.black45, offset: Offset(0, 2))],
+                  letterSpacing: 0.5,
                 ),
               ),
-              if (isLoggedIn)
+              if (isLoggedIn) ...[
+                const SizedBox(height: 4),
                 Text(
                   user?.email ?? '',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.7),
+                    fontSize: 14,
+                  ),
                 ),
+              ],
             ],
           ),
         ),
@@ -99,12 +104,39 @@ class MyAccountView extends StatelessWidget {
     );
   }
 
-  Widget _buildMenuSection(BuildContext context, bool isLoggedIn) {
+  Widget _buildAvatar(String? avatarUrl, bool isLoggedIn) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
+      ),
+      child: CircleAvatar(
+        radius: 50,
+        backgroundColor: Colors.white24,
+        child: ClipOval(
+          child: (isLoggedIn && avatarUrl != null && avatarUrl.isNotEmpty)
+              ? CachedNetworkImage(
+                  imageUrl: avatarUrl,
+                  width: 100,
+                  height: 100,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => const CupertinoActivityIndicator(),
+                  errorWidget: (context, url, error) => const Icon(CupertinoIcons.person_fill, color: Colors.white, size: 50),
+                )
+              : const Icon(CupertinoIcons.person_fill, color: Colors.white, size: 50),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMenuContent(BuildContext context, bool isLoggedIn) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(25),
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -113,47 +145,50 @@ class MyAccountView extends StatelessWidget {
           )
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(25),
-        child: Column(
-          children: isLoggedIn 
+      child: Column(
+        children: isLoggedIn
             ? [
                 _buildMenuItem(
-                  icon: CupertinoIcons.person_crop_circle_fill,
+                  icon: CupertinoIcons.person_circle,
                   title: 'Personal Information',
-                  color: Colors.blue,
+                  subtitle: 'Update your profile and data',
+                  color: Colors.blueAccent,
                   onTap: () => context.push('/personal-information'),
                 ),
                 _buildMenuItem(
-                  icon: CupertinoIcons.bag_fill,
+                  icon: CupertinoIcons.cube_box,
                   title: 'My Orders',
-                  color: Colors.orange,
+                  subtitle: 'Track and manage your orders',
+                  color: Colors.orangeAccent,
                   onTap: () => context.push('/my-orders'),
                 ),
                 _buildMenuItem(
-                  icon: CupertinoIcons.lock_shield_fill,
-                  title: 'Change Password',
-                  color: Colors.green,
+                  icon: CupertinoIcons.shield_lefthalf_fill,
+                  title: 'Security',
+                  subtitle: 'Change password and settings',
+                  color: Colors.teal,
                   onTap: () => context.push('/change-password'),
                 ),
+                const SizedBox(height: 10),
                 _buildMenuItem(
-                  icon: CupertinoIcons.power,
+                  icon: CupertinoIcons.square_arrow_right,
                   title: 'Logout',
-                  color: Colors.red,
+                  subtitle: 'Sign out of your account',
+                  color: Colors.redAccent,
                   isLast: true,
                   onTap: () => _handleLogout(context),
                 ),
               ]
             : [
                 _buildMenuItem(
-                  icon: CupertinoIcons.arrow_right_square_fill,
+                  icon: CupertinoIcons.lock_open_fill,
                   title: 'Login Now',
+                  subtitle: 'Access your account features',
                   color: AppColors.primary,
                   isLast: true,
                   onTap: () => context.push('/login'),
                 ),
               ],
-        ),
       ),
     );
   }
@@ -161,6 +196,7 @@ class MyAccountView extends StatelessWidget {
   Widget _buildMenuItem({
     required IconData icon,
     required String title,
+    required String subtitle,
     required Color color,
     required VoidCallback onTap,
     bool isLast = false,
@@ -169,16 +205,32 @@ class MyAccountView extends StatelessWidget {
       children: [
         ListTile(
           onTap: onTap,
+          shape: RoundedRectangleApp(borderRadius: BorderRadius.circular(20)),
           leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-            child: Icon(icon, color: color, size: 22),
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: color, size: 24),
           ),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
-          trailing: const Icon(CupertinoIcons.chevron_right, size: 16, color: Colors.grey),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF1A1C1E)),
+          ),
+          subtitle: Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+          ),
+          trailing: const Icon(CupertinoIcons.chevron_forward, size: 18, color: Colors.grey),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         ),
-        if (!isLast) Divider(height: 1, thickness: 0.5, color: Colors.grey[200], indent: 70),
+        if (!isLast)
+          Padding(
+            padding: const EdgeInsets.only(left: 80),
+            child: Divider(height: 1, thickness: 0.6, color: Colors.grey.shade100),
+          ),
       ],
     );
   }
@@ -187,14 +239,17 @@ class MyAccountView extends StatelessWidget {
     final confirmed = await showCupertinoDialog<bool>(
       context: context,
       builder: (context) => CupertinoAlertDialog(
-        title: const Text('Confirm'),
-        content: const Text('Are you sure you want to logout?'),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to sign out?'),
         actions: [
-          CupertinoDialogAction(child: const Text('Cancel'), onPressed: () => Navigator.pop(context, false)),
           CupertinoDialogAction(
-            isDestructiveAction: true, 
+            child: const Text('Cancel'),
+            onPressed: () => Navigator.pop(context, false),
+          ),
+          CupertinoDialogAction(
+            isDestructiveAction: true,
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Logout'),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
@@ -202,8 +257,12 @@ class MyAccountView extends StatelessWidget {
 
     if (confirmed == true && context.mounted) {
       await context.read<UserProvider>().logout();
-      showCustomSnackBar(context, 'Goodbye!', type: SnackBarType.success);
+      showCustomSnackBar(context, 'Signed out successfully', type: SnackBarType.success);
       context.go('/login');
     }
   }
+}
+
+class RoundedRectangleApp extends RoundedRectangleBorder {
+  const RoundedRectangleApp({super.borderRadius});
 }

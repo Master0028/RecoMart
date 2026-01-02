@@ -9,7 +9,6 @@ class OrderProvider with ChangeNotifier {
 
   List<OrderModel> _orders = [];
   OrderModel? _selectedOrder;
-
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -18,22 +17,44 @@ class OrderProvider with ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  Future<void> fetchOrderHistory() async {
-    final user = _auth.currentUser;
-    if (user == null) {
-      _orders = [];
-      notifyListeners();
-      return;
-    }
+  Future<bool> placeOrder(OrderModel order) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
     try {
-      _isLoading = true;
+      await _orderService.createOrder(order);
+      if (order.userId != null) {
+        await fetchOrderHistory(order.userId!);
+      }
+      return true;
+    } catch (e) {
+      _errorMessage = "Order failed: ${e.toString()}";
+      debugPrint('[OrderProvider] placeOrder error: $e');
+      return false;
+    } finally {
+      _isLoading = false;
       notifyListeners();
+    }
+  }
 
-      _orders = await _orderService.fetchOrdersByUser(user.uid);
+  Future<void> fetchOrderHistory(String? userId) async {
+    if (userId == null || userId.isEmpty || userId == "null") {
+      debugPrint("--- [PROVIDER] Skipped: userId is not ready");
+      return; 
+    }
 
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      debugPrint("--- [PROVIDER] Fetching API for ID: $userId");
+      _orders = await _orderService.fetchOrdersByUser(userId);
+      debugPrint("--- [PROVIDER] Success: ${_orders.length} orders found");
     } catch (e) {
       _errorMessage = e.toString();
+      debugPrint("--- [PROVIDER] Parse Error: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -48,7 +69,7 @@ class OrderProvider with ChangeNotifier {
     try {
       _selectedOrder = await _orderService.fetchOrderById(orderId);
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = "Could not load order details: ${e.toString()}";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -62,10 +83,9 @@ class OrderProvider with ChangeNotifier {
 
     try {
       await _orderService.cancelOrder(orderId);
-
-      updateOrderStatus(orderId, 'CANCELLED');
+      _updateLocalStatus(orderId, 'CANCELLED');
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = "Could not cancel order: ${e.toString()}";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -79,10 +99,43 @@ class OrderProvider with ChangeNotifier {
 
     try {
       await _orderService.returnOrder(orderId);
+      _updateLocalStatus(orderId, 'RETURNED');
+    } catch (e) {
+      _errorMessage = "Could not request return: ${e.toString()}";
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 
-      updateOrderStatus(orderId, 'RETURNED');
+  void _updateLocalStatus(String orderId, String newStatus) {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+    }
+    if (_selectedOrder?.id == orderId) {
+      _selectedOrder = _selectedOrder!.copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+    }
+    notifyListeners();
+  }
+
+  Future<void> updateOrderStatus(String orderId, String newStatus) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _orderService.updateOrderStatus(orderId, newStatus);
+      _updateLocalStatus(orderId, newStatus);
     } catch (e) {
       _errorMessage = e.toString();
+      debugPrint('[OrderProvider] updateOrderStatus error: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -94,29 +147,9 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateOrderStatus(String orderId, String newStatus) async {
-    try {
-      await _orderService.updateOrderStatus(orderId, newStatus);
-      final index = _orders.indexWhere((o) => o.id == orderId);
-      if (index != -1) {
-        _orders[index] = _orders[index].copyWith(
-          status: newStatus,
-          updatedAt: DateTime.now(),
-        );
-      }
-
-      if (_selectedOrder?.id == orderId) {
-        _selectedOrder = _selectedOrder!.copyWith(
-          status: newStatus,
-          updatedAt: DateTime.now(),
-        );
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('[OrderProvider] updateOrderStatus error: $e');
-      rethrow;
-    }
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   Stream<List<OrderModel>> streamUserOrders(String userId) {

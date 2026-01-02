@@ -88,20 +88,19 @@ class _SimilarProductWidgetState extends State<SimilarProductWidget> {
                 "Recommended for you",
                 style: TextStyle(
                   fontSize: 18,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
         ),
-
         SizedBox(
-          height: 280,
+          height: 260,
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             scrollDirection: Axis.horizontal,
             itemCount: _similarItems.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 16),
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final item = _similarItems[index];
 
@@ -139,7 +138,7 @@ class _ModernProductCard extends StatelessWidget {
 
   String formatCurrency(num price) {
     final format = NumberFormat.currency(
-      locale: 'en_US',
+      locale: 'vi_VN',
       symbol: '',
       decimalDigits: 0,
     );
@@ -161,26 +160,25 @@ class _ModernProductCard extends StatelessWidget {
         );
       },
       child: Container(
-        width: 160,
-        margin: const EdgeInsets.only(bottom: 10),
+        width: 150,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // IMAGE (giữ Expanded)
             Expanded(
+              flex: 3,
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: Stack(
                   children: [
                     Image.network(
@@ -188,9 +186,8 @@ class _ModernProductCard extends StatelessWidget {
                       width: double.infinity,
                       height: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.image_not_supported_outlined,
-                        color: Colors.grey,
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(Icons.image_not_supported_outlined, color: Colors.grey),
                       ),
                     ),
                     if (data['discount'] != null && data['discount'] > 0)
@@ -217,45 +214,50 @@ class _ModernProductCard extends StatelessWidget {
                 ),
               ),
             ),
-
-            // DETAILS (❌ bỏ Expanded → hết overflow)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    data['name'] ?? 'Unknown Product',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      const Icon(Icons.star, size: 12, color: Colors.amber),
-                      const SizedBox(width: 4),
-                      Text(
-                        "${data['rating'] ?? '4.5'}",
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      data['name'] ?? 'Unknown Product',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        height: 1.2,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    formatCurrency(data['price'] ?? 0),
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w800,
                     ),
-                  ),
-                ],
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.star, size: 10, color: Colors.amber),
+                            const SizedBox(width: 2),
+                            Text(
+                              "${data['rating'] ?? '4.5'}",
+                              style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          formatCurrency(data['price'] ?? 0),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

@@ -19,6 +19,8 @@ import 'package:recomart/views/pages/client/profile/module/utilities.dart';
 import 'package:recomart/views/pages/client/profile/widgets/support.dart';
 import 'package:recomart/views/pages/client/search/search_screen.dart';
 import 'package:recomart/views/pages/client/search/search_camera.dart';
+import 'package:recomart/views/pages/client/splash/about_app.dart';
+import 'package:recomart/views/pages/client/splash/help-support.dart';
 import 'package:recomart/views/pages/client/welcome/welcome_view.dart';
 import 'package:recomart/views/pages/client/chat/widgets/chat_view.dart';
 import 'package:recomart/views/pages/client/cart/cart_view.dart';
@@ -197,8 +199,20 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
+      path: '/help-support',
+      builder: (context, state) => const HelpCenterScreen(),
+    ),
+    GoRoute(
+      path: '/about',
+      builder: (context, state) => const AboutRecoMartScreen(),
+    ),
+
+    GoRoute(
       path: '/history',
-      builder: (context, state) => const OrderHistoryPage(),
+      builder: (context, state) {
+        final String id = state.extra as String? ?? ''; 
+        return OrderHistoryPage(userId: id);
+      },
     ),
 
     GoRoute(

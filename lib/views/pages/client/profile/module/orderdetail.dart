@@ -237,7 +237,7 @@ class _OrderItemTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          Text(formatMoney(item.unit_price ?? 0),
+          Text(formatMoney(item.unitPrice ?? 0),
               style:
                   const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
         ],
