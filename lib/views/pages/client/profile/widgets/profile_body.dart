@@ -220,7 +220,10 @@ class _ProfileBodyState extends State<ProfileBody> {
 
         _buildSectionTitle("My Orders"),
         _menuTile(FeatherIcons.package, "Order History", "View all your past purchases", () {
-          context.push('/history');
+          context.push(
+            '/history',
+            extra: userId,
+          );
         }),
         _menuTile(FeatherIcons.truck, "Track Order", "Check status of current orders", () {
           context.push('/history?tab=shipping');

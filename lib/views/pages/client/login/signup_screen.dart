@@ -88,7 +88,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       setState(() => _loading = true);
 
-      await ApiService.register(email, pass, name, address);
+      await ApiService.register(
+        email: email,
+        password: pass,
+        name: name,
+        address: address,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(

@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/order.model.dart';
+import '../pattern/singleton.dart';
 import '../services/order.service.dart';
 
 class OrderProvider with ChangeNotifier {
   final OrderService _orderService = OrderService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   List<OrderModel> _orders = [];
   OrderModel? _selectedOrder;
@@ -21,21 +21,27 @@ class OrderProvider with ChangeNotifier {
   bool get hasFetched => _hasFetched;
   String? get errorMessage => _errorMessage;
 
+  String _requireUserId() {
+    final uid = UserSession.instance.userId;
+    if (uid == null || uid.isEmpty) {
+      throw Exception("User not logged in");
+    }
+    return uid;
+  }
+
   Future<bool> placeOrder(OrderModel order) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final user = _auth.currentUser;
-      if (user == null) {
-        throw Exception("User not logged in");
-      }
+      final uid = _requireUserId();
 
-      await _orderService.createOrder(order);
+      await _orderService.createOrder(
+        order.copyWith(userId: uid),
+      );
 
-      await fetchOrderHistory(user.uid, force: true);
-
+      await fetchOrderHistory(uid, force: true);
       return true;
     } catch (e) {
       _errorMessage = "Order failed: $e";
@@ -47,11 +53,12 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+
   Future<void> fetchOrderHistory(
-    String? userId, {
-    bool force = false,
-  }) async {
-    final uid = userId ?? _auth.currentUser?.uid;
+      String? userId, {
+        bool force = false,
+      }) async {
+    final uid = userId;
 
     if (uid == null || uid.isEmpty) {
       debugPrint("--- [PROVIDER] Skipped: userId is not ready");
@@ -68,13 +75,10 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint("--- [PROVIDER] Fetching orders for userId: $uid");
       _orders = await _orderService.fetchOrdersByUser(uid);
       _hasFetched = true;
-      debugPrint("--- [PROVIDER] Success: ${_orders.length} orders");
     } catch (e) {
       _errorMessage = e.toString();
-      debugPrint("--- [PROVIDER] Fetch Error: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -181,7 +185,7 @@ class OrderProvider with ChangeNotifier {
   }
 
   Stream<List<OrderModel>> streamUserOrders() {
-    final uid = _auth.currentUser?.uid;
+    final uid = UserSession.instance.userId;
     if (uid == null) return const Stream.empty();
     return _orderService.streamUserOrders(uid);
   }

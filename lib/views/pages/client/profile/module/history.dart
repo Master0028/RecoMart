@@ -11,6 +11,8 @@ import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/models/order.model.dart';
 import 'package:recomart/provider/order_provider.dart';
 
+import '../../../../../pattern/singleton.dart';
+
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key, required this.userId});
   final String userId;
@@ -109,13 +111,13 @@ class _OrderCard extends StatelessWidget {
 
   Map<String, dynamic> _getStatusVisuals(String? status) {
     switch (status) {
-      case 'delivered':
+      case 'DELIVERED':
         return {'color': Colors.green, 'icon': FeatherIcons.checkCircle, 'label': 'Delivered'};
-      case 'shipping':
+      case 'SHIPPING':
         return {'color': AppColors.primary, 'icon': FeatherIcons.truck, 'label': 'Shipping'};
-      case 'pending':
+      case 'PENDING':
         return {'color': Colors.orange.shade700, 'icon': FeatherIcons.clock, 'label': 'Pending'};
-      case 'cancelled':
+      case 'CANCELLED':
         return {'color': Colors.red.shade700, 'icon': FeatherIcons.xCircle, 'label': 'Cancelled'};
       default:
         return {'color': Colors.grey, 'icon': FeatherIcons.helpCircle, 'label': 'Unknown'};

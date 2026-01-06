@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/services/api_service.dart';
 
+import '../../../../pattern/singleton.dart';
+
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0);
 const Color cancelTextColor = Color(0xFF616161);
@@ -80,13 +82,15 @@ class _LoginViewState extends State<LoginView> {
       if (!mounted) return;
 
       await context.read<UserProvider>().loginSuccess(
-        data['user_id'].toString(), 
+        data['user_id'].toString(),
         data['name'], 
         data['access_token']
       );
 
       debugPrint("Login success: ${data['name']}");
-      
+      UserSession.instance.setUser(data['user_id']);
+
+
       if (email.contains('admin')) {
         context.go('/admin');
       } else {
