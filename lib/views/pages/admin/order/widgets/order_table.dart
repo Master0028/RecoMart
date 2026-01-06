@@ -313,7 +313,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
     final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
     final status = order['status']?.toString().toUpperCase() ?? 'PENDING';
-    final customerName = order['customerName'] ?? 'Guest';  
+    final customerName = order['userName'] ?? 'Guest';  
     
     // Currency format for VND, kept local for display accuracy
     final currencyFormatter = NumberFormat('#,##0', 'en_US'); 

@@ -44,9 +44,10 @@ class ProductProvider with ChangeNotifier {
   Map<String, List<ReviewModel>> get productReviews => _productReviews;
 
   Future<void> fetchProductsPaginated({int page = 1, bool refresh = false}) async {
-    if (refresh) {
+    // SỬA TẠI ĐÂY: Nếu là trang 1 thì coi như là refresh luôn để làm sạch data
+    if (page == 1 || refresh) {
       _currentPage = 1;
-      _products = [];
+      _products = []; // Xóa sạch list cũ để tránh trùng
       _hasMore = true;
     } else {
       _currentPage = page;
@@ -62,7 +63,6 @@ class ProductProvider with ChangeNotifier {
         final filteredList = await _productService.getProductsByCategory(
              _categoryId ?? '' 
         );
-        
         _products = filteredList;
         _hasMore = false;
       } else {
@@ -71,8 +71,7 @@ class ProductProvider with ChangeNotifier {
           limit: limit,
           sort: apiSortParam,
         );
-
-        if (refresh) {
+        if (_currentPage == 1) {
           _products = newProducts;
         } else {
           _products.addAll(newProducts);

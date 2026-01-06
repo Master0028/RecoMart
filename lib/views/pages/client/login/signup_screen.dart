@@ -65,6 +65,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     final email = _emailController.text.trim();
     final pass = _passwordController.text.trim();
     final confirmPass = _confirmedPasswordController.text.trim();
+    final address = _addressController.text.trim();
 
     if (name.isEmpty) {
       _focusAndShowError(_nameFocus, 'Please enter your full name');
@@ -87,14 +88,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
     try {
       setState(() => _loading = true);
 
-      await ApiService.register(email, pass, name);
+      await ApiService.register(email, pass, name, address);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Sign up successful! Redirecting to Login...'),
+          content: Text('Sign up successful! Redirecting to Login!'),
           backgroundColor: Colors.green,
         ));
-        
         context.go('/login');
       }
     } catch (e) {

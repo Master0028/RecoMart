@@ -7,9 +7,6 @@ import 'package:recomart/utils/responsive.dart';
 import '../../../../../views/pages/admin/product/widgets/product_form.dart';
 import 'add_product_btn.dart';
 
-const int FE_TOTAL_PAGE = 5;
-const int FE_LIMIT = 10;
-
 class ProductTable extends StatefulWidget {
   const ProductTable({super.key});
 
@@ -17,7 +14,7 @@ class ProductTable extends StatefulWidget {
   State<ProductTable> createState() => _ProductTableState();
 }
 
-class _ProductTableState extends State<ProductTable> {
+class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
 
@@ -25,6 +22,9 @@ class _ProductTableState extends State<ProductTable> {
   Map<String, String> _categoryMap = {};
   int _page = 1;
   bool _hasNextPage = true;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -58,9 +58,6 @@ class _ProductTableState extends State<ProductTable> {
     try {
       final provider = Provider.of<ProductProvider>(context, listen: false);
       await provider.fetchBrands();
-      if (!mounted) return;
-      setState(() {
-      });
     } catch (e) {
       debugPrint('Error loading brands: $e');
     }
@@ -75,7 +72,7 @@ class _ProductTableState extends State<ProductTable> {
 
     setState(() {
       _page = page;
-      _productsData = provider.products;
+      _productsData = List.from(provider.products);
       _hasNextPage = provider.hasMore; 
     });
   }
@@ -90,7 +87,7 @@ class _ProductTableState extends State<ProductTable> {
 
       setState(() {
         _productsData = text.isEmpty
-            ? provider.products
+            ? List.from(provider.products)
             : provider.products
                 .where((p) => p.name.toLowerCase().contains(text))
                 .toList();
@@ -123,19 +120,15 @@ class _ProductTableState extends State<ProductTable> {
             buttonLabel: 'Save',
             initialProduct: product.toJson(),
             onSubmit: (updatedData) async {
-              debugPrint('Product updated: $updatedData'); 
-
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
                   Navigator.of(dialogContext).pop();
                 }
               });
 
-              if (mounted) await _fetchFromFirebase();
+              if (mounted) await _fetchFromFirebase(page: 1);
             },
             onDelete: () async {
-              debugPrint('Product deleted: ${product.name}'); 
-
               WidgetsBinding.instance.addPostFrameCallback((_) async {
                 if (Navigator.of(dialogContext).canPop()) {
                   Navigator.of(dialogContext).pop();
@@ -145,7 +138,7 @@ class _ProductTableState extends State<ProductTable> {
               await Provider.of<ProductProvider>(context, listen: false)
                   .deleteProduct(product.id);
 
-              if (mounted) await _fetchFromFirebase();
+              if (mounted) await _fetchFromFirebase(page: 1);
             },
           ),
         );
@@ -300,6 +293,7 @@ class _ProductTableState extends State<ProductTable> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final sortedProducts = _sortProducts(filteredProducts);
 
     return LayoutBuilder(
@@ -359,7 +353,7 @@ class _ProductTableState extends State<ProductTable> {
                       ),
                     ),
               const SizedBox(width: 12),
-              AddProductButton(onProductAdded: _fetchFromFirebase),
+              AddProductButton(onProductAdded: () => _fetchFromFirebase(page: 1)),
             ],
           );
         }
@@ -400,9 +394,7 @@ class _ProductTableState extends State<ProductTable> {
                   ],
                 ),
               ],
-
               const SizedBox(height: 16),
-              
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: SizedBox(

@@ -43,47 +43,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.dispose();
   }
 
-  /// ================= AUTO RELOAD (CONFIRM) =================
+  /// ================= AUTO RELOAD =================
   void _startAutoReload() {
+    _autoReloadTimer?.cancel(); 
+
     _autoReloadTimer = Timer.periodic(
-      const Duration(seconds: 15),
-      (_) => _showReloadDialog(),
+      const Duration(seconds: 60),
+      (timer) {
+        if (mounted) {
+          _reloadDashboard();
+        }
+      },
     );
   }
 
-  Future<void> _showReloadDialog() async {
-    if (!mounted) return;
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Reload dashboard?"),
-        content: const Text(
-          "Dashboard will reload with new random data.\nDo you want to continue?",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Reload"),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) _reloadDashboard();
-  }
-
-  /// ================= RELOAD =================
   void _reloadDashboard() {
     if (!mounted) return;
     setState(() {
       _reloadSeed = DateTime.now().millisecondsSinceEpoch;
       _generateAllRandom();
     });
+    
+    print("Dashboard reloaded at: ${DateTime.now()}");
   }
 
   void _generateAllRandom() {

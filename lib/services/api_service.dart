@@ -22,7 +22,13 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> register(String email, String password, String name) async {
+  static Future<Map<String, dynamic>> register({
+    required String email, 
+    required String password, 
+    required String name, 
+    required String address,
+    String phone = "",
+  }) async {
     final url = Uri.parse('$baseUrl/register');
 
     try {
@@ -33,20 +39,24 @@ class ApiService {
           "ngrok-skip-browser-warning": "true",
         },
         body: jsonEncode({
-          "email": email,
+          "email": email.trim(),
           "password": password,
-          "name": name,
+          "name": name.trim(),
+          "fullName": name.trim(),
+          "address": address.trim(),
+          "phone": phone.trim(),
         }),
       );
 
       final responseData = jsonDecode(response.body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return responseData;
       } else {
         throw Exception(responseData['detail'] ?? "Registration failed");
       }
     } catch (e) {
+      print("Register Error: $e");
       throw Exception(e.toString());
     }
   }
