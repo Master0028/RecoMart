@@ -248,7 +248,7 @@ final GoRouter appRouter = GoRouter(
     },
   ),
 
-    GoRoute(
+  GoRoute(
       path: '/admin',
       builder: (context, state) => const AdminScreen(),
     ),

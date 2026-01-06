@@ -1,10 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:recomart/models/interaction_model.dart';
+import 'package:recomart/services/interaction_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.model.dart';
 import '../services/api_service.dart';
 
 class UserProvider with ChangeNotifier {
+  final InteractionService _interactionService = InteractionService();
   String? _userId;
   String? _userName;
   String? _accessToken;
@@ -223,5 +226,21 @@ class UserProvider with ChangeNotifier {
       _loading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> trackInteraction({
+    required String productId,
+    required InteractionType type,
+    int? duration,
+  }) async {
+    final interaction = InteractionModel(
+      userId: userId,
+      productId: productId,
+      type: type,
+      duration: duration ?? 0,
+      createdAt: DateTime.now(),
+    );
+
+    await _interactionService.logInteraction(interaction);
   }
 }

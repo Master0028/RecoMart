@@ -61,7 +61,7 @@ class _CustomerFormState extends State<CustomerForm> {
     try {
       final bytes = await picked.readAsBytes();
       final uri = Uri.parse("https://api.cloudinary.com/v1_1/dqiclelb9/image/upload");
-      final uploadPreset = "dacntt";
+      const uploadPreset = "dacntt";
 
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = uploadPreset
@@ -123,13 +123,11 @@ class _CustomerFormState extends State<CustomerForm> {
     }
   }
 
-  /// Save changes
   Future<void> _saveChanges() async {
     setState(() => isProcessing = true);
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-      // Prioritize new image if available
       final String finalAvatar = imageUrl ?? uploadedImageUrl ?? '';
 
       final updatedUser = widget.customer.copyWith(

@@ -46,17 +46,13 @@ class _CustomerTableState extends State<CustomerTable> {
     var customers = widget.customers;
     if (_searchController.text.isNotEmpty) {
       customers = customers.where((customer) {
-        return customer.fullName != null &&
-            customer.fullName!
+        return customer.fullName!
                 .toLowerCase()
                 .contains(_searchController.text.toLowerCase());
       }).toList();
     }
     return customers; 
   }
-
-  Color _getStatusColor(bool isActive) =>
-      isActive ? Colors.green : Colors.red;
 
   List<Map<String, dynamic>> _getVisibleFields(UserModel? customer) {
     if (Responsive.isMobile(context)) {

@@ -10,6 +10,7 @@ import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/config/font.dart';
 import 'package:recomart/helpers/formatMoney.dart';
+import 'package:recomart/models/interaction_model.dart';
 import 'package:recomart/models/product.model.dart';
 import 'package:recomart/services/product.service.dart';
 import 'package:recomart/utils/responsive.dart' as utils;
@@ -119,6 +120,7 @@ class ProductDetailsView extends StatefulWidget {
 class _ProductDetailsViewState extends State<ProductDetailsView> {
   final ProductService _productService = ProductService();
   final ReviewService _reviewService = ReviewService();
+  late DateTime _viewStart;
   
   ProductModel? _product;
   List<ProductModel> _relatedProducts = [];
@@ -133,6 +135,7 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
   @override
   void initState() {
     super.initState();
+    _viewStart = DateTime.now();
     _fetchProductData();
   }
 
@@ -190,6 +193,11 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
       await cartProvider.addToCart(
         userId: userProvider.userId,
         item: newItem,
+      );
+
+      context.read<UserProvider>().trackInteraction(
+        productId: _product!.id,
+        type: InteractionType.addToCart,
       );
 
       showCustomSnackBar(
@@ -459,6 +467,10 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
   }
 
   void _navigateToCheckout(ProductModel product) {
+    context.read<UserProvider>().trackInteraction(
+      productId: product.id,
+      type: InteractionType.buyNow,
+    );
     context.push('/checkout', extra: {
       'productId': product.id,
       'productName': product.name,
@@ -625,7 +637,14 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
 
   Widget _buildProductCard(ProductModel item) {
     return GestureDetector(
-      onTap: () => context.push('/product-details/${item.id}/${item.categoryId}'),
+      onTap: () {
+        context.read<UserProvider>().trackInteraction(
+          productId: item.id,
+          type: InteractionType.click,
+        );
+
+        context.push('/product-details/${item.id}/${item.categoryId}');
+      },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white, 
@@ -661,5 +680,21 @@ class _ProductDetailsViewState extends State<ProductDetailsView> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    final duration =
+        DateTime.now().difference(_viewStart).inSeconds;
+
+    if (duration >= 10 && _product != null) {
+      context.read<UserProvider>().trackInteraction(
+        productId: _product!.id,
+        type: InteractionType.longView,
+        duration: duration,
+      );
+    }
+
+    super.dispose();
   }
 }

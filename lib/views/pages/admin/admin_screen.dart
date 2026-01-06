@@ -146,7 +146,7 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
             onPressed: () {
               Navigator.pop(context);
-              context.push('/login');
+              context.go('/login');
             },
             child: const Text("Logout"),
           ),

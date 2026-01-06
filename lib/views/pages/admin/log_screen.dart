@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:recomart/services/api_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LogEntry {
   final DateTime timestamp;
@@ -35,43 +36,44 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
   Future<void> _fetchLogs() async {
     setState(() => _isLoading = true);
+
     try {
-      final rawLogs = await ApiService.getSystemLogs();
-      
-      final parsedLogs = rawLogs.map((log) {
-        DateTime time = DateTime.now();
-        if (log['time'] != null) {
-          try { time = DateTime.parse(log['time']); } catch (_) {}
-        }
-        
-        String action = log['action'] ?? 'INFO';
+      final snapshot = await FirebaseFirestore.instance
+          .collection('interactions')
+          .orderBy('createdAt', descending: true)
+          .limit(200)
+          .get();
+
+      final logs = snapshot.docs.map((doc) {
+        final data = doc.data();
+
+        final type = data['type'] ?? 'info';
         String level = 'INFO';
-        
-        if (action.toLowerCase().contains('error')) {
-          level = 'ERROR';
-        // ignore: curly_braces_in_flow_control_structures
-        } else if (action.toLowerCase().contains('warn')) level = 'WARN';
-        // ignore: curly_braces_in_flow_control_structures
-        else if (action.toLowerCase().contains('debug')) level = 'DEBUG';
+
+        if (type == 'purchase') level = 'INFO';
+        if (type == 'addToCart') level = 'DEBUG';
+        if (type == 'click') level = 'DEBUG';
+        if (type == 'longView') level = 'INFO';
 
         return LogEntry(
-          time,
+          (data['createdAt'] as Timestamp).toDate(),
           level,
-          action,
-          log['user'] ?? 'System',
+          'User ${data['userId']} ${type} product ${data['productId']}'
+              '${data['duration'] != null ? ' (${data['duration']}s)' : ''}',
+          data['userId'] ?? 'Guest',
         );
       }).toList();
 
       setState(() {
-        _allLogs = parsedLogs;
-        _isLoading = false;
+        _allLogs = logs;
         _filterLogs(_selectedLevel);
+        _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load logs: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Failed to load logs: $e')),
         );
       }
     }
