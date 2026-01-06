@@ -8,7 +8,6 @@ import 'package:recomart/views/pages/admin/dashboard/dashboard_screen.dart';
 import 'package:recomart/views/pages/admin/customer/customer_screen.dart';
 import 'package:recomart/views/pages/admin/log_screen.dart'; 
 import 'package:recomart/views/pages/admin/order/order_screen.dart';
-import 'package:recomart/views/pages/admin/invoice/invoice_screen.dart';
 import 'package:recomart/views/pages/admin/product/product_screen.dart';
 import 'package:recomart/views/pages/admin/coupon/coupon_screen.dart';
 import 'package:recomart/views/pages/admin/support/support_screen.dart';
@@ -32,7 +31,6 @@ class AdminSidebar extends StatelessWidget {
       "Category": FeatherIcons.list,
       "Brand": FeatherIcons.tag,
       "Order": FeatherIcons.shoppingBag,
-      "Invoice": FeatherIcons.fileText,
       "Customer": FeatherIcons.users,
       "Coupon": FeatherIcons.gift,
       "Support": FeatherIcons.messageCircle,
@@ -184,9 +182,6 @@ class _AdminScreenState extends State<AdminScreen> {
           break;
         case "Order":
           _currentScreen = const OrderManagementScreen();
-          break;
-        case "Invoice":
-          _currentScreen = const InvoiceManagementScreen();
           break;
         case "Coupon":
           _currentScreen = const CouponManagementScreen();

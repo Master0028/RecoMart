@@ -223,13 +223,27 @@ class _DesktopSearchAndCart extends StatelessWidget {
         Consumer<CartProvider>(
           builder: (context, cartProvider, child) {
             final int count = cartProvider.totalItems;
+
             return Badge(
               label: Text('$count'),
               isLabelVisible: count > 0,
-              child: AddToCartIcon(
-                key: cartKey,
-                icon: const Icon(Icons.shopping_cart_outlined),
-                badgeOptions: const BadgeOptions(active: false),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(30),
+                onTap: () {
+                  context.push('/cart');
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: AddToCartIcon(
+                    key: cartKey,
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      size: 26,
+                      color: Colors.black87,
+                    ),
+                    badgeOptions: const BadgeOptions(active: false),
+                  ),
+                ),
               ),
             );
           },

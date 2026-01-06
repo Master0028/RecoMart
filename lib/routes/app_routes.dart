@@ -235,8 +235,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
     path: '/history',
     builder: (context, state) {
-      final userId = state.extra as String;
-      return OrderListScreen(userId: userId);
+      //final userId = state.extra as String;
+      return const OrderListScreen();
     },
   ),
 

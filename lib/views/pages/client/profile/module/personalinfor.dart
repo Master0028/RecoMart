@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
 import 'package:recomart/config/color.dart';
@@ -56,7 +58,7 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
-      imageQuality: 50, // Nén ảnh để upload nhanh hơn
+      imageQuality: 50,
     );
 
     if (image != null) {
@@ -84,28 +86,34 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
 
     try {
       final userProvider = Provider.of<UserProvider>(context, listen: false);
-      final userId = userProvider.userId;
+      final user = userProvider.user;
+      if (user == null) throw Exception("User not logged in");
 
-      // 1. Nếu có chọn file mới, upload ảnh đại diện trước
+      String? avatarUrl = user.avatar;
       if (_selectedFile != null) {
         var request = http.MultipartRequest(
           'POST',
-          Uri.parse('${ApiService.baseUrl}/api/upload-avatar/$userId'),
+          Uri.parse('${ApiService.baseUrl}/api/upload-avatar/${user.id}'),
         );
         request.files.add(await http.MultipartFile.fromPath('file', _selectedFile!.path));
-        
         final response = await request.send();
-        if (response.statusCode != 200) {
-          throw Exception("Failed to upload avatar");
-        }
+        if (response.statusCode != 200) throw Exception("Failed to upload avatar");
+
+        final respStr = await response.stream.bytesToString();
+        final respJson = jsonDecode(respStr);
+        avatarUrl = respJson['url'] ?? avatarUrl;
       }
 
-      // 2. Cập nhật thông tin text qua Provider/API
-      await userProvider.updateUserInfo(
-        name: fullName,
+      final updatedUser = user.copyWith(
+        fullName: fullName,
         phone: _phoneNumberController.text.trim(),
         address: _addressController.text.trim(),
+        avatar: avatarUrl,
       );
+
+      await ApiService.updateUser(updatedUser);
+
+      userProvider.setUser(updatedUser);
 
       if (!mounted) return;
       showCustomSnackBar(context, 'Information updated successfully', type: SnackBarType.success);
@@ -162,8 +170,8 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                               backgroundImage: _selectedFile != null
                                   ? FileImage(_selectedFile!)
                                   : (avatarUrl != null && avatarUrl.isNotEmpty
-                                      ? NetworkImage(avatarUrl.startsWith('http') 
-                                          ? avatarUrl 
+                                      ? NetworkImage(avatarUrl.startsWith('http')
+                                          ? avatarUrl
                                           : '${ApiService.baseUrl}$avatarUrl')
                                       : const AssetImage('assets/logo/logo.png')) as ImageProvider,
                             ),

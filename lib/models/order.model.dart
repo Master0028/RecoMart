@@ -73,23 +73,17 @@ class OrderModel {
     );
   }
 
-  Map<String, dynamic> toJson() => {
-    'userId': userId,
-    'userName': userName,
-    'email': email,
-    'address': address,
-    'totalAmount': totalAmount,
-    'items': items?.map((e) => e.toJson()).toList(),
-    'discountAmount': discountAmount,
-    'loyaltyPointsUsed': loyaltyPointsUsed,
-    'loyaltyPointsEarned': loyaltyPointsEarned,
-    'status': status,
-    'paymentMethod': paymentMethod,
-    'paymentStatus': paymentStatus,
-    'orderTracking': orderTracking?.map((e) => e.toJson()).toList(),
-    'createdAt': createdAt?.toIso8601String(),
-    'updatedAt': updatedAt?.toIso8601String(),
-  };
+  Map<String, dynamic> toJson() {
+    return {
+      'userId': userId,
+      'userName': userName,
+      'email': email,
+      'address': address,
+      'paymentMethod': paymentMethod,
+      'loyaltyPointsUsed': loyaltyPointsUsed ?? 0,
+      'items': items!.map((e) => e.toJson()).toList(),
+    };
+  }
 
   factory OrderModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;

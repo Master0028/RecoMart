@@ -24,7 +24,6 @@ class CustomerTable extends StatefulWidget {
 class _CustomerTableState extends State<CustomerTable> {
   final TextEditingController _searchController = TextEditingController();
   final int _itemsPerPage = 10;
-  // int _currentPage = 1; // (Tạm chưa dùng phân trang để đơn giản hóa)
 
   static const List<Map<String, dynamic>> ALL_FIELDS = [
     {'key': 'id', 'label': 'ID'},
@@ -37,11 +36,10 @@ class _CustomerTableState extends State<CustomerTable> {
     {'key': 'actions', 'label': 'Actions'},
   ];
 
-  // --- 1. FIX LỖI RANGE ERROR (MÀN HÌNH ĐỎ) ---
   String _getShortId(String? id) {
     if (id == null || id.isEmpty) return 'N/A';
-    if (id.length <= 5) return id; // Nếu ID ngắn quá thì trả về nguyên gốc
-    return id.substring(0, 5); // Chỉ cắt khi ID đủ dài
+    if (id.length <= 5) return id;
+    return id.substring(0, 5);
   }
 
   List<UserModel> get filteredCustomers {
@@ -54,7 +52,6 @@ class _CustomerTableState extends State<CustomerTable> {
                 .contains(_searchController.text.toLowerCase());
       }).toList();
     }
-    // Tạm thời return all để tránh lỗi logic phân trang khi list rỗng
     return customers; 
   }
 
@@ -75,18 +72,16 @@ class _CustomerTableState extends State<CustomerTable> {
     final newStatus = !(customer.isActive ?? false);
 
     try {
-      if (customer.id != null) {
-        await userProvider.toggleUserStatus(customer.id!, newStatus);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(newStatus ? 'Account activated' : 'Account banned'),
-              backgroundColor: newStatus ? Colors.green : Colors.red,
-            ),
-          );
-        }
+      await userProvider.toggleUserStatus(customer.id!, newStatus);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(newStatus ? 'Account activated' : 'Account banned'),
+            backgroundColor: newStatus ? Colors.green : Colors.red,
+          ),
+        );
       }
-    } catch (e) {
+        } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -101,7 +96,7 @@ class _CustomerTableState extends State<CustomerTable> {
       builder: (context) {
         return AlertDialog(
           backgroundColor: Colors.white,
-          title: Text(customer.fullName ?? 'Edit User'),
+          title: Text(customer.fullName),
           content: CustomerForm(customer: customer, canEditStatus: true),
         );
       },
@@ -186,7 +181,7 @@ class _CustomerTableState extends State<CustomerTable> {
       else {
         String value = '';
         switch (key) {
-          case 'id': value = _getShortId(customer.id); break; // Sử dụng hàm an toàn
+          case 'id': value = _getShortId(customer.id); break;
           case 'phone': value = customer.phone ?? '-'; break;
           case 'email': value = customer.email ?? '-'; break;
           case 'loyaltyPoints': value = '${customer.loyaltyPoints ?? 0}'; break;
@@ -224,7 +219,7 @@ class _CustomerTableState extends State<CustomerTable> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(customer.fullName ?? 'Unknown', 
+              Text(customer.fullName, 
                   style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   overflow: TextOverflow.ellipsis),
               Text("ID: ${_getShortId(customer.id)}", // Sử dụng hàm an toàn
@@ -245,14 +240,12 @@ class _CustomerTableState extends State<CustomerTable> {
       final Map<int, TableColumnWidth> colWidths = {};
       final double totalWidth = constraints.maxWidth;
       
-      // Cấu hình độ rộng cột
       if (isMobile) {
         colWidths[0] = FixedColumnWidth(totalWidth * 0.15); 
         colWidths[1] = FixedColumnWidth(totalWidth * 0.40); 
         colWidths[2] = FixedColumnWidth(totalWidth * 0.20); 
         colWidths[3] = FixedColumnWidth(totalWidth * 0.25); 
       } else {
-        // Desktop: Tự động chia tỷ lệ
         for(int i=0; i<headerFields.length; i++) {
            if (headerFields[i]['key'] == 'fullName') {
              colWidths[i] = const FlexColumnWidth(2);
@@ -277,10 +270,9 @@ class _CustomerTableState extends State<CustomerTable> {
           ],
         ),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // 2. FIX LỖI UNBOUNDED HEIGHT
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header: Title + Search
             Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -306,9 +298,6 @@ class _CustomerTableState extends State<CustomerTable> {
               ),
             ),
             
-            // 3. FIX LỖI RENDERFLEX: 
-            // Xóa Expanded bao quanh SingleChildScrollView vì widget cha bên ngoài đã cuộn rồi.
-            // Hoặc dùng SingleChildScrollView trực tiếp nếu cần cuộn ngang.
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20),

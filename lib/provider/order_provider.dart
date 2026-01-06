@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/order.model.dart';
 import '../services/order.service.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class OrderProvider with ChangeNotifier {
   final OrderService _orderService = OrderService();
@@ -9,12 +10,15 @@ class OrderProvider with ChangeNotifier {
 
   List<OrderModel> _orders = [];
   OrderModel? _selectedOrder;
+
   bool _isLoading = false;
+  bool _hasFetched = false;
   String? _errorMessage;
 
   List<OrderModel> get orders => _orders;
   OrderModel? get selectedOrder => _selectedOrder;
   bool get isLoading => _isLoading;
+  bool get hasFetched => _hasFetched;
   String? get errorMessage => _errorMessage;
 
   Future<bool> placeOrder(OrderModel order) async {
@@ -23,13 +27,18 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _orderService.createOrder(order);
-      if (order.userId != null) {
-        await fetchOrderHistory(order.userId!);
+      final user = _auth.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in");
       }
+
+      await _orderService.createOrder(order);
+
+      await fetchOrderHistory(user.uid, force: true);
+
       return true;
     } catch (e) {
-      _errorMessage = "Order failed: ${e.toString()}";
+      _errorMessage = "Order failed: $e";
       debugPrint('[OrderProvider] placeOrder error: $e');
       return false;
     } finally {
@@ -38,10 +47,20 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
-  Future<void> fetchOrderHistory(String? userId) async {
-    if (userId == null || userId.isEmpty || userId == "null") {
+  Future<void> fetchOrderHistory(
+    String? userId, {
+    bool force = false,
+  }) async {
+    final uid = userId ?? _auth.currentUser?.uid;
+
+    if (uid == null || uid.isEmpty) {
       debugPrint("--- [PROVIDER] Skipped: userId is not ready");
-      return; 
+      return;
+    }
+
+    if (_hasFetched && !force) {
+      debugPrint("--- [PROVIDER] Skipped: already fetched");
+      return;
     }
 
     _isLoading = true;
@@ -49,12 +68,13 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      debugPrint("--- [PROVIDER] Fetching API for ID: $userId");
-      _orders = await _orderService.fetchOrdersByUser(userId);
-      debugPrint("--- [PROVIDER] Success: ${_orders.length} orders found");
+      debugPrint("--- [PROVIDER] Fetching orders for userId: $uid");
+      _orders = await _orderService.fetchOrdersByUser(uid);
+      _hasFetched = true;
+      debugPrint("--- [PROVIDER] Success: ${_orders.length} orders");
     } catch (e) {
       _errorMessage = e.toString();
-      debugPrint("--- [PROVIDER] Parse Error: $e");
+      debugPrint("--- [PROVIDER] Fetch Error: $e");
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -69,7 +89,7 @@ class OrderProvider with ChangeNotifier {
     try {
       _selectedOrder = await _orderService.fetchOrderById(orderId);
     } catch (e) {
-      _errorMessage = "Could not load order details: ${e.toString()}";
+      _errorMessage = "Could not load order details: $e";
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -77,52 +97,15 @@ class OrderProvider with ChangeNotifier {
   }
 
   Future<void> cancelOrder(String orderId) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      await _orderService.cancelOrder(orderId);
-      _updateLocalStatus(orderId, 'CANCELLED');
-    } catch (e) {
-      _errorMessage = "Could not cancel order: ${e.toString()}";
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
+    await _updateOrderWithStatus(orderId, 'CANCELLED', () {
+      return _orderService.cancelOrder(orderId);
+    });
   }
 
   Future<void> returnOrder(String orderId) async {
-    _isLoading = true;
-    _errorMessage = null;
-    notifyListeners();
-
-    try {
-      await _orderService.returnOrder(orderId);
-      _updateLocalStatus(orderId, 'RETURNED');
-    } catch (e) {
-      _errorMessage = "Could not request return: ${e.toString()}";
-    } finally {
-      _isLoading = false;
-      notifyListeners();
-    }
-  }
-
-  void _updateLocalStatus(String orderId, String newStatus) {
-    final index = _orders.indexWhere((o) => o.id == orderId);
-    if (index != -1) {
-      _orders[index] = _orders[index].copyWith(
-        status: newStatus,
-        updatedAt: DateTime.now(),
-      );
-    }
-    if (_selectedOrder?.id == orderId) {
-      _selectedOrder = _selectedOrder!.copyWith(
-        status: newStatus,
-        updatedAt: DateTime.now(),
-      );
-    }
-    notifyListeners();
+    await _updateOrderWithStatus(orderId, 'RETURNED', () {
+      return _orderService.returnOrder(orderId);
+    });
   }
 
   Future<void> updateOrderStatus(String orderId, String newStatus) async {
@@ -142,6 +125,43 @@ class OrderProvider with ChangeNotifier {
     }
   }
 
+  Future<void> _updateOrderWithStatus(
+    String orderId,
+    String status,
+    Future<void> Function() action,
+  ) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await action();
+      _updateLocalStatus(orderId, status);
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void _updateLocalStatus(String orderId, String newStatus) {
+    final index = _orders.indexWhere((o) => o.id == orderId);
+    if (index != -1) {
+      _orders[index] = _orders[index].copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+    }
+
+    if (_selectedOrder?.id == orderId) {
+      _selectedOrder = _selectedOrder!.copyWith(
+        status: newStatus,
+        updatedAt: DateTime.now(),
+      );
+    }
+  }
+
   void clearSelectedOrder() {
     _selectedOrder = null;
     notifyListeners();
@@ -152,7 +172,17 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  Stream<List<OrderModel>> streamUserOrders(String userId) {
-    return _orderService.streamUserOrders(userId);
+  void clearAll() {
+    _orders = [];
+    _selectedOrder = null;
+    _hasFetched = false;
+    _errorMessage = null;
+    notifyListeners();
+  }
+
+  Stream<List<OrderModel>> streamUserOrders() {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return const Stream.empty();
+    return _orderService.streamUserOrders(uid);
   }
 }

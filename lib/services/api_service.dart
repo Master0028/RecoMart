@@ -53,28 +53,28 @@ class ApiService {
 
   static Future<List<dynamic>> getProducts() async {
     final url = Uri.parse('$baseUrl/api/products/?page=1&limit=12');
-      print("Requesting: GET $url");
+    print("Requesting: GET $url");
 
-      try {
-          final response = await http.get(
-              url,
-              headers: {
-                  'Content-Type': 'application/json',
-                  'ngrok-skip-browser-warning': 'true',
-              },
-          );
-          print("Response Status: ${response.statusCode}");
-          print("Response Body: ${response.body}");
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'ngrok-skip-browser-warning': 'true',
+        },
+      );
+      print("Response Status: ${response.statusCode}");
+      print("Response Body: ${response.body}");
 
-          if (response.statusCode == 200) {
-              return jsonDecode(response.body)['data'];
-          } else {
-              throw Exception('API Error ${response.statusCode}: ${response.body}');
-          }
-      } catch (e) {
-          print("Network Error: $e");
-          rethrow;
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body)['data'];
+      } else {
+        throw Exception('API Error ${response.statusCode}: ${response.body}');
       }
+    } catch (e) {
+      print("Network Error: $e");
+      rethrow;
+    }
   }
 
   static Future<List<dynamic>> getAllUsers() async {
@@ -109,12 +109,13 @@ class ApiService {
 
   static Future<void> updateUser(UserModel user) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/api/users/${user.id}'),
+      Uri.parse('$baseUrl/profile/update'), // endpoint đúng
       headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
       },
       body: jsonEncode({
+        "user_id": user.id,
         "fullName": user.fullName,
         "phone": user.phone,
         "address": user.address,

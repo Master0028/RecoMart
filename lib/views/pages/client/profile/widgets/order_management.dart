@@ -3,89 +3,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/user_provider.dart';
 
-class OrderManagement extends StatefulWidget {
-  const OrderManagement({super.key, required this.userId});
-
-  final String userId;
-
-  @override
-  State<OrderManagement> createState() => _OrderManagementState();
-}
-
-class _OrderManagementState extends State<OrderManagement> {
-  final List<Map<String, dynamic>> orderItems = [
-    {
-      'title': 'Order History',
-      'icon': FeatherIcons.archive,
-      'route': '/history',
-    },
-  ];
-
-  void _handleNavigation(BuildContext context, String routeName) {
-    if (!context.mounted) return;
-
-    context.push(
-      routeName,
-      extra: widget.userId,
-    );
-  }
+class OrderManagement extends StatelessWidget {
+  const OrderManagement({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final bool isExistUser = widget.userId.isNotEmpty;
+    final userProvider = context.watch<UserProvider>();
+    final userId = userProvider.user?.id;
 
-    if (!isExistUser) {
-      return Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              FeatherIcons.lock,
-              size: 60,
-              color: AppColors.primary.withOpacity(0.6),
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Access Restricted',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Please login to view and manage your orders securely.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => context.push('/login'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: const Text(
-                'Go to Login',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            )
-          ],
-        ),
-      );
+    if (userId == null || userId.isEmpty) {
+      return _buildLoginRequired(context);
     }
 
     return Padding(
@@ -104,18 +34,74 @@ class _OrderManagementState extends State<OrderManagement> {
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
-          children: List.generate(orderItems.length, (index) {
-            final item = orderItems[index];
-            return ModernOrderListTile(
-              icon: item['icon'],
-              title: item['title'],
-              isFirst: index == 0,
-              isLast: index == orderItems.length - 1,
-              onTap: () =>
-                  _handleNavigation(context, item['route'] as String),
-            );
-          }),
+          children: [
+            ModernOrderListTile(
+              icon: FeatherIcons.archive,
+              title: 'Order History',
+              isFirst: true,
+              isLast: true,
+              onTap: () {
+                context.push(
+                  '/history',
+                  extra: userId,
+                );
+              },
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLoginRequired(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            FeatherIcons.lock,
+            size: 60,
+            color: AppColors.primary.withOpacity(0.6),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Access Restricted',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Please login to view and manage your orders securely.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.black54,
+            ),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => context.push('/login'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: const Text(
+              'Go to Login',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        ],
       ),
     );
   }
