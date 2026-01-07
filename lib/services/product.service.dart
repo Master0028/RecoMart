@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import '../models/product.model.dart';
 import 'api_service.dart';
@@ -116,10 +117,11 @@ class ProductService {
   }
 
   Future<void> updateProduct(String id, ProductModel data) async {
+    debugPrint("service product update");
     final response = await http.put(
       Uri.parse('${ApiService.baseUrl}/api/products/$id'),
       headers: _headers,
-      body: jsonEncode(data.toMap()),
+      body: jsonEncode(data.toApiMap()),
     );
 
     if (response.statusCode != 200) {

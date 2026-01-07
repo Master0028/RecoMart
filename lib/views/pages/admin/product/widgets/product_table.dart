@@ -41,6 +41,47 @@ class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClie
     ]);
   }
 
+  void _confirmDeleteProduct(ProductModel product) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text(
+          'Are you sure you want to delete "${product.name}"?\n'
+              'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+
+              await context
+                  .read<ProductProvider>()
+                  .deleteProduct(product.id);
+
+              await _fetchFromFirebase(page: 1);
+
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Product deleted successfully'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              }
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _fetchCategories() async {
     try {
       final provider = Provider.of<ProductProvider>(context, listen: false);
@@ -100,7 +141,15 @@ class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClie
   }
 
   List<ProductModel> _sortProducts(List<ProductModel> products) {
-    return products..sort((a, b) => b.id.compareTo(a.id));
+    final list = List<ProductModel>.from(products);
+
+    int parseId(String id) {
+      return int.tryParse(id) ?? 0;
+    }
+
+    list.sort((a, b) => parseId(a.id).compareTo(parseId(b.id)));
+
+    return list;
   }
 
   Color _getStatusColor(bool isActive) {
@@ -210,12 +259,27 @@ class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClie
                 child: Container(
                   width: colWidths[4],
                   padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Chip(
-                    label: Text(
-                      product.isActive ? 'Active' : 'Disabled',
-                      style: const TextStyle(color: Colors.white),
+                  child: Container(
+                    width: colWidths.last,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // ✏️ EDIT
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.orange),
+                          tooltip: 'Edit Product',
+                          onPressed: () => _showProductForm(product),
+                        ),
+
+                        // 🗑️ DELETE
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          tooltip: 'Delete Product',
+                          onPressed: () => _confirmDeleteProduct(product),
+                        ),
+                      ],
                     ),
-                    backgroundColor: _getStatusColor(product.isActive),
                   ),
                 ),
               ),
@@ -312,8 +376,8 @@ class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClie
               ];
 
         final headers = isMobile
-            ? ['ID', 'Product', 'Status']
-            : ['ID', 'Product', 'Stock', 'Category', 'Status'];
+            ? ['ID', 'Product', 'Actions']
+            : ['ID', 'Product', 'Stock', 'Category', 'Actions'];
 
         Widget buildSearchBar({bool fullWidth = false}) {
           return Row(

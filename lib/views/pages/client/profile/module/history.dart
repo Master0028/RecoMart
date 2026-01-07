@@ -24,10 +24,10 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
   final Map<String, String> _statusMap = {
     'All': '',
-    'Pending': 'pending',
-    'Shipping': 'shipping',
-    'Delivered': 'delivered',
-    'Cancelled': 'cancelled',
+    'Pending': 'PENDING',
+    'Shipping': 'SHIPPING',
+    'Delivered': 'DELIVERED',
+    'Cancelled': 'CANCELLED',
   };
 
   @override

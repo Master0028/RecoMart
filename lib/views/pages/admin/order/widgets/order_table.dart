@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:recomart/utils/responsive.dart';
 import 'package:intl/intl.dart';
 import 'order_detail_dialog.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class OrderManagementTable extends StatefulWidget {
   final List<Map<String, dynamic>> orders;
@@ -34,12 +35,35 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     super.dispose();
   }
 
+  DateTime _parseOrderDate(Map<String, dynamic> order) {
+    final raw = order['createdAt'];
+
+    if (raw == null) return DateTime(2000);
+
+    // Firestore Timestamp
+    if (raw is Timestamp) {
+      return raw.toDate();
+    }
+
+    // ISO String
+    if (raw is String) {
+      return DateTime.tryParse(raw) ?? DateTime(2000);
+    }
+
+    // Already DateTime
+    if (raw is DateTime) {
+      return raw;
+    }
+
+    return DateTime(2000);
+  }
+
   List<Map<String, dynamic>> get filteredOrders {
     // 1. Initial Sorting (Newest first)
     List<Map<String, dynamic>> sorted = List.from(widget.orders)
       ..sort((a, b) {
-        final dateA = DateTime.tryParse(a['orderDate'] ?? '') ?? DateTime(2000);
-        final dateB = DateTime.tryParse(b['orderDate'] ?? '') ?? DateTime(2000);
+        final dateA = _parseOrderDate(a);
+        final dateB = _parseOrderDate(b);
         return dateB.compareTo(dateA);
       });
 
@@ -53,33 +77,32 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
     switch (_selectedFilter) {
       case "Today":
         sorted = sorted.where((o) {
-          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
-          return d.isAfter(today.subtract(const Duration(seconds: 1))) || d.isAtSameMomentAs(today);
+          final d = _parseOrderDate(o);
+          return d.isAfter(today.subtract(const Duration(seconds: 1)));
         }).toList();
         break;
       case "Yesterday":
         sorted = sorted.where((o) {
-          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          final d = _parseOrderDate(o);
           return d.isAfter(yesterday) && d.isBefore(today);
         }).toList();
         break;
       case "This Week":
         sorted = sorted.where((o) {
-          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          final d = _parseOrderDate(o);
           return d.isAfter(weekStart.subtract(const Duration(seconds: 1)));
         }).toList();
         break;
       case "This Month":
         sorted = sorted.where((o) {
-          final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
+          final d = _parseOrderDate(o);
           return d.isAfter(monthStart.subtract(const Duration(seconds: 1)));
         }).toList();
         break;
       case "Custom":
         if (_customDateRange != null) {
           sorted = sorted.where((o) {
-            final d = DateTime.tryParse(o['orderDate'] ?? '') ?? DateTime(2000);
-            // Add 1 day to the end date for inclusive filtering
+            final d = _parseOrderDate(o);
             return d.isAfter(_customDateRange!.start) &&
                 d.isBefore(_customDateRange!.end.add(const Duration(days: 1)));
           }).toList();
@@ -309,7 +332,7 @@ class _OrderManagementTableState extends State<OrderManagementTable> {
   DataRow _buildDataRow(Map<String, dynamic> order, bool isMobile) {
     final id = (order['id'] as String?) ?? '';
     final shortId = id.length > 8 ? '${id.substring(0, 8)}...' : id;
-    final date = DateTime.tryParse(order['orderDate'] ?? '') ?? DateTime.now();
+    final date = _parseOrderDate(order);
     final total = (order['totalAmount'] as num?)?.toDouble() ?? 0.0;
     final discount = (order['discountApplied'] as num?)?.toDouble() ?? 0.0;
     final status = order['status']?.toString().toUpperCase() ?? 'PENDING';

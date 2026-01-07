@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/product.model.dart';
 import '../models/brand.model.dart';
@@ -155,6 +156,7 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<void> updateProduct(String id, ProductModel data) async {
+    debugPrint("provider update prod");
     await _productService.updateProduct(id, data);
     fetchProductsPaginated(refresh: true);
   }
@@ -165,6 +167,11 @@ class ProductProvider with ChangeNotifier {
   }
 
   Future<void> fetchCategories() async {
+    final snapshot = await FirebaseFirestore.instance.collection('categories').get();
+    _categoriesMap.clear();
+    for (var doc in snapshot.docs) {
+      _categoriesMap[doc.id] = doc['name'];
+    }
     notifyListeners();
   }
 
