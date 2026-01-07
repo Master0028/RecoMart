@@ -22,7 +22,7 @@ class VoucherListPage extends StatelessWidget {
             _buildCustomAppBar(context),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('vouchers').snapshots(),
+                stream: FirebaseFirestore.instance.collection('coupons').snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) return _buildStatusText("Something went wrong");
                   if (snapshot.connectionState == ConnectionState.waiting) {
@@ -30,7 +30,7 @@ class VoucherListPage extends StatelessWidget {
                   }
 
                   final docs = snapshot.data!.docs;
-                  if (docs.isEmpty) return _buildStatusText("No vouchers available");
+                  if (docs.isEmpty) return _buildStatusText("No coupons available");
 
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
@@ -65,9 +65,9 @@ class VoucherListPage extends StatelessWidget {
               Text("MY REWARDS", 
                 style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20, letterSpacing: 1.5)),
               StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('vouchers').snapshots(),
+                stream: FirebaseFirestore.instance.collection('coupons').snapshots(),
                 builder: (context, snap) => Text(
-                  "${snap.data?.docs.length ?? 0} active coupons",
+                  "${snap.data?.docs.length ?? 0} Active Coupons",
                   style: const TextStyle(color: Color(0xFF4ECCA3), fontSize: 12, fontWeight: FontWeight.w500),
                 ),
               ),
@@ -79,6 +79,19 @@ class VoucherListPage extends StatelessWidget {
   }
 
   Widget _buildPremiumVoucher(Map<String, dynamic> data) {
+    final String code = data['code'] ?? 'N/A';
+    final num discountValue = data['discountValue'] ?? 0;
+    
+    String displayDiscount = discountValue >= 1000 
+        ? "${(discountValue / 1000).toStringAsFixed(0)}K" 
+        : "$discountValue";
+
+    String dateLabel = "New Arrival";
+    if (data['createdAt'] != null) {
+      DateTime date = (data['createdAt'] as Timestamp).toDate();
+      dateLabel = "Added: ${date.day}/${date.month}/${date.year}";
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       height: 120,
@@ -114,15 +127,13 @@ class VoucherListPage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        "${data['discount']}${data['type'] == 'percent' ? '%' : '\$'}",
+                        displayDiscount,
                         style: GoogleFonts.poppins(fontSize: 26, fontWeight: FontWeight.w800, color: const Color(0xFF1A1A2E)),
                       ),
                       const Text("OFF", style: TextStyle(color: Color(0xFF1A1A2E), fontWeight: FontWeight.w900, fontSize: 10)),
                     ],
                   ),
                 ),
-                
-                // Right Part (Details)
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -130,8 +141,8 @@ class VoucherListPage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(data['title']?.toUpperCase() ?? 'COUPON',
-                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        Text("SPECIAL DISCOUNT",
+                          style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(height: 5),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -139,11 +150,11 @@ class VoucherListPage extends StatelessWidget {
                             color: Colors.white.withOpacity(0.05),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(data['code'] ?? '----',
-                            style: const TextStyle(color: Color(0xFF4ECCA3), fontFamily: 'Monospace', fontWeight: FontWeight.bold)),
+                          child: Text(code,
+                            style: const TextStyle(color: Color(0xFF4ECCA3), fontFamily: 'Monospace', fontWeight: FontWeight.bold, fontSize: 15)),
                         ),
                         const SizedBox(height: 8),
-                        Text("Until: ${data['expiryDate']}",
+                        Text(dateLabel,
                           style: const TextStyle(color: Colors.white38, fontSize: 11)),
                       ],
                     ),
@@ -152,10 +163,8 @@ class VoucherListPage extends StatelessWidget {
               ],
             ),
           ),
-
           _buildNotch(top: -10, left: 90),
           _buildNotch(bottom: -10, left: 90),
-          
           Positioned(
             left: 100,
             top: 20,
@@ -176,7 +185,7 @@ class VoucherListPage extends StatelessWidget {
   Widget _buildNotch({double? top, double? bottom, double? left}) {
     return Positioned(
       top: top, bottom: bottom, left: left,
-      child: const CircleAvatar(radius: 10, backgroundColor: const Color(0xFF1A1A2E)),
+      child: const CircleAvatar(radius: 10, backgroundColor: Color(0xFF1A1A2E)),
     );
   }
 

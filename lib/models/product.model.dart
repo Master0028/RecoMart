@@ -137,13 +137,11 @@ class ProductModel {
       'reviewCount': reviewCount,
       'stock': stock,
 
-      // ✅ ISO string – backend parse OK
       'createdAt': createdAt?.toDate().toIso8601String(),
       'updatedAt': DateTime.now().toIso8601String(),
     };
   }
 
-  // 🔧 fromMap: tạo ProductModel từ Firestore map
   factory ProductModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     T _numAs<T extends num>(dynamic v, T fallback) {
       if (v is num) return (T == int ? v.toInt() : v.toDouble()) as T;
