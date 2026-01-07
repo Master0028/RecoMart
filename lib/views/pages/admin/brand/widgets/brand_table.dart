@@ -29,6 +29,41 @@ class _BrandTableState extends State<BrandTable> {
     }
   }
 
+  void _confirmDeleteBrand(BrandModel brand) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Brand'),
+        content: Text(
+          'Are you sure you want to delete "${brand.name}"?\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+
+              // TODO: gọi API / Provider xóa brand
+              // await context.read<BrandProvider>().deleteBrand(brand.id);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Brand "${brand.name}" deleted'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
       case 'Active':
@@ -104,19 +139,26 @@ class _BrandTableState extends State<BrandTable> {
           onTap: () => _showBrandForm(brand),
           child: brandCell(brand, colWidths[1]),
         ),
-        InkWell(
-          onTap: () => _showBrandForm(brand),
-          child: Container(
-            width: colWidths[2],
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Chip(
-              label: Text(
-                brand.isActive ? 'Active' : 'Inactive',
-                style: const TextStyle(color: Colors.white),
+        Container(
+          width: colWidths[2],
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ✏️ EDIT
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.orange),
+                tooltip: 'Edit Brand',
+                onPressed: () => _showBrandForm(brand),
               ),
-              backgroundColor:
-              _getStatusColor(brand.isActive ? 'Active' : 'Inactive'),
-            ),
+
+              // 🗑️ DELETE
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Delete Brand',
+                onPressed: () => _confirmDeleteBrand(brand),
+              ),
+            ],
           ),
         ),
       ],
@@ -207,15 +249,11 @@ class _BrandTableState extends State<BrandTable> {
 
         final List<double> colWidths = isMobile
             ? [tableWidth * 0.20, tableWidth * 0.55, tableWidth * 0.25]
-            : [
-          tableWidth * 0.15,
-          tableWidth * 0.65,
-          tableWidth * 0.15,
-        ];
+            : [tableWidth * 0.15, tableWidth * 0.65, tableWidth * 0.20];
 
         final headers = isMobile
-            ? ['ID', 'Brand', 'Status']
-            : ['ID', 'Brand', 'Status'];
+            ? ['ID', 'Brand', 'Action']
+            : ['ID', 'Brand', 'Action'];
 
         return Container(
           padding: const EdgeInsets.all(16),

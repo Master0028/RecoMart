@@ -42,11 +42,48 @@ class _CategoryTableState extends State<CategoryTable> {
       }
     }).toList();
 
+    allCategories.sort((a, b) => a.id.compareTo(b.id));
+
     if (_searchController.text.isEmpty) {
       return allCategories;
     }
     final kw = _searchController.text.toLowerCase();
     return allCategories.where((c) => c.name.toLowerCase().contains(kw)).toList();
+  }
+
+  void _confirmDeleteCategory(CategoryModel category) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete Category'),
+        content: Text(
+          'Are you sure you want to delete "${category.name}"?\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(context);
+
+              // TODO: gọi API / Provider xóa category
+              // await context.read<CategoryProvider>().deleteCategory(category.id);
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Category "${category.name}" deleted'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
   }
 
   Color _getStatusColor(String status) {
@@ -141,19 +178,26 @@ class _CategoryTableState extends State<CategoryTable> {
           onTap: () => _showCategoryForm(category),
           child: categoryCell(category, colWidths[1]),
         ),
-        InkWell(
-          onTap: () => _showCategoryForm(category),
-          child: Container(
-            width: colWidths[2],
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Chip(
-              label: Text(
-                category.isActive ? 'Active' : 'Inactive',
-                style: const TextStyle(color: Colors.white),
+        Container(
+          width: colWidths[2],
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ✏️ EDIT
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.orange),
+                tooltip: 'Edit Category',
+                onPressed: () => _showCategoryForm(category),
               ),
-              backgroundColor:
-              _getStatusColor(category.isActive ? 'Active' : 'Inactive'),
-            ),
+
+              // 🗑️ DELETE
+              IconButton(
+                icon: const Icon(Icons.delete, color: Colors.red),
+                tooltip: 'Delete Category',
+                onPressed: () => _confirmDeleteCategory(category),
+              ),
+            ],
           ),
         ),
       ],
@@ -251,8 +295,8 @@ class _CategoryTableState extends State<CategoryTable> {
         ];
 
         final headers = Responsive.isMobile(context)
-            ? ['ID', 'Category', 'Status']
-            : ['ID', 'Category', 'Status'];
+            ? ['ID', 'Category', 'Actions']
+            : ['ID', 'Category', 'Actions'];
 
         return Container(
           padding: const EdgeInsets.all(16),

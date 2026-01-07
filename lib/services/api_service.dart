@@ -276,7 +276,6 @@ class ApiService {
     final json = jsonDecode(response.body);
     return UserModel.fromJson(json);
   }
-}
 
   static Future<void> changePassword({
     required String userId,
