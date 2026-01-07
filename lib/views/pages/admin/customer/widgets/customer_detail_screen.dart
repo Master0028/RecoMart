@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/services/api_service.dart';
@@ -86,6 +87,10 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
                         const SizedBox(height: 20),
                         _buildStatsRow(),
                         const SizedBox(height: 20),
+                        _buildTopFavorites(),
+                        const SizedBox(height: 20),
+                        _buildNextRecommendations(),
+                        const SizedBox(height: 40),
                         _buildRadarChartSection(),
                       ],
                     ),
@@ -291,64 +296,192 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
       values.add(0);
     }
 
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03), 
+                blurRadius: 15,
+                offset: const Offset(0, 5)
+              )
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildRadarHeader(),
+              const SizedBox(height: 30),
+              SizedBox(
+                height: 300,
+                child: RadarChart(
+                  RadarChartData(
+                    radarTouchData: RadarTouchData(enabled: true),
+                    dataSets: [
+                      RadarDataSet(
+                        fillColor: AppColors.primary.withOpacity(0.2 * _animController.value),
+                        borderColor: AppColors.primary.withOpacity(_animController.value),
+                        entryRadius: 4 * _animController.value,
+                        borderWidth: 2,
+                        dataEntries: values
+                            .map((e) => RadarEntry(value: e * _animController.value)) 
+                            .toList(),
+                      ),
+                    ],
+                    borderData: FlBorderData(show: false),
+                    radarBackgroundColor: Colors.transparent,
+                    gridBorderData: BorderSide(color: Colors.grey.withOpacity(0.15), width: 1),
+                    tickCount: 2,
+                    ticksTextStyle: const TextStyle(color: Colors.transparent),
+                    titlePositionPercentageOffset: 0.15,
+                    titleTextStyle: GoogleFonts.inter(
+                      color: Colors.black54, 
+                      fontSize: 11, 
+                      fontWeight: FontWeight.w600
+                    ),
+                    getTitle: (index, angle) {
+                      if (index < keys.length) return RadarChartTitle(text: keys[index]);
+                      return const RadarChartTitle(text: "");
+                    },
+                  ),
+                  swapAnimationDuration: const Duration(milliseconds: 1000),
+                  swapAnimationCurve: Curves.easeInOutBack,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRadarHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Interest Radar", 
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text("AI Model Affinity Analysis", 
+              style: TextStyle(color: Colors.grey, fontSize: 12)),
+          ],
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: Colors.blue.shade50, 
+            borderRadius: BorderRadius.circular(10)
+          ),
+          child: Text("Live AI", 
+            style: TextStyle(fontSize: 10, color: Colors.blue.shade700, fontWeight: FontWeight.bold)),
+        )
+      ],
+    );
+  }
+
+  Widget _buildTopFavorites() {
+    final rawFavorites = _persona!['top_favorites'] as List? ?? [];
+    final favorites = rawFavorites.map((item) => Map<String, dynamic>.from(item)).toList();
+
+    if (favorites.isEmpty) return const SizedBox();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 12),
+          child: Text("Top Favorites", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
+        ),
+        SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: favorites.length,
+            itemBuilder: (context, index) {
+              final item = favorites[index];
+              return Container(
+                width: 250,
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: (item['image'] != null && item['image'].toString().isNotEmpty)
+                          ? Image.network(item['image'], width: 70, height: 70, fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.broken_image)))
+                          : Container(width: 70, height: 70, color: Colors.grey[200], child: const Icon(Icons.shopping_cart)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(item['name'] ?? 'Unknown Item', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text("${item['purchase_count'] ?? 0} purchases", style: TextStyle(color: Colors.grey[500], fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNextRecommendations() {
+    final recommendations = (_persona!['ai_recommendations'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    if (recommendations.isEmpty) return const SizedBox();
+
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [AppColors.primary.withOpacity(0.8), AppColors.primary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15)],
+        boxShadow: [BoxShadow(color: AppColors.primary.withOpacity(0.3), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("Interest Radar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  Text("AI Model Affinity Analysis", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.green.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Text("Active", style: TextStyle(fontSize: 10, color: Colors.green, fontWeight: FontWeight.bold)),
-              )
+              const Icon(Icons.auto_awesome, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text("AI Next Strategy", style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
             ],
           ),
-          const SizedBox(height: 30),
-          SizedBox(
-            height: 300,
-            child: RadarChart(
-              RadarChartData(
-                radarTouchData: RadarTouchData(enabled: false),
-                borderData: FlBorderData(show: false),
-                radarBackgroundColor: Colors.transparent,
-                gridBorderData: BorderSide(color: Colors.grey.withOpacity(0.2), width: 1),
-                tickCount: 1,
-                ticksTextStyle: const TextStyle(color: Colors.transparent),
-                titlePositionPercentageOffset: 0.1, // Đẩy text ra xa hơn chút
-                titleTextStyle: const TextStyle(color: Colors.black54, fontSize: 11, fontWeight: FontWeight.w600),
-                
-                getTitle: (index, angle) {
-                  if (index < keys.length) return RadarChartTitle(text: keys[index]);
-                  return const RadarChartTitle(text: "");
-                },
-                
-                dataSets: [
-                  RadarDataSet(
-                    fillColor: AppColors.primary.withOpacity(0.2),
-                    borderColor: AppColors.primary,
-                    entryRadius: 4,
-                    borderWidth: 2,
-                    dataEntries: values.map((e) => RadarEntry(value: e)).toList(),
-                  ),
-                ],
-              ),
+          const SizedBox(height: 15),
+          ...recommendations.map((rec) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white70, size: 16),
+                const SizedBox(width: 10),
+                Expanded(child: Text(rec, style: const TextStyle(color: Colors.white, fontSize: 14))),
+              ],
             ),
-          ),
+          )),
         ],
       ),
     );
