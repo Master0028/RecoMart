@@ -1,75 +1,11 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:recomart/config/color.dart';
-import 'package:recomart/services/chat.service.dart';
 
-class TypewriterText extends StatefulWidget {
-  final String text;
-  final bool isMe;
-
-  const TypewriterText({
-    super.key,
-    required this.text,
-    required this.isMe,
-  });
-
-  @override
-  State<TypewriterText> createState() => _TypewriterTextState();
-}
-
-class _TypewriterTextState extends State<TypewriterText> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<int> _textCount;
-
-  @override
-  void initState() {
-    super.initState();
-    final duration = Duration(milliseconds: widget.text.length * 30);
-    
-    _controller = AnimationController(
-      vsync: this,
-      duration: duration,
-    );
-
-    _textCount = IntTween(
-      begin: 0,
-      end: widget.text.length,
-    ).animate(_controller);
-    
-    if (!widget.isMe) {
-        _controller.forward();
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final style = TextStyle(color: widget.isMe ? Colors.white : Colors.black87);
-
-    if (widget.isMe) {
-        return Text(widget.text, style: style);
-    }
-    
-    return AnimatedBuilder(
-      animation: _textCount,
-      builder: (context, child) {
-        final currentText = widget.text.substring(0, _textCount.value);
-        return Text(
-          currentText,
-          style: style,
-        );
-      },
-    );
-  }
-}
+import '../../../../../pattern/singleton.dart';
+import '../../../../../services/chatadmin.service.dart';
 
 class ChatArea extends StatefulWidget {
   final String userId;
@@ -86,20 +22,14 @@ class ChatArea extends StatefulWidget {
 }
 
 class _ChatConversationPanelState extends State<ChatArea> {
-  final _chatService = ChatService();
+  final _chatService = ChatAdminService();
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 50), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      }
-    });
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    }
   }
 
   Future<void> _sendMessage() async {
@@ -122,7 +52,7 @@ class _ChatConversationPanelState extends State<ChatArea> {
 
   @override
   Widget build(BuildContext context) {
-    final user = _chatService.auth.currentUser;
+    final user = UserSession.instance.userId;
 
     return Column(
       children: [
@@ -149,6 +79,7 @@ class _ChatConversationPanelState extends State<ChatArea> {
         ),
         const Divider(height: 1),
 
+        // Danh sách tin nhắn realtime
         Expanded(
           child: StreamBuilder(
             stream: _chatService.getMessages(widget.userId),
@@ -165,30 +96,7 @@ class _ChatConversationPanelState extends State<ChatArea> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   final msg = messages[index].data();
-                  final bool isMe = msg['senderId'] == user?.uid;
-                  final bool isLastMessage = index == messages.length - 1;
-                  
-                  final Key messageKey = ValueKey(messages[index].id); 
-
-                  Widget contentWidget;
-                  if (msg['imageUrl'] != null) {
-                    contentWidget = Image.network(msg['imageUrl'], width: 180);
-                  } else {
-                    final bool shouldAnimate = !isMe && isLastMessage && msg['text'] != null;
-
-                    contentWidget = shouldAnimate
-                        ? TypewriterText(
-                            text: msg['text'] ?? 'Content missing',
-                            isMe: isMe,
-                            key: messageKey,
-                          )
-                        : Text(
-                            msg['text'] ?? 'Content missing',
-                            style: TextStyle(
-                              color: isMe ? Colors.white : Colors.black87,
-                            ),
-                          );
-                  }
+                  final bool isMe = msg['senderId'] == UserSession.instance.userId;
 
                   return Align(
                     alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -199,7 +107,14 @@ class _ChatConversationPanelState extends State<ChatArea> {
                         color: isMe ? AppColors.primary : Colors.grey.shade200,
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: contentWidget,
+                      child: msg['imageUrl'] != null
+                          ? Image.network(msg['imageUrl'], width: 180)
+                          : Text(
+                        msg['text'] ?? '',
+                        style: TextStyle(
+                          color: isMe ? Colors.white : Colors.black87,
+                        ),
+                      ),
                     ),
                   );
                 },
@@ -208,6 +123,7 @@ class _ChatConversationPanelState extends State<ChatArea> {
           ),
         ),
 
+        // Ô nhập tin nhắn
         Container(
           color: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -215,14 +131,14 @@ class _ChatConversationPanelState extends State<ChatArea> {
             children: [
               IconButton(
                 onPressed: _sendImage,
-                icon: const Icon(FeatherIcons.paperclip, color: AppColors.primary),
+                icon: Icon(FeatherIcons.paperclip, color: AppColors.primary),
               ),
               Expanded(
                 child: TextField(
                   controller: _controller,
                   onSubmitted: (_) => _sendMessage(),
                   decoration: InputDecoration(
-                    hintText: 'Type a message...', 
+                    hintText: 'Nhập tin nhắn...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(25),
                       borderSide: BorderSide.none,
@@ -240,7 +156,7 @@ class _ChatConversationPanelState extends State<ChatArea> {
                 child: Container(
                   width: 44,
                   height: 44,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: AppColors.primary,
                     shape: BoxShape.circle,
                   ),
