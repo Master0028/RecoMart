@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:recomart/components/custom/bottom_navigation_bar.dart';
 import 'package:recomart/models/order.model.dart';
 import 'package:recomart/views/pages/admin/admin_screen.dart';
+import 'package:recomart/views/pages/client/Chat/widgets/chat_admin.dart';
 import 'package:recomart/views/pages/client/login/changepassword.dart';
 import 'package:recomart/views/pages/client/login/passwordrecoverymethods.dart';
 import 'package:recomart/views/pages/client/login/signup_screen.dart';
 import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
 import 'package:recomart/views/pages/client/order/order_details.dart';
 import 'package:recomart/views/pages/client/order/order_list.dart';
-import 'package:recomart/views/pages/client/profile/module/address.dart';
 import 'package:recomart/views/pages/client/profile/module/atm.dart';
 import 'package:recomart/views/pages/client/profile/module/epay.dart';
 import 'package:recomart/views/pages/client/profile/module/history.dart';
@@ -21,6 +21,7 @@ import 'package:recomart/views/pages/client/search/search_screen.dart';
 import 'package:recomart/views/pages/client/search/search_camera.dart';
 import 'package:recomart/views/pages/client/splash/about_app.dart';
 import 'package:recomart/views/pages/client/splash/help-support.dart';
+import 'package:recomart/views/pages/client/voucher/voucher_list.dart';
 import 'package:recomart/views/pages/client/welcome/welcome_view.dart';
 import 'package:recomart/views/pages/client/chat/widgets/chat_view.dart';
 import 'package:recomart/views/pages/client/cart/cart_view.dart';
@@ -108,8 +109,8 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: '/address',
-      builder: (context, state) => const AddressPage(),
+      path: '/chat-admin',
+      builder: (context, state) => const AdminChatPageScreen(),
     ),
     
     GoRoute(
@@ -216,6 +217,11 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
+      path: '/voucher-list',
+      builder: (context, state) => const VoucherListPage(),
+    ),
+
+    GoRoute(
       path: '/checkout',
       name: 'checkout',
       builder: (context, state) {
@@ -255,7 +261,8 @@ final GoRouter appRouter = GoRouter(
   ],
   
   errorBuilder: (context, state) => Scaffold(
-    appBar: AppBar(title: const Text('Lỗi')),
-    body: Center(child: Text('Không tìm thấy trang: ${state.uri}')),
+    appBar: AppBar(title: const Text('Error')),
+    body: Center(child: Text('Page not found: ${state.uri}')),
   ),
+
 );

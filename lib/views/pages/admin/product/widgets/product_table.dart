@@ -152,6 +152,7 @@ class _ProductTableState extends State<ProductTable> with AutomaticKeepAliveClie
     return list;
   }
 
+  // ignore: unused_element
   Color _getStatusColor(bool isActive) {
     return isActive ? Colors.green : Colors.red;
   }

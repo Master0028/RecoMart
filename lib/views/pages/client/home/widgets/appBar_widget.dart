@@ -76,8 +76,9 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
     final List<Map<String, dynamic>> items = [
       {'text': 'Home', 'icon': Icons.home_outlined, 'value': 'Home'},
       if (isLoggedIn)
-        {'text': 'Profile', 'icon': Icons.person_outline, 'value': 'Profile'},
+      {'text': 'Profile', 'icon': Icons.person_outline, 'value': 'Profile'},
       {'text': "Cart", 'icon': Icons.shopping_cart_outlined, 'value': "Cart"},
+      {'text': "Chatbot AI", 'icon': Icons.chat, 'value': "Chatbot AI"},
       {'text': "Support", 'icon': Icons.help_outline, 'value': "Support"},
       {
         'text': isLoggedIn ? 'Logout' : 'Login',
@@ -122,7 +123,8 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
       if (val == 'Home') context.go('/home');
       if (val == 'Profile') context.push('/profile');
       if (val == 'Cart') context.push('/cart');
-      if (val == 'Support') context.push('/help-center');
+      if (val == 'Chatbot AI') context.push('/chat');
+      if (val == 'Support') context.push('/chat-admin');
       if (val == 'Login') context.go('/login');
       if (val == 'Logout') {
         await Provider.of<UserProvider>(context, listen: false).signOut();

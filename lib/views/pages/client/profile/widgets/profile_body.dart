@@ -5,6 +5,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:recomart/config/color.dart';
 import 'package:recomart/provider/user_provider.dart';
+import 'package:recomart/views/pages/client/voucher/voucher_list.dart';
 
 class ProfileBody extends StatefulWidget {
   const ProfileBody({super.key});
@@ -173,7 +174,17 @@ class _ProfileBodyState extends State<ProfileBody> {
         children: [
           _statItem("Wishlist", "12"),
           _verticalDivider(),
-          _statItem("Vouchers", "5"),
+          
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const VoucherListPage()),
+              );
+            },
+            child: _statItem("Vouchers", "5"),
+          ),
+          
           _verticalDivider(),
           _statItem("Reviews", "48"),
         ],
@@ -206,9 +217,6 @@ class _ProfileBodyState extends State<ProfileBody> {
         _menuTile(FeatherIcons.user, "Profile Info", "Change your basic info", () {
           context.push('/personal-information');
         }),
-        _menuTile(FeatherIcons.mapPin, "Shipping Address", "Manage your delivery locations", () {
-          context.push('/address');
-        }),
         _menuTile(FeatherIcons.lock, "Change Password", "Secure your account", () {
           context.push('/change-password');
         }),
@@ -224,9 +232,6 @@ class _ProfileBodyState extends State<ProfileBody> {
             '/history',
             extra: userId,
           );
-        }),
-        _menuTile(FeatherIcons.truck, "Track Order", "Check status of current orders", () {
-          context.push('/history?tab=shipping');
         }),
 
         const SizedBox(height: 24),
