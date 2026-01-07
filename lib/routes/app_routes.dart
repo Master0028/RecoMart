@@ -112,7 +112,15 @@ final GoRouter appRouter = GoRouter(
       path: '/chat-admin',
       builder: (context, state) => const AdminChatPageScreen(),
     ),
-    
+
+    // GoRoute(
+    //   path: '/chat-admin/:userId',
+    //   builder: (context, state) {
+    //     final userId = state.pathParameters['userId']!;
+    //     return AdminChatPageScreen(userId: userId);
+    //   },
+    // ),
+
     GoRoute(
       path: '/utilities',
       builder: (context, state) => const MyUtilitiesPage(),
