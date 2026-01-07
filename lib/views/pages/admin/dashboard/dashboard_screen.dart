@@ -177,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Auto reload every 15s (with confirmation)',
+            'Auto reload every 60s to have new data',
             style: TextStyle(color: Colors.grey[500]),
           ),
         ]),

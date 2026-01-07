@@ -57,7 +57,6 @@ class _LoginViewState extends State<LoginView> {
     final userProvider = context.read<UserProvider>();
     if (userProvider.isLoggedIn) {
       debugPrint("User already logged in. Redirecting...");
-      if (mounted) context.go('/home');
     }
   }
 

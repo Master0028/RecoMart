@@ -23,7 +23,6 @@ class CustomerTable extends StatefulWidget {
 
 class _CustomerTableState extends State<CustomerTable> {
   final TextEditingController _searchController = TextEditingController();
-  final int _itemsPerPage = 10;
 
   static const List<Map<String, dynamic>> ALL_FIELDS = [
     {'key': 'id', 'label': 'ID'},
@@ -46,7 +45,7 @@ class _CustomerTableState extends State<CustomerTable> {
     var customers = widget.customers;
     if (_searchController.text.isNotEmpty) {
       customers = customers.where((customer) {
-        return customer.fullName!
+        return customer.fullName
                 .toLowerCase()
                 .contains(_searchController.text.toLowerCase());
       }).toList();
@@ -65,10 +64,10 @@ class _CustomerTableState extends State<CustomerTable> {
 
   Future<void> _toggleStatus(UserModel customer) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final newStatus = !(customer.isActive ?? false);
+    final newStatus = !(customer.isActive);
 
     try {
-      await userProvider.toggleUserStatus(customer.id!, newStatus);
+      await userProvider.toggleUserStatus(customer.id, newStatus);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -126,7 +125,7 @@ class _CustomerTableState extends State<CustomerTable> {
         return customerCell(customer);
       } 
       else if (key == 'isActive') {
-        final isActive = customer.isActive ?? false;
+        final isActive = customer.isActive;
         return TableCell(
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Padding(
@@ -179,8 +178,8 @@ class _CustomerTableState extends State<CustomerTable> {
         switch (key) {
           case 'id': value = _getShortId(customer.id); break;
           case 'phone': value = customer.phone ?? '-'; break;
-          case 'email': value = customer.email ?? '-'; break;
-          case 'loyaltyPoints': value = '${customer.loyaltyPoints ?? 0}'; break;
+          case 'email': value = customer.email; break;
+          case 'loyaltyPoints': value = '${customer.loyaltyPoints}'; break;
           case 'address': value = customer.address ?? '-'; break;
         }
         return cellText(value);

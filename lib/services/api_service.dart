@@ -28,7 +28,6 @@ class ApiService {
     required String password, 
     required String name, 
     required String address,
-    String phone = "",
   }) async {
     final url = Uri.parse('$baseUrl/register');
 
@@ -45,7 +44,6 @@ class ApiService {
           "name": name.trim(),
           "fullName": name.trim(),
           "address": address.trim(),
-          "phone": phone.trim(),
         }),
       );
 
@@ -277,5 +275,38 @@ class ApiService {
 
     final json = jsonDecode(response.body);
     return UserModel.fromJson(json);
+  }
+}
+
+  static Future<void> changePassword({
+    required String userId,
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final url = Uri.parse('$baseUrl/api/change-password');
+
+    final body = jsonEncode({
+      'id': userId,
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    });
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'accept': 'application/json',
+        },
+        body: body,
+      ).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        final errorData = jsonDecode(response.body);
+        throw Exception(errorData['detail'] ?? 'Failed to change password');
+      }
+    } catch (e) {
+      throw Exception('Fail to connect: $e');
+    }
   }
 }

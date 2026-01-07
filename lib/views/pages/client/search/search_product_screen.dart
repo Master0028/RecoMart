@@ -8,6 +8,7 @@ import 'package:recomart/views/pages/client/home/widgets/appBar_widget.dart';
 import 'package:recomart/views/pages/client/home/widgets/product_widget.dart' hide AppColors;
 import 'package:add_to_cart_animation/add_to_cart_animation.dart';
 import 'package:recomart/services/recommendation_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SearchProductScreen extends StatefulWidget {
   final Function(String) onSearch;
@@ -29,57 +30,102 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
   late Function(GlobalKey) runAddToCartAnimation;
 
   List<dynamic> _searchResults = [];
+  List<String> _searchHistory = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+
+  final List<Map<String, dynamic>> _hotSuggestions = [
+    {'name': 'iPhone', 'icon': Icons.phone_iphone},
+    {'name': 'Macbook', 'icon': Icons.laptop_mac},
+    {'name': 'Asus', 'icon': Icons.computer},
+    {'name': 'Samsung', 'icon': Icons.smartphone},
+    {'name': 'AirPods', 'icon': Icons.headphones},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _searchController.text = widget.initialQuery;
+        _searchController.text = widget.initialQuery;
+    _loadSearchHistory();
+    _searchController.addListener(_handleSearchTextChange);
     if (widget.initialQuery.isNotEmpty) {
-      _performSearch();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _performSearch(query: widget.initialQuery);
+      });
     }
   }
 
-  Future<void> _performSearch() async {
-    final keyword = _searchController.text.trim();
-    if (keyword.isEmpty) return;
-
-    if (mounted) {
+  void _handleSearchTextChange() {
+    if (_searchController.text.isEmpty && _hasSearched) {
       setState(() {
-        _isLoading = true;
-        _hasSearched = true;
+        _hasSearched = false;
         _searchResults = [];
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_handleSearchTextChange);
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadSearchHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final history = prefs.getStringList('recent_searches') ?? [];
+      setState(() {
+        _searchHistory = history;
+      });
+    } catch (e) {
+      print("Loading history fail!: $e");
+    }
+  }
+
+  Future<void> _saveToHistory(String keyword) async {
+    if (keyword.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    _searchHistory.remove(keyword);
+    _searchHistory.insert(0, keyword);
+    if (_searchHistory.length > 5) _searchHistory.removeLast();
+    
+    await prefs.setStringList('recent_searches', _searchHistory);
+    setState(() {});
+  }
+
+  Future<void> _performSearch({String? query}) async {
+    final keyword = query ?? _searchController.text.trim();
+    if (keyword.isEmpty) return;
+
+    if (query != null) _searchController.text = query;
+    _saveToHistory(keyword);
+
+    setState(() {
+      _isLoading = true;
+      _hasSearched = true;
+      _searchResults = [];
+    });
 
     try {
       const baseUrl = RecommendationService.baseUrl;
       final url = '$baseUrl/api/search?keyword=$keyword';
-
-      final response = await http.get(
-        Uri.parse(url),
-        headers: {
-          "ngrok-skip-browser-warning": "true",
-          "Content-Type": "application/json",
-        },
-      ).timeout(const Duration(seconds: 15));
+      final response = await http.get(Uri.parse(url), headers: {
+        "ngrok-skip-browser-warning": "true",
+        "Content-Type": "application/json",
+      }).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> results = data['results'] ?? [];
-
-        if (mounted) {
-          setState(() {
-            _searchResults = results;
-            _isLoading = false;
-          });
-        }
+        setState(() {
+          _searchResults = data['results'] ?? [];
+          _isLoading = false;
+        });
       } else {
-        if (mounted) setState(() => _isLoading = false);
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      setState(() => _isLoading = false);
     }
   }
 
@@ -90,8 +136,6 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
       height: 30,
       width: 30,
       opacity: 0.85,
-      dragAnimation: const DragToCartAnimationOptions(rotation: true),
-      jumpAnimation: const JumpAnimationOptions(),
       createAddToCartAnimation: (run) => runAddToCartAnimation = run,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8F9FD),
@@ -99,9 +143,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
         body: Column(
           children: [
             _buildModernSearchBar(),
-            Expanded(
-              child: _buildContent(),
-            ),
+            Expanded(child: _buildContent()),
           ],
         ),
       ),
@@ -114,124 +156,122 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(25)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
-          )
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 15, offset: const Offset(0, 8))],
       ),
       child: Row(
         children: [
           Expanded(
             child: Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1F2F6),
-                borderRadius: BorderRadius.circular(15),
-              ),
+              decoration: BoxDecoration(color: const Color(0xFFF1F2F6), borderRadius: BorderRadius.circular(15)),
               child: TextField(
                 controller: _searchController,
-                onSubmitted: (_) => _performSearch(),
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: 'Search products...',
-                  hintStyle: const TextStyle(color: Colors.grey, fontSize: 15),
-                  prefixIcon: const Icon(FeatherIcons.search, size: 18, color: Colors.grey),
+                onSubmitted: (val) => _performSearch(),
+                decoration: const InputDecoration(
+                  hintText: 'Search Asus, Macbook...',
+                  prefixIcon: Icon(FeatherIcons.search, size: 18, color: Colors.grey),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.cancel, size: 18, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                            setState(() {
-                              _searchResults = [];
-                              _hasSearched = false;
-                            });
-                          },
-                        )
-                      : null,
+                  contentPadding: EdgeInsets.symmetric(vertical: 14),
                 ),
               ),
             ),
           ),
           const SizedBox(width: 12),
-          GestureDetector(
-            onTap: _performSearch,
-            child: Container(
-              height: 48,
-              width: 48,
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ],
-              ),
-              child: const Icon(FeatherIcons.sliders, color: Colors.white, size: 18),
+          // Nút Filter
+          IconButton(
+            icon: const Icon(FeatherIcons.sliders),
+            onPressed: _performSearch,
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          ),
+          )
         ],
       ),
     );
   }
 
   Widget _buildContent() {
-    if (_isLoading) {
-      return const Center(child: CupertinoActivityIndicator(radius: 15));
+    if (_isLoading) return const Center(child: CupertinoActivityIndicator(radius: 15));
+    if (_searchController.text.trim().isEmpty) {
+      return _buildSuggestionsUI();
     }
-
     if (_hasSearched && _searchResults.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(FeatherIcons.search, size: 60, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text("No results found", style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+            Icon(FeatherIcons.search, size: 50, color: Colors.grey.shade300),
+            const SizedBox(height: 10),
+            Text("No results found for '${_searchController.text}'", 
+                style: const TextStyle(color: Colors.grey)),
           ],
-        ),
+        )
       );
     }
+    return _buildResultsGrid();
+  }
 
-    if (!_hasSearched) {
-      return Center(
-        child: Text("Enter a keyword to explore", style: TextStyle(color: Colors.grey.shade400)),
-      );
-    }
-
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("Search Results", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    "${_searchResults.length} items",
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
-                  ),
-                ),
-              ],
-            ),
+  Widget _buildSuggestionsUI() {
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: [
+        if (_searchHistory.isNotEmpty) ...[
+          const Text("Recent Searches", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            children: _searchHistory.map((h) => ActionChip(
+              label: Text(h),
+              onPressed: () => _performSearch(query: h),
+              backgroundColor: Colors.white,
+            )).toList(),
           ),
+          const SizedBox(height: 25),
+        ],
+        const Text("Hot Suggestions", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        const SizedBox(height: 15),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, 
+            mainAxisSpacing: 10, 
+            crossAxisSpacing: 10,
+            childAspectRatio: 1,
+          ),
+          itemCount: _hotSuggestions.length,
+          itemBuilder: (context, index) {
+            final item = _hotSuggestions[index];
+            return GestureDetector(
+              onTap: () => _performSearch(query: item['name']),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(item['icon'], color: AppColors.primary, size: 28),
+                    const SizedBox(height: 8),
+                    Text(item['name'], style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
+      ],
+    );
+  }
+
+  Widget _buildResultsGrid() {
+    return CustomScrollView(
+      slivers: [
         SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(16),
           sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
@@ -242,27 +282,27 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final item = _searchResults[index];
+                
+                String productImg = (item['imageUrl'] ?? '').toString();
+
+                if (productImg.isEmpty || !productImg.startsWith('http')) {
+                  productImg = 'https://via.placeholder.com/600x600?text=No+Image';
+                }
+
                 return ProductView(
                   id: (item['id'] ?? '').toString(),
                   categoryId: (item['category'] ?? '').toString(),
-                  name: (item['name'] ?? 'N/A').toString(),
-                  image: (item['imageUrl'] ?? '').toString(),
+                  name: (item['name'] ?? 'No Name').toString(),
+                  image: productImg,
                   price: (item['price'] ?? 0).toDouble(),
-                  averageRating: (item['rating'] ?? 0).toString(),
+                  averageRating: (item['rating'] ?? '0').toString(),
                 );
               },
               childCount: _searchResults.length,
             ),
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 30)),
       ],
     );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }
