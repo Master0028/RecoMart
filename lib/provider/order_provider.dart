@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../models/order.model.dart';
 import '../pattern/singleton.dart';
 import '../services/order.service.dart';

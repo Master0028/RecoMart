@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,8 @@ import 'package:recomart/views/pages/admin/product/product_screen.dart';
 import 'package:recomart/views/pages/admin/coupon/coupon_screen.dart';
 import 'package:recomart/views/pages/admin/support/support_screen.dart';
 import 'package:recomart/utils/responsive.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AdminSidebar extends StatelessWidget {
   final String selectedMenu;
@@ -129,24 +132,45 @@ class _AdminScreenState extends State<AdminScreen> {
   void _handleLogout() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text("Confirm Logout"),
         content: const Text("Are you sure you want to log out?"),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancel"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            onPressed: () {
-              Navigator.pop(context);
-              context.go('/login');
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+
+              try {
+                final prefs = await SharedPreferences.getInstance();
+                await Future.wait([
+                  prefs.clear(),
+                  FirebaseAuth.instance.signOut(),
+                ]);
+
+                if (mounted) {
+                  Navigator.of(context).pop();
+                  // ignore: use_build_context_synchronously
+                  Navigator.of(dialogContext).pop();
+                }
+
+                if (mounted) {
+                  context.go('/login');
+                }
+              } catch (e) {
+                if (kDebugMode) {
+                  print("Logout error: $e");
+                }
+                if (mounted) Navigator.of(context).pop();
+              }
             },
             child: const Text("Logout"),
           ),

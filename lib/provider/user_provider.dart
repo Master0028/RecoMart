@@ -233,6 +233,13 @@ class UserProvider with ChangeNotifier {
     required InteractionType type,
     int? duration,
   }) async {
+    if (userId.isEmpty) {
+      print("[Track] Hủy bỏ: UserId đang rỗng. Có thể do User chưa login xong.");
+      return;
+    }
+
+    print("[Track] Đang gửi interaction cho User: $userId");
+
     final interaction = InteractionModel(
       userId: userId,
       productId: productId,
@@ -241,6 +248,10 @@ class UserProvider with ChangeNotifier {
       createdAt: DateTime.now(),
     );
 
-    await _interactionService.logInteraction(interaction);
+    try {
+      await _interactionService.logInteraction(interaction);
+    } catch (e) {
+      print("[Track] Lỗi gọi Service: $e");
+    }
   }
 }

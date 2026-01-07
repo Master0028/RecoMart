@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:recomart/provider/user_provider.dart';
@@ -30,54 +32,58 @@ class _HomeBodyState extends State<HomeBody> {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
 
     if (!userProvider.isLoggedIn) {
-      if (mounted) {
+      setState(() {
         aiModelUserId = null;
         isLoadingUser = false;
-        setState(() {});
-      }
+      });
       return;
     }
 
-    // map UID Firebase -> userId cho AI
-    // aiModelUserId = await userService.getAiUserId(userProvider.userId);
+    var bytes = utf8.encode(userProvider.userId);
+    var digest = md5.convert(bytes);
+    String hex = digest.toString();
+    int hashedId = int.parse(hex.substring(hex.length - 8), radix: 16);
 
-    aiModelUserId = int.tryParse(userProvider.userId);
-
-    if (mounted) {
+    setState(() {
+      aiModelUserId = hashedId;
       isLoadingUser = false;
-      setState(() {});
-    }
+    });
+
+    print("DEBUG: Firebase UID: ${userProvider.userId} -> AI ID: $aiModelUserId");
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: ListView(
-        children: [
-          Padding(
-            padding: !Responsive.isMobile(context)
-                ? const EdgeInsets.only(top: 16, left: 64, right: 64)
-                : const EdgeInsets.only(top: 16, left: 16, right: 16),
-            child: Column(
-              children: [
-                if (Responsive.isTablet(context) || Responsive.isMobile(context))
-                  const SearchWidget(),
-
-                BannerWidget(),
-                const cat_widget.CategoryWidget(),
-                const SizedBox(height: 16),
-
-                if (!isLoadingUser && aiModelUserId != null)
-                  RecommendationWidget(userId: aiModelUserId!),
-
-                const SizedBox(height: 16),
-                const ShowListProductWidget(categoryId: null),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+      },
+      child: Container(
+        color: Colors.white,
+        child: ListView(
+          children: [
+            Padding(
+              padding: !Responsive.isMobile(context)
+                  ? const EdgeInsets.only(top: 16, left: 64, right: 64)
+                  : const EdgeInsets.only(top: 16, left: 16, right: 16),
+              child: Column(
+                children: [
+                  if (Responsive.isTablet(context) || Responsive.isMobile(context))
+                    const SearchWidget(),
+                  BannerWidget(),
+                  const cat_widget.CategoryWidget(),
+                  const SizedBox(height: 16),
+                  if (!isLoadingUser && aiModelUserId != null)
+                    RecommendationWidget(userId: aiModelUserId!),
+                  const SizedBox(height: 16),
+                  const ShowListProductWidget(categoryId: null),
+                ],
+              ),
             ),
-          ),
-          if (Responsive.isDesktop(context)) const FooterWidget(),
-        ],
+            if (Responsive.isDesktop(context)) const FooterWidget(),
+          ],
+        ),
       ),
     );
   }

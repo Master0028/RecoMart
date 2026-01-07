@@ -35,9 +35,9 @@ import 'package:recomart/views/pages/client/splash/splash_view.dart';
 import '../views/pages/client/order/ordercheckout.dart';
 import '../views/pages/client/profile/module/orderdetail.dart';
 
+
 final GoRouter appRouter = GoRouter(
-  initialLocation: '/', 
-  
+  initialLocation: '/',
   routes: [
     GoRoute(
       path: '/',

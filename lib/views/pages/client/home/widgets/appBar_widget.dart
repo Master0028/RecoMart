@@ -199,13 +199,16 @@ class _DesktopSearchAndCart extends StatelessWidget {
                 borderRadius: BorderRadius.circular(5)),
             child: Row(children: [
               Expanded(
-                  child: TextField(
-                decoration: const InputDecoration(
-                    hintText: 'Search products...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(horizontal: 15)),
-                onSubmitted: (_) => context.push('/search'),
-              )),
+                child: TextField(
+                  readOnly: true,
+                  onTap: () => context.push('/search'),
+                  decoration: const InputDecoration(
+                      hintText: 'Search products...',
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 15)),
+                  onSubmitted: (_) => context.push('/search'),
+                ),
+              ),
               Container(
                 decoration: BoxDecoration(
                     color: _actionButtonColor,

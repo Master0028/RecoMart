@@ -11,8 +11,6 @@ import 'package:recomart/utils/widget/CustomAppBarMobile.dart';
 import 'package:recomart/models/order.model.dart';
 import 'package:recomart/provider/order_provider.dart';
 
-import '../../../../../pattern/singleton.dart';
-
 class OrderHistoryPage extends StatefulWidget {
   const OrderHistoryPage({super.key, required this.userId});
   final String userId;

@@ -1,6 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import 'package:recomart/provider/user_provider.dart';
+import 'package:recomart/services/api_service.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color inputFillColor = Color(0xFFF0F0F0);
@@ -31,7 +33,7 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
-  bool _loading = false;
+  bool _isLoading = false;
   bool _oldPasswordVisible = false;
   bool _newPasswordVisible = false;
   bool _confirmPasswordVisible = false;
@@ -82,58 +84,49 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final newPassword = _newPasswordController.text.trim();
     final confirmPassword = _confirmedPasswordController.text.trim();
 
-    if (oldPassword.isEmpty ||
-        newPassword.isEmpty ||
-        confirmPassword.isEmpty) {
+    // 1. Validate cơ bản
+    if (oldPassword.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
       _showSnack('Please fill in all fields', Colors.redAccent);
       return;
     }
 
     if (newPassword != confirmPassword) {
-      _showSnack('Passwords do not match', Colors.redAccent);
+      _showSnack('New passwords do not match', Colors.redAccent);
       return;
     }
 
-    setState(() => _loading = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
+    if (newPassword.length < 6) {
+      _showSnack('Password must be at least 6 characters', Colors.redAccent);
+      return;
+    }
 
-      if (user == null || user.email == null) {
-        _showSnack('No logged-in user found', Colors.redAccent);
+    setState(() => _isLoading = true);
+    try {
+      final userProvider = Provider.of<UserProvider>(context, listen: false);
+      final userId = userProvider.userId; 
+
+      if (userId.isEmpty) {
+        _showSnack('Session expired. Please login again.', Colors.redAccent);
         return;
       }
 
-      final cred = EmailAuthProvider.credential(
-        email: user.email!,
-        password: oldPassword,
+      await ApiService.changePassword(
+        userId: userId, 
+        oldPassword: oldPassword,
+        newPassword: newPassword,
       );
-      await user.reauthenticateWithCredential(cred);
-
-      await user.updatePassword(newPassword);
 
       _showSnack('Password changed successfully!', Colors.green);
-      await Future.delayed(const Duration(seconds: 1));
-      if (mounted) context.pop();
-    } on FirebaseAuthException catch (e) {
-      String msg;
-      switch (e.code) {
-        case 'wrong-password':
-          msg = 'Incorrect old password.';
-          break;
-        case 'weak-password':
-          msg = 'New password is too weak.';
-          break;
-        case 'requires-recent-login':
-          msg = 'Session expired. Please login again.';
-          break;
-        default:
-          msg = 'Error: ${e.message}';
-      }
-      _showSnack(msg, Colors.redAccent);
+      
+      _oldPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmedPasswordController.clear();
+
     } catch (e) {
-      _showSnack('Unknown error: $e', Colors.redAccent);
+      String errorMsg = e.toString().replaceAll('Exception:', '').trim();
+      _showSnack(errorMsg, Colors.redAccent);
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -210,7 +203,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
   Widget buildDoneButton() {
     return ElevatedButton(
-      onPressed: _loading ? null : handleChangePassword,
+      onPressed: _isLoading ? null : handleChangePassword,
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryBlue,
         minimumSize: const Size(double.infinity, 56),
@@ -220,7 +213,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         elevation: 5,
         shadowColor: primaryBlue.withOpacity(0.4),
       ),
-      child: _loading
+      child: _isLoading
           ? const SizedBox(
               width: 24,
               height: 24,
