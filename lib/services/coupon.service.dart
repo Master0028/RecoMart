@@ -53,7 +53,8 @@ class CouponService {
         'usedCount': FieldValue.increment(1),
         'appliedOrders': updatedOrders,
       });
-
+      debugPrint(coupon.id);
+      debugPrint(updatedOrders as String?);
       return true;
     } catch (e) {
       print('❌ [CouponService] updateCouponUsage error: $e');

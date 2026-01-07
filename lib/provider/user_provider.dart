@@ -40,16 +40,12 @@ class UserProvider with ChangeNotifier {
     _userId = id;
     _userName = name;
     _accessToken = token;
-    
-    _userInfo = UserModel(
-      id: id,
-      email: "",
-      fullName: name,
-      isActive: true,
-      role: "user",
-    );
-    
+
     await _saveToPrefs();
+
+    // LẤY TOÀN BỘ USER TỪ FIRESTORE
+    await fetchUserInfo();
+
     notifyListeners();
   }
   
@@ -89,17 +85,11 @@ class UserProvider with ChangeNotifier {
     _userId = prefs.getString('user_id');
     _userName = prefs.getString('user_name');
     _accessToken = prefs.getString('access_token');
-    
-    if (_userId != null) {
-      _userInfo = UserModel(
-        id: _userId!,
-        email: "", 
-        fullName: _userName ?? "User",
-        isActive: true,
-        role: "user"
-      );
+
+    if (_userId != null && _userId!.isNotEmpty) {
+      await fetchUserInfo(); // FIRESTORE LÀ NGUỒN DUY NHẤT
     }
-    
+
     notifyListeners();
   }
 
@@ -137,35 +127,33 @@ class UserProvider with ChangeNotifier {
   }
 
   Future<void> fetchUserInfo() async {
-    if (!isLoggedIn) return;
-    
+    if (_userId == null || _userId!.isEmpty) return;
+
     _loading = true;
     notifyListeners();
 
     try {
-      final String targetId = _userId.toString();
-      print("DEBUG: Fetching Firestore doc for ID: '$targetId'");
-
       final docSnap = await FirebaseFirestore.instance
           .collection('users')
-          .doc(targetId)
+          .doc(_userId)
           .get();
 
-      if (docSnap.exists) {
-        final data = docSnap.data();
-        if (data != null && _userInfo != null) {
-          _userInfo = _userInfo!.copyWith(
-            avatar: data['avatar'] ?? '',
-            loyaltyPoints: data['loyaltyPoints'] ?? 0,
-          );
-          print("DEBUG: Firestore data synced for $targetId");
-        }
-      } else {
-        print("DEBUG: No Firestore doc found for ID: '$targetId' at path: users/$targetId");
+      if (!docSnap.exists) {
+        throw Exception("User not found in Firestore");
       }
+
+      final data = docSnap.data()!;
+
+      _userInfo = UserModel.fromJson({
+        ...data,
+        'id': _userId,
+      });
+
+      _userName = _userInfo!.fullName;
       _error = null;
+
     } catch (e) {
-      print('fetchUserInfo error: $e');
+      print("fetchUserInfo error: $e");
       _error = e.toString();
     } finally {
       _loading = false;
@@ -200,23 +188,18 @@ class UserProvider with ChangeNotifier {
       notifyListeners();
     }
   }
-  
+
   Future<void> updateUser(UserModel updatedUser) async {
     try {
       _loading = true;
       notifyListeners();
+
       await ApiService.updateUser(updatedUser);
 
-      final index = _users.indexWhere((u) => u.id == updatedUser.id);
-      if (index != -1) {
-        _users[index] = updatedUser;
-      }
-      
-      if (_userId == updatedUser.id) {
-        _userInfo = updatedUser;
-        _userName = updatedUser.fullName;
-        await _saveToPrefs();
-      }
+      // LẤY LẠI USER TỪ FIRESTORE
+      await fetchUserInfo();
+
+      await _saveToPrefs();
 
     } catch (e) {
       print("Error updating user: $e");

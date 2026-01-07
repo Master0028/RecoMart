@@ -17,6 +17,7 @@ import '../../../../provider/cart_provider.dart';
 import '../../../../provider/user_provider.dart';
 import '../../../../services/coupon.service.dart';
 import '../../../../services/order.service.dart';
+import '../../../../services/user.service.dart';
 import 'widgets/cart_item_widget.dart';
 import 'widgets/promocode_section_widget.dart';
 
@@ -36,6 +37,7 @@ class _CartViewState extends State<CartView> {
   final TextEditingController _contactPhoneController = TextEditingController();
 
   final _orderService = OrderService();
+  String _userId = "";
 
   @override
   void initState() {
@@ -66,6 +68,8 @@ class _CartViewState extends State<CartView> {
     if (userInfo != null) {
       _shippingAddressController.text = userInfo.address ?? '';
       _contactPhoneController.text = userInfo.phone ?? '';
+      _userId = userInfo.id;
+
     }
   }
 
@@ -98,12 +102,13 @@ class _CartViewState extends State<CartView> {
       final userName = userProvider.userName;
       final email = userProvider.userInfo?.email ?? ''; 
 
+      debugPrint('coupon: ${provider.couponDiscount}');
       final subtotal = provider.totalPrice;
       final shippingFee =
           _selectedMethod == ShippingMethod.pickupAtStore ? 0 : 20000;
       final discount = provider.couponDiscount + (provider.usedPoints * 1000);
       final total = (subtotal + shippingFee - discount).clamp(0, double.infinity);
-
+      debugPrint('dis: $discount');
       final orderItems = cartItems.map((p) {
         return OrderItemModel(
           productId: p.productId,
@@ -135,30 +140,38 @@ class _CartViewState extends State<CartView> {
         updatedAt: DateTime.now(),
       );
 
-      await _orderService.createOrder(order);
+      final createdOrder = await _orderService.createOrder(order);
+      final orderId = createdOrder.id;
 
-      if (provider.selectedCoupon != null) {
-        final coupon = provider.selectedCoupon!;
-        final orderId = order.id;
-
-        if (orderId != null) {
-          final isUpdated = await CouponService()
-              .updateCouponUsage(coupon: coupon, orderId: orderId);
-
-          if (isUpdated) {
-            showCustomSnackBar(
-              context,
-              'Coupon ${coupon.code} applied to order $orderId',
-              type: SnackBarType.success,
-            );
-          }
-        }
+      if (orderId == null) {
+        throw Exception('Order ID missing');
       }
 
-      await provider.clearCart(userId);
+      /// 1️⃣ Update coupon usage
+      if (provider.selectedCoupon != null) {
+        await CouponService().updateCouponUsage(
+          coupon: provider.selectedCoupon!,
+          orderId: orderId,
+        );
+      }
 
-      showCustomSnackBar(context, 'Order placed successfully!',
-          type: SnackBarType.success);
+      /// 2️⃣ Update loyalty points
+      await UserService().updateLoyaltyPoints(
+        userId: userProvider.userId,
+        usedPoints: provider.usedPoints,
+        earnedPoints: (total / 10000).floor(),
+      );
+
+      /// 3️⃣ Clear cart
+      await provider.clearCart(userProvider.userId);
+
+      provider.resetCouponAndPoints();
+
+      showCustomSnackBar(
+        context,
+        'Order placed successfully!',
+        type: SnackBarType.success,
+      );
 
       if (mounted) {
         context.go('/home');
@@ -389,7 +402,7 @@ class _CartViewState extends State<CartView> {
           const SizedBox(height: 16),
           _buildShippingOptions(),
           const SizedBox(height: 16),
-          PromocodeSectionWidget(cartItems: items),
+          PromocodeSectionWidget(userId: _userId, cartItems: items),
           const SizedBox(height: 16),
           _ModernCard(
             child: _buildSummaryDetails(

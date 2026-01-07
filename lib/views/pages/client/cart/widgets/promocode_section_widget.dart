@@ -11,8 +11,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../../provider/cart_provider.dart';
 
 class PromocodeSectionWidget extends StatefulWidget {
-  const PromocodeSectionWidget({super.key, required this.cartItems});
+  const PromocodeSectionWidget({super.key, required this.userId, required this.cartItems});
   final List<dynamic> cartItems;
+  final String userId;
 
   @override
   State<PromocodeSectionWidget> createState() =>
@@ -38,7 +39,7 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
   }
 
   Future<void> _loadUserPoints() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final uid = widget.userId;
     if (uid == null) return;
     try {
       final points = await _userService.getLoyaltyPoints(uid);
@@ -226,8 +227,18 @@ class _PromocodeSectionWidgetState extends State<PromocodeSectionWidget> {
                       backgroundColor: AppColors.primary),
                   child: const Text('Use Points', style: TextStyle(color: Colors.white)),
                 ),
+                const SizedBox(height: 10),
               ],
             ),
+            if (_usedPoints > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Discount ${formatMoney(_usedPoints * 1000.0)} applied',
+                  style: const TextStyle(color: Colors.green, fontSize: 13),
+                ),
+              ),
+            const Divider(height: 30, color: Colors.black12),
           ],
         ),
       ),

@@ -164,4 +164,11 @@ class CartProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  void resetCouponAndPoints() {
+    _selectedCoupon = null;
+    _couponDiscount = 0;
+    _usedPoints = 0;
+    notifyListeners();
+  }
+
 }

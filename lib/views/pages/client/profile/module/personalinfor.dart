@@ -1,11 +1,12 @@
-import 'dart:io';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'package:recomart/components/custom/my_text_field.dart';
 import 'package:recomart/components/custom/snackbar.dart';
@@ -34,25 +35,36 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
   final FocusNode _emailFocusNode = FocusNode();
 
   bool _isLoading = false;
-  File? _selectedFile;
+  XFile? _selectedImage;
 
   @override
   void initState() {
     super.initState();
-    _initializeData();
+    _initializeDataFromFirebase();
   }
 
-  void _initializeData() {
+  Future<void> _initializeDataFromFirebase() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final user = userProvider.user;
+    if (user == null) return;
 
-    if (user != null) {
-      _fullNameController.text = user.fullName;
-      _emailController.text = user.email;
-      _phoneNumberController.text = user.phone ?? '';
-      _addressController.text = user.address ?? '';
-    }
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.id) // 👈 userId hiện tại
+        .get();
+
+    if (!doc.exists) return;
+
+    final data = doc.data()!;
+
+    setState(() {
+      _fullNameController.text = data['fullName'] ?? '';
+      _phoneNumberController.text = data['phone'] ?? '';
+      _addressController.text = data['address'] ?? '';
+      _emailController.text = data['email'] ?? user.email;
+    });
   }
+
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -63,14 +75,14 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
 
     if (image != null) {
       setState(() {
-        _selectedFile = File(image.path);
+        _selectedImage = image;
       });
     }
   }
 
   void _removeImage() {
     setState(() {
-      _selectedFile = null;
+      _selectedImage = null;
     });
   }
 
@@ -90,18 +102,44 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
       if (user == null) throw Exception("User not logged in");
 
       String? avatarUrl = user.avatar;
-      if (_selectedFile != null) {
-        var request = http.MultipartRequest(
-          'POST',
-          Uri.parse('${ApiService.baseUrl}/api/upload-avatar/${user.id}'),
+      if (_selectedImage != null) {
+        final uri = Uri.parse(
+          '${ApiService.baseUrl}/api/users/${user.id}/avatar',
         );
-        request.files.add(await http.MultipartFile.fromPath('file', _selectedFile!.path));
+
+        final request = http.MultipartRequest('POST', uri);
+
+        if (kIsWeb) {
+          // ✅ FLUTTER WEB
+          final bytes = await _selectedImage!.readAsBytes();
+
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'file',
+              bytes,
+              filename: _selectedImage!.name,
+            ),
+          );
+        } else {
+          // ✅ ANDROID / IOS
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'file',
+              _selectedImage!.path,
+            ),
+          );
+        }
+
         final response = await request.send();
-        if (response.statusCode != 200) throw Exception("Failed to upload avatar");
+
+        if (response.statusCode != 200) {
+          throw Exception("Failed to upload avatar");
+        }
 
         final respStr = await response.stream.bytesToString();
         final respJson = jsonDecode(respStr);
-        avatarUrl = respJson['url'] ?? avatarUrl;
+
+        avatarUrl = respJson['avatar']; // Cloudinary URL
       }
 
       final updatedUser = user.copyWith(
@@ -167,13 +205,11 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                             ),
                             child: CircleAvatar(
                               radius: 60,
-                              backgroundImage: _selectedFile != null
-                                  ? FileImage(_selectedFile!)
+                              backgroundImage: _selectedImage != null
+                                  ? NetworkImage(_selectedImage!.path) // Web preview OK
                                   : (avatarUrl != null && avatarUrl.isNotEmpty
-                                      ? NetworkImage(avatarUrl.startsWith('http')
-                                          ? avatarUrl
-                                          : '${ApiService.baseUrl}$avatarUrl')
-                                      : const AssetImage('assets/logo/logo.png')) as ImageProvider,
+                                  ? NetworkImage(avatarUrl)
+                                  : const AssetImage('assets/logo/logo.png')) as ImageProvider,
                             ),
                           ),
                           Positioned(
@@ -188,14 +224,14 @@ class _PersonelInformationPageState extends State<PersonelInformationPage> {
                               child: IconButton(
                                 padding: const EdgeInsets.all(8),
                                 onPressed: () {
-                                  if (_selectedFile != null) {
+                                  if (_selectedImage != null) {
                                     _removeImage();
                                   } else {
                                     _pickImage();
                                   }
                                 },
                                 icon: Icon(
-                                  _selectedFile != null ? CupertinoIcons.xmark : CupertinoIcons.camera,
+                                  _selectedImage != null ? CupertinoIcons.xmark : CupertinoIcons.camera,
                                   color: Colors.white,
                                   size: 20,
                                 ),

@@ -3,6 +3,7 @@ import '../models/user.model.dart';
 
 class UserService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final _users = FirebaseFirestore.instance.collection('users');
   final String collection = 'users';
 
   Future<Map<String, dynamic>?> getUserInfo(String uid) async {
@@ -49,9 +50,30 @@ class UserService {
     return (data?['loyaltyPoints'] ?? 0).toDouble();
   }
 
-  Future<void> updateUserPoints(String uid, double newPoints) async {
-    await FirebaseFirestore.instance.collection('users').doc(uid).update({
-      'loyaltyPoints': newPoints,
+  Future<void> updateLoyaltyPoints({
+    required String userId,
+    required int usedPoints,
+    required int earnedPoints,
+  }) async {
+    final ref = _users.doc(userId);
+
+    await FirebaseFirestore.instance.runTransaction((tx) async {
+      final snap = await tx.get(ref);
+      if (!snap.exists) {
+        throw Exception('User not found');
+      }
+
+      final currentPoints = snap.data()?['loyaltyPoints'] ?? 0;
+      final newPoints = currentPoints - usedPoints + earnedPoints;
+
+      if (newPoints < 0) {
+        throw Exception('Insufficient loyalty points');
+      }
+
+      tx.update(ref, {
+        'loyaltyPoints': newPoints,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
     });
   }
 }

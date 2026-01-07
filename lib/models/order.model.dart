@@ -80,6 +80,7 @@ class OrderModel {
       'email': email,
       'address': address,
       'paymentMethod': paymentMethod,
+      'discount': discountAmount,
       'loyaltyPointsUsed': loyaltyPointsUsed ?? 0,
       'items': items!.map((e) => e.toJson()).toList(),
     };

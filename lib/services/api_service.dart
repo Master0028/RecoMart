@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:recomart/models/user.model.dart';
 
@@ -23,7 +24,7 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> register({
-    required String email, 
+    required String email,
     required String password, 
     required String name, 
     required String address,
@@ -118,18 +119,18 @@ class ApiService {
   }
 
   static Future<void> updateUser(UserModel user) async {
+    debugPrint("udate ${user.id}");
+    debugPrint("udate ${user.fullName}");
+    debugPrint("udate ${user.phone}");
+    debugPrint("udate ${user.address}");
     final response = await http.put(
-      Uri.parse('$baseUrl/profile/update'), // endpoint đúng
-      headers: {
-        'Content-Type': 'application/json',
-        'ngrok-skip-browser-warning': 'true',
-      },
+      Uri.parse('$baseUrl/api/users/${user.id}'),
+      headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        "user_id": user.id,
-        "fullName": user.fullName,
-        "phone": user.phone,
-        "address": user.address,
-        "avatar": user.avatar,
+        'fullName': user.fullName,
+        'phone': user.phone,
+        'address': user.address,
+        'avatar': user.avatar,
       }),
     );
 
@@ -263,5 +264,18 @@ class ApiService {
       print("Error fetching persona: $e");
       rethrow;
     }
+  }
+
+  static Future<UserModel> getUserById(String userId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/users/$userId'),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch user: ${response.body}');
+    }
+
+    final json = jsonDecode(response.body);
+    return UserModel.fromJson(json);
   }
 }
