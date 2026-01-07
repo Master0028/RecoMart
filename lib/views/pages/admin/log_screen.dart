@@ -39,28 +39,28 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collection('interactions')
-          .orderBy('createdAt', descending: true)
-          .limit(200)
+          .collectionGroup('interactions') // ⭐ QUAN TRỌNG
+          .orderBy('timestamp', descending: true)
+          .limit(300)
           .get();
 
       final logs = snapshot.docs.map((doc) {
         final data = doc.data();
 
-        final type = data['type'] ?? 'info';
-        String level = 'INFO';
+        final type = data['interaction_type'] ?? 'unknown';
 
-        if (type == 'purchase') level = 'INFO';
-        if (type == 'addToCart') level = 'DEBUG';
-        if (type == 'click') level = 'DEBUG';
-        if (type == 'longView') level = 'INFO';
+        String level = 'INFO';
+        if (type == 'click' || type == 'addToCart') level = 'DEBUG';
+        if (type == 'purchase' || type == 'purchase_mock') level = 'INFO';
+
+        // 🔹 lấy userId từ đường dẫn users/{userId}/interactions/{id}
+        final userId = doc.reference.parent.parent?.id ?? 'Unknown';
 
         return LogEntry(
-          (data['createdAt'] as Timestamp).toDate(),
+          (data['timestamp'] as Timestamp).toDate(),
           level,
-          'User ${data['userId']} ${type} product ${data['productId']}'
-              '${data['duration'] != null ? ' (${data['duration']}s)' : ''}',
-          data['userId'] ?? 'Guest',
+          'User $userId $type item ${data['item_id']}',
+          userId,
         );
       }).toList();
 
@@ -69,13 +69,9 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
         _filterLogs(_selectedLevel);
         _isLoading = false;
       });
-    } catch (e) {
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load logs: $e')),
-        );
-      }
+    } catch (e, st) {
+      debugPrint('🔥 Firestore error: $e');
+      debugPrintStack(stackTrace: st);
     }
   }
 

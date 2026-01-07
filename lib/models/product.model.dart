@@ -122,6 +122,27 @@ class ProductModel {
     'createdAt': createdAt ?? FieldValue.serverTimestamp(),
   };
 
+  Map<String, dynamic> toApiMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'categoryId': categoryId,
+      'brandId': brandId,
+      'price': price,
+      'discount': discount,
+      'isActive': isActive,
+      'imageUrl': imageUrl,
+      'averageRating': averageRating,
+      'reviewCount': reviewCount,
+      'stock': stock,
+
+      // ✅ ISO string – backend parse OK
+      'createdAt': createdAt?.toDate().toIso8601String(),
+      'updatedAt': DateTime.now().toIso8601String(),
+    };
+  }
+
   // 🔧 fromMap: tạo ProductModel từ Firestore map
   factory ProductModel.fromMap(Map<String, dynamic> map, {String? docId}) {
     T _numAs<T extends num>(dynamic v, T fallback) {

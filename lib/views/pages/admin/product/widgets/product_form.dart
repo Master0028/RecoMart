@@ -153,7 +153,9 @@ class _ProductFormState extends State<ProductForm> {
         'name': nameController.text.trim(),
         'description': descriptionController.text.trim(),
         'categoryId': selectedCategoryId,
+        'categoryName': categories.firstWhere((c) => c.id == selectedCategoryId).name,
         'brandId': selectedBrandId,
+        'brandName': brands.firstWhere((b) => b.id == selectedBrandId).name,
         'price': double.tryParse(priceController.text) ?? 0,
         'discount': double.tryParse(discountController.text) ?? 0,
         'isActive': isActive,
@@ -172,6 +174,7 @@ class _ProductFormState extends State<ProductForm> {
       if (widget.initialProduct == null) {
         await provider.addProduct(productModel);
       } else {
+        debugPrint("fe update product");
         await provider.updateProduct(productModel.id, productModel);
       }
 
