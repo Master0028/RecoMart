@@ -37,7 +37,6 @@ class _AdminChatPageState extends State<AdminChatPageScreen> {
     }
   }
 
-  /// ✅ Gửi tin nhắn văn bản
   void _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty) return;
@@ -47,7 +46,6 @@ class _AdminChatPageState extends State<AdminChatPageScreen> {
     _scrollToBottom();
   }
 
-  /// ✅ Gửi tin nhắn ảnh
   Future<void> _sendImage() async {
     final picker = ImagePicker();
     final picked = await picker.pickImage(source: ImageSource.gallery);
@@ -83,7 +81,7 @@ class _AdminChatPageState extends State<AdminChatPageScreen> {
                 final docs = snapshot.data!.docs;
                 if (docs.isEmpty) {
                   return const Center(
-                    child: Text("💬 Hãy bắt đầu trò chuyện với admin!"),
+                    child: Text("💬 Let's chat with admin!"),
                   );
                 }
 
@@ -142,7 +140,7 @@ class _AdminChatPageState extends State<AdminChatPageScreen> {
                     controller: _messageController,
                     onSubmitted: (_) => _sendMessage(),
                     decoration: InputDecoration(
-                      hintText: 'Nhập tin nhắn...',
+                      hintText: 'Write message...',
                       filled: true,
                       fillColor: Colors.grey.shade100,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -159,7 +157,7 @@ class _AdminChatPageState extends State<AdminChatPageScreen> {
                   child: Container(
                     width: 46,
                     height: 46,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppColors.primary,
                       shape: BoxShape.circle,
                     ),

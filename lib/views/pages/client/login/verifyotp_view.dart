@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
-final Color primaryPink = Colors.pink.shade300;
 const int otpLength = 4;
 
 void showCustomSnackBar(BuildContext context, String message, {SnackBarType type = SnackBarType.error}) {
@@ -43,12 +42,9 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput> {
     super.initState();
     _focusNode = FocusNode();
     _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
+      setState(() => _isFocused = _focusNode.hasFocus);
     });
 
-    // Handle autoFocus manually for the FocusNode
     if (widget.autoFocus) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         FocusScope.of(context).requestFocus(_focusNode);
@@ -69,7 +65,7 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput> {
       curve: Curves.easeInOut,
       width: 60,
       height: 60,
-      transform: Matrix4.identity()..scale(_isFocused ? 1.05 : 1.0), // Subtle zoom effect
+      transform: Matrix4.identity()..scale(_isFocused ? 1.05 : 1.0),
       decoration: BoxDecoration(
         color: _isFocused ? Colors.white : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
@@ -78,13 +74,7 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput> {
           width: 2,
         ),
         boxShadow: _isFocused
-            ? [
-                BoxShadow(
-                  color: primaryBlue.withOpacity(0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                )
-              ]
+            ? [BoxShadow(color: primaryBlue.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4))]
             : [],
       ),
       child: TextFormField(
@@ -92,23 +82,16 @@ class _AnimatedOtpInputState extends State<AnimatedOtpInput> {
         focusNode: _focusNode,
         textAlign: TextAlign.center,
         keyboardType: TextInputType.number,
-        style: TextStyle(
-          fontSize: 24, 
-          fontWeight: FontWeight.bold,
-          color: primaryBlue,
-        ),
-        maxLength: 1,
-        cursorColor: primaryBlue,
-        decoration: const InputDecoration(
-          counterText: "",
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(vertical: 16), // Center text vertically
-        ),
+        enableSuggestions: false,
+        autocorrect: false,
+        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: primaryBlue),
+        decoration: const InputDecoration(counterText: "", border: InputBorder.none),
         inputFormatters: [
           FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(1),
         ],
         onChanged: (value) {
-          if (value.length == 1 && value.isNotEmpty) {
+          if (value.length == 1) {
             FocusScope.of(context).nextFocus();
           } else if (value.isEmpty) {
             FocusScope.of(context).previousFocus();
@@ -138,20 +121,11 @@ class MyButton extends StatelessWidget {
         shadowColor: primaryBlue.withOpacity(0.4),
       ),
       child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-            )
-          : Text(
-              text,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-            ),
+          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3))
+          : Text(text, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
     );
   }
 }
-
-// --- Main View ---
 
 class VerifyOtpView extends StatefulWidget {
   final String? email;
@@ -166,7 +140,7 @@ class VerifyOtpView extends StatefulWidget {
   });
 
   @override
-  _VerifyOtpViewState createState() => _VerifyOtpViewState();
+  State<VerifyOtpView> createState() => _VerifyOtpViewState();
 }
 
 class _VerifyOtpViewState extends State<VerifyOtpView> {
@@ -176,22 +150,10 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
   final otp4Controller = TextEditingController();
 
   bool _isLoading = false;
-  String _obscuredEmail = '******@mail.com';
-  String? _userId;
 
   @override
   void initState() {
     super.initState();
-    _userId = widget.userId;
-    _obscuredEmail = widget.obscuredEmail;
-
-    if (_userId == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showCustomSnackBar(context, 'Error: User ID not found.');
-        context.pop();
-      });
-    }
-
     otp4Controller.addListener(_checkAndVerifyOtp);
   }
 
@@ -203,71 +165,54 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
 
   @override
   void dispose() {
-    otp1Controller.dispose();
-    otp2Controller.dispose();
-    otp3Controller.dispose();
-    otp4Controller.dispose();
-    otp4Controller.removeListener(_checkAndVerifyOtp);
+    for (var c in [otp1Controller, otp2Controller, otp3Controller, otp4Controller]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
   Future<void> verifyOtp(BuildContext context) async {
-    if (_userId == null) {
-      showCustomSnackBar(context, 'Error: User ID not found.');
-      return;
-    }
-
-    String otpCode = otp1Controller.text +
-        otp2Controller.text +
-        otp3Controller.text +
-        otp4Controller.text;
+    String otpCode = otp1Controller.text + otp2Controller.text + otp3Controller.text + otp4Controller.text;
 
     if (otpCode.length < otpLength) {
-      showCustomSnackBar(context, 'Please enter all 4 OTP digits.');
+      showCustomSnackBar(context, 'Please enter the full 4-digit code.');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      // Simulation of API call
       await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) {
-        context.push('/change-password/$_userId');
+        context.push('/setup-pass', extra: {
+          'userId': widget.userId,
+        });
       }
     } catch (e) {
-      if (mounted) {
-        showCustomSnackBar(context, 'Invalid or expired OTP code.');
+      if (mounted) showCustomSnackBar(context, 'Verification failed. Please try again.');
+      for (var c in [otp1Controller, otp2Controller, otp3Controller, otp4Controller]) {
+        c.clear();
       }
-      otp1Controller.clear();
-      otp2Controller.clear();
-      otp3Controller.clear();
-      otp4Controller.clear();
-      FocusScope.of(context).requestFocus(); // Reset focus to first field or dismiss
+      FocusScope.of(context).unfocus();
     } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _resendOtp() async {
-    if (!_isLoading) {
-      setState(() => _isLoading = true);
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      if (mounted) {
-        showCustomSnackBar(context, 'New OTP code has been sent.', type: SnackBarType.info);
-        setState(() => _isLoading = false);
-      }
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (mounted) {
+      showCustomSnackBar(context, 'A new code has been sent to ${widget.obscuredEmail}', type: SnackBarType.info);
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -276,111 +221,49 @@ class _VerifyOtpViewState extends State<VerifyOtpView> {
           onPressed: () => context.pop(),
         ),
       ),
-      backgroundColor: Colors.white,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 32.0),
-          child: Center(
-            child: SizedBox(
-              width: 450,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Column(
+            children: [
+              const SizedBox(height: 40),
+              CircleAvatar(
+                radius: 60,
+                backgroundColor: primaryBlue.withOpacity(0.1),
+                child: Icon(Icons.mark_email_read_rounded, size: 60, color: primaryBlue),
+              ),
+              const SizedBox(height: 30),
+              const Text('OTP Verification', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              Text(
+                'Enter the 4-digit code sent to\n${widget.obscuredEmail}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.black54, fontSize: 16, height: 1.4),
+              ),
+              const SizedBox(height: 40),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  const SizedBox(height: 40),
-
-                  // Icon Header
-                  Center(
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: primaryBlue.withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.mark_email_read_rounded,
-                        size: 65,
-                        color: primaryBlue,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Title
-                  const Text(
-                    'OTP Verification',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 30,
-                      color: Colors.black,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Subtitle
-                  Text(
-                    'Please enter the 4-digit verification code sent to $_obscuredEmail',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Colors.black54,
-                      fontSize: 16,
-                      height: 1.4,
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      AnimatedOtpInput(controller: otp1Controller, autoFocus: true),
-                      AnimatedOtpInput(controller: otp2Controller),
-                      AnimatedOtpInput(controller: otp3Controller),
-                      AnimatedOtpInput(controller: otp4Controller),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  MyButton(
-                    text: 'Verify OTP',
-                    onTap: (_) => verifyOtp(context),
-                    isLoading: _isLoading,
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Didn't receive the code? ",
-                        style: TextStyle(color: Colors.black54),
-                      ),
-                      TextButton(
-                        onPressed: _isLoading ? null : _resendOtp,
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: const Size(50, 30),
-                        ),
-                        child: Text(
-                          "Resend",
-                          style: TextStyle(
-                            color: primaryBlue,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 40),
+                  AnimatedOtpInput(controller: otp1Controller, autoFocus: true),
+                  AnimatedOtpInput(controller: otp2Controller),
+                  AnimatedOtpInput(controller: otp3Controller),
+                  AnimatedOtpInput(controller: otp4Controller),
                 ],
               ),
-            ),
+              const SizedBox(height: 40),
+              MyButton(text: 'Verify OTP', onTap: verifyOtp, isLoading: _isLoading),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text("Didn't receive the code?", style: TextStyle(color: Colors.black54)),
+                  TextButton(
+                    onPressed: _isLoading ? null : _resendOtp,
+                    child: Text("Resend", style: TextStyle(color: primaryBlue, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

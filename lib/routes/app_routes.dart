@@ -6,6 +6,7 @@ import 'package:recomart/models/order.model.dart';
 import 'package:recomart/views/pages/admin/admin_screen.dart';
 import 'package:recomart/views/pages/client/Chat/widgets/chat_admin.dart';
 import 'package:recomart/views/pages/client/login/changepassword.dart';
+import 'package:recomart/views/pages/client/login/find_account_view.dart';
 import 'package:recomart/views/pages/client/login/passwordrecoverymethods.dart';
 import 'package:recomart/views/pages/client/login/signup_screen.dart';
 import 'package:recomart/views/pages/client/login/verifyemail_view.dart';
@@ -60,38 +61,50 @@ final GoRouter appRouter = GoRouter(
     ),
 
     GoRoute(
-      path: '/recovery',
+      path: '/find-account',
+      builder: (context, state) => const FindAccountView(),
+    ),
+
+    GoRoute(
+      path: '/recovery-method',
       builder: (context, state) {
-        return const RecoveryMethodScreen();
+        final data = state.extra as Map<String, dynamic>;
+        return RecoveryMethodScreen(
+          userName: data['userName'] ?? 'User',
+          userAvatar: data['userAvatar'] ?? '',
+          email: data['email'] ?? '',
+          userId: data['userId'] ?? '',
+        );
       },
     ),
 
     GoRoute(
       path: '/setup-pass',
-      builder: (context, state) => const SetupNewPasswordScreen(userId: '',),
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return SetupNewPasswordScreen(
+          userId: extra['userId'],
+        );
+      },
     ),
 
     GoRoute(
       path: '/verify-email',
       builder: (context, state) => const VerifyEmailView(),
     ),
-    // GoRoute(
-    //   path: '/input-otp',
-    //   builder: (context, state) => const VerifyOtpView(userId: null, obscuredEmail: null,),
-    // ),
+    
     GoRoute(
       path: '/verify-otp',
-      builder: (context, state){
-        final email = state.uri.queryParameters['email'];
-        final extraData = state.extra as Map<String, dynamic>? ?? {}; 
-        
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>;
         return VerifyOtpView(
-          email: email,
-          userId: extraData['userId'],
-          obscuredEmail: extraData['obscuredEmail'],
+          userId: data['userId'],
+          obscuredEmail: data['obscuredEmail'],
+          email: data['email'],
         );
       },
     ),
+
     GoRoute(
       path: '/change-password',
       builder: (context, state) => const ChangePasswordApp(),

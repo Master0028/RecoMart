@@ -1,20 +1,42 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 
 final Color primaryBlue = Colors.blue.shade700;
 const Color cancelButtonColor = Color(0xFFEEEEEE);
 const Color cancelTextColor = Color(0xFF616161);
 
 class RecoveryMethodScreen extends StatefulWidget {
-  const RecoveryMethodScreen({super.key});
+  final String userName;
+  final String userAvatar;
+  final String email;
+  final String userId; // Added userId
+
+  const RecoveryMethodScreen({
+    super.key,
+    required this.userName,
+    required this.userAvatar,
+    required this.email,
+    required this.userId, // Added to constructor
+  });
 
   @override
   State<RecoveryMethodScreen> createState() => _RecoveryMethodScreenState();
 }
 
 class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
-  String _selectedMethod = 'SMS';
-  final TextEditingController _inputController = TextEditingController();
+  String _selectedMethod = 'Email';
+  late TextEditingController _inputController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _inputController = TextEditingController(text: widget.email);
+  }
 
   @override
   void dispose() {
@@ -29,9 +51,7 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
     return PopScope(
       canPop: false,
       onPopInvoked: (didPop) {
-        if (!didPop) {
-          context.pop();
-        }
+        if (!didPop) context.pop();
       },
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -54,12 +74,12 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         const SizedBox(height: 30),
-                        buildAvatar(),
+                        buildAvatar(widget.userAvatar),
                         const SizedBox(height: 20),
-                        const Text(
-                          'Julius',
+                        Text(
+                          widget.userName,
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                             color: Colors.black,
@@ -76,8 +96,6 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
                           ),
                         ),
                         const SizedBox(height: 30),
-                        
-                        // Selection Tiles
                         buildOptionTile(
                           label: 'SMS',
                           value: 'SMS',
@@ -93,9 +111,7 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
                           isSelected: _selectedMethod == 'Email',
                           activeColor: Colors.pink.shade100.withOpacity(0.7),
                         ),
-                        
                         const SizedBox(height: 30),
-
                         SmoothInputField(
                           controller: _inputController,
                           hintText: _selectedMethod == 'SMS' 
@@ -108,7 +124,6 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
                               ? TextInputType.phone 
                               : TextInputType.emailAddress,
                         ),
-                        
                         const Spacer(),
                         buildNextButton(context),
                         const SizedBox(height: 15),
@@ -126,40 +141,28 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
     );
   }
 
-  Widget buildAvatar() {
+  Widget buildAvatar(String url) {
     return Center(
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 120,
-            height: 120,
-            decoration: BoxDecoration(
-              color: Colors.pink.shade100,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 5),
-                )
-              ],
-            ),
+      child: Container(
+        width: 110,
+        height: 110,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 4),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            )
+          ],
+        ),
+        child: CircleAvatar(
+          backgroundColor: Colors.blue.shade50,
+          backgroundImage: NetworkImage(
+            url.isNotEmpty ? url : "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
           ),
-          Container(
-            width: 105,
-            height: 105,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: NetworkImage(
-                    "https://cdn3d.iconscout.com/3d/premium/thumb/man-avatar-6299539-5187871.png"),
-                fit: BoxFit.cover,
-              ),
-              color: Colors.white,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -175,7 +178,7 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
       onTap: () {
         setState(() {
           _selectedMethod = value;
-          _inputController.clear(); // Clear input when switching methods
+          _inputController.text = (value == 'Email') ? widget.email : '';
         });
       },
       child: AnimatedContainer(
@@ -189,22 +192,10 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
             color: isSelected ? primaryBlue : Colors.grey.shade200,
             width: isSelected ? 2 : 1.5,
           ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: activeColor.withOpacity(0.5),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  )
-                ]
-              : [],
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: isSelected ? primaryBlue : Colors.grey,
-            ),
+            Icon(icon, color: isSelected ? primaryBlue : Colors.grey),
             const SizedBox(width: 16),
             Text(
               label,
@@ -215,19 +206,8 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
               ),
             ),
             const Spacer(),
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 200),
-              opacity: isSelected ? 1.0 : 0.0,
-              child: Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: primaryBlue,
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check, size: 16, color: Colors.white),
-              ),
-            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: primaryBlue, size: 24),
           ],
         ),
       ),
@@ -236,16 +216,73 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
 
   Widget buildNextButton(BuildContext context) {
     return ElevatedButton(
-      onPressed: () {
-        if (_inputController.text.isEmpty) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(content: Text('Please enter your ${_selectedMethod.toLowerCase()}'))
-           );
-           return;
+      onPressed: _isLoading ? null : () async {
+        final inputText = _inputController.text.trim();
+
+        if (inputText.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Please enter your ${_selectedMethod.toLowerCase()}')),
+          );
+          return;
         }
-        
-        // Navigate
-        context.push('/setup-pass');
+
+        setState(() => _isLoading = true);
+
+        final String otpCode = (math.Random().nextInt(9000) + 1000).toString();
+
+        try {
+          final response = await http.post(
+            Uri.parse('https://api.emailjs.com/api/v1.0/email/send'),
+            headers: {
+              'Content-Type': 'application/json',
+              'origin': 'http://localhost',
+            },
+            body: jsonEncode({
+              'service_id': 'service_cg1dlar',
+              'template_id': 'template_drwxhsn',
+              'user_id': 'jlSLGvB_WkhiStTDA',
+              'template_params': {
+                'email': inputText,
+                'user_name': widget.userName,
+                'passcode': otpCode,
+              }
+            }),
+          );
+
+          if (response.statusCode == 200) {
+            String obscured;
+            if (_selectedMethod == 'Email' && inputText.contains('@')) {
+              final parts = inputText.split('@');
+              final name = parts[0];
+              obscured = name.length > 2
+                  ? "${name.substring(0, 2)}***@${parts[1]}"
+                  : "***@${parts[1]}";
+            } else {
+              obscured = inputText.length > 3
+                  ? "***${inputText.substring(inputText.length - 3)}"
+                  : "***";
+            }
+
+            if (mounted) {
+              context.push('/verify-otp', extra: {
+                'userId': widget.userId,
+                'email': inputText,
+                'obscuredEmail': obscured,
+                'otpCode': otpCode,
+              });
+            }
+          } else {
+            throw "Failed to send OTP. Please try again.";
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(e.toString())),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: primaryBlue,
@@ -254,27 +291,29 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
         elevation: 5,
         shadowColor: primaryBlue.withOpacity(0.4),
       ),
-      child: const Text('Next',
-          style: TextStyle(
-              fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+      child: _isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+            )
+          : const Text(
+              'Send Code',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+            ),
     );
   }
 
   Widget buildCancelButton(BuildContext context) {
     return TextButton(
-      onPressed: () {
-        context.pop();
-      },
+      onPressed: () => context.pop(),
       style: TextButton.styleFrom(
         minimumSize: const Size(double.infinity, 56),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         backgroundColor: cancelButtonColor,
       ),
       child: const Text('Cancel',
-          style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: cancelTextColor)),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: cancelTextColor)),
     );
   }
 }
@@ -305,9 +344,7 @@ class _SmoothInputFieldState extends State<SmoothInputField> {
   void initState() {
     super.initState();
     _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
+      setState(() => _isFocused = _focusNode.hasFocus);
     });
   }
 
@@ -338,13 +375,7 @@ class _SmoothInputFieldState extends State<SmoothInputField> {
                   offset: const Offset(0, 4),
                 )
               ]
-            : [
-                const BoxShadow(
-                  color: Colors.transparent,
-                  blurRadius: 0,
-                  offset: Offset(0, 0),
-                )
-              ],
+            : [],
       ),
       child: TextField(
         controller: widget.controller,
@@ -357,13 +388,9 @@ class _SmoothInputFieldState extends State<SmoothInputField> {
         ),
         decoration: InputDecoration(
           border: InputBorder.none,
-          icon: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: Icon(
-              widget.icon,
-              key: ValueKey(widget.icon),
-              color: _isFocused ? primaryBlue : Colors.grey,
-            ),
+          icon: Icon(
+            widget.icon,
+            color: _isFocused ? primaryBlue : Colors.grey,
           ),
           hintText: widget.hintText,
           hintStyle: TextStyle(color: Colors.grey.shade400),

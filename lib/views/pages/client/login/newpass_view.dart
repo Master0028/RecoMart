@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:recomart/components/custom/snackbar.dart';
 
-final Color primaryBlue = const Color(0xFF1976D2);
+const Color primaryBlue = Color(0xFF1976D2);
 final Color primaryPink = Colors.pink.shade300;
 
 class RecoveryHeader extends StatelessWidget {
@@ -53,7 +55,7 @@ class RecoveryHeader extends StatelessWidget {
                       ),
                     ],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.lock_reset_rounded,
                     size: 60,
                     color: primaryBlue,
@@ -81,7 +83,6 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
   final _newPasswordCtrl = TextEditingController();
   final _repeatPasswordCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   bool _isLoading = false;
 
   @override
@@ -94,33 +95,63 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
   Future<void> _changePassword() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_newPasswordCtrl.text != _repeatPasswordCtrl.text) {
-      if (mounted) {
-        showCustomSnackBar(context, 'Passwords do not match.', type: SnackBarType.error);
-      }
+    final newPassword = _newPasswordCtrl.text.trim();
+    final confirmPassword = _repeatPasswordCtrl.text.trim();
+
+    if (newPassword != confirmPassword) {
+      showCustomSnackBar(context, 'Passwords do not match.', type: SnackBarType.error);
       return;
     }
 
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1));
 
-    if (mounted) {
-      showCustomSnackBar(context, 'Password changed successfully! Please login again.', type: SnackBarType.success);
-      context.go('/login');
+    try {
+      final url = Uri.parse('https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/reset-password');
+      
+      final response = await http.post(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'ngrok-skip-browser-warning': 'true', 
+        },
+        body: jsonEncode({
+          'id': widget.userId.trim(), // Sent the specific Firebase Document ID
+          'newPassword': newPassword,
+        }),
+      ).timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          showCustomSnackBar(context, 'Password updated successfully!', type: SnackBarType.success);
+          context.go('/login');
+        }
+      } else {
+        String errorMessage = 'Failed to update password';
+        try {
+          final errorData = jsonDecode(response.body);
+          errorMessage = errorData['detail'] ?? errorData['message'] ?? errorMessage;
+        } catch (_) {}
+        throw errorMessage;
+      }
+    } catch (e) {
+      if (mounted) {
+        showCustomSnackBar(context, e.toString(), type: SnackBarType.error);
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-
-    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      body: Column(
-        children: [
-          const RecoveryHeader(),
-          Expanded(
-            child: SingleChildScrollView(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const RecoveryHeader(),
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
               child: Form(
                 key: _formKey,
@@ -130,32 +161,24 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                     const Text(
                       'Set New Password',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 10),
                     const Text(
-                      'Please create a new password for your account.',
+                      'Your new password must be different from previous passwords.',
                       textAlign: TextAlign.center,
                       style: TextStyle(fontSize: 16, color: Colors.black54),
                     ),
                     const SizedBox(height: 40),
-                    
                     AnimatedPasswordField(
                       controller: _newPasswordCtrl,
                       hintText: 'New Password',
                     ),
-                    
                     const SizedBox(height: 20),
-                    
                     AnimatedPasswordField(
                       controller: _repeatPasswordCtrl,
-                      hintText: 'Confirm New Password',
+                      hintText: 'Confirm Password',
                     ),
-                    
                     const SizedBox(height: 40),
                     SizedBox(
                       width: double.infinity,
@@ -163,46 +186,34 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
                         onPressed: _isLoading ? null : _changePassword,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primaryBlue,
+                          disabledBackgroundColor: primaryBlue.withOpacity(0.6),
                           padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 5,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2.5,
-                                ),
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                               )
                             : const Text(
                                 'Save Password',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
                               ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     TextButton(
                       onPressed: () => context.pop(),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.grey, fontSize: 16),
-                      ),
+                      child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 16)),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -212,11 +223,7 @@ class AnimatedPasswordField extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
 
-  const AnimatedPasswordField({
-    super.key,
-    required this.controller,
-    required this.hintText,
-  });
+  const AnimatedPasswordField({super.key, required this.controller, required this.hintText});
 
   @override
   State<AnimatedPasswordField> createState() => _AnimatedPasswordFieldState();
@@ -230,11 +237,7 @@ class _AnimatedPasswordFieldState extends State<AnimatedPasswordField> {
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      setState(() {
-        _isFocused = _focusNode.hasFocus;
-      });
-    });
+    _focusNode.addListener(() => setState(() => _isFocused = _focusNode.hasFocus));
   }
 
   @override
@@ -246,57 +249,23 @@ class _AnimatedPasswordFieldState extends State<AnimatedPasswordField> {
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 200),
       decoration: BoxDecoration(
         color: _isFocused ? Colors.white : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _isFocused ? primaryBlue : Colors.transparent,
-          width: 1.5,
-        ),
-        boxShadow: _isFocused
-            ? [
-                BoxShadow(
-                  color: primaryBlue.withOpacity(0.2),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                )
-              ]
-            : [],
+        border: Border.all(color: _isFocused ? primaryBlue : Colors.transparent, width: 1.5),
       ),
       child: TextFormField(
         controller: widget.controller,
         focusNode: _focusNode,
         obscureText: !_isVisible,
-        validator: (value) {
-          if (value == null || value.isEmpty) return 'Password cannot be empty.';
-          if (value.length < 6) return 'Password must be at least 6 characters.';
-          return null;
-        },
-        style: const TextStyle(fontWeight: FontWeight.w500),
+        validator: (value) => (value == null || value.length < 6) ? 'Password must be at least 6 characters' : null,
         decoration: InputDecoration(
           hintText: widget.hintText,
-          hintStyle: TextStyle(
-            color: _isFocused ? primaryBlue.withOpacity(0.7) : Colors.grey,
-          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
           suffixIcon: IconButton(
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 300),
-              transitionBuilder: (child, anim) => RotationTransition(
-                turns: child.key == const ValueKey('icon1')
-                    ? Tween<double>(begin: 1, end: 0.75).animate(anim)
-                    : Tween<double>(begin: 0.75, end: 1).animate(anim),
-                child: FadeTransition(opacity: anim, child: child),
-              ),
-              child: Icon(
-                _isVisible ? Icons.visibility : Icons.visibility_off,
-                key: ValueKey(_isVisible ? 'icon1' : 'icon2'),
-                color: _isFocused ? primaryBlue : Colors.grey.shade600,
-              ),
-            ),
+            icon: Icon(_isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.grey),
             onPressed: () => setState(() => _isVisible = !_isVisible),
           ),
         ),

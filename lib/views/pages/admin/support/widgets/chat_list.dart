@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:recomart/config/color.dart';
-
 import '../../../../../services/chatadmin.service.dart';
 
 class ChatList extends StatelessWidget {
@@ -15,19 +14,18 @@ class ChatList extends StatelessWidget {
     this.selectedUserId,
   });
 
-  /// 🔹 Lấy thông tin user từ Firestore theo userId
   Future<Map<String, dynamic>?> _getUserData(String userId) async {
     try {
       final snapshot = await FirebaseFirestore.instance.collection('users').doc(userId).get();
       if (snapshot.exists) {
         final data = snapshot.data()!;
         return {
-          'name': data['name'] ?? 'Người dùng',
-          'avatar': data['avatar'] ?? 'https://placehold.co/60x60/cccccc/ffffff?text=U',
+          'name': data['name'] ?? 'User',
+          'avatar': data['avatar'] ?? '',
         };
       }
     } catch (e) {
-      debugPrint("❌ Lỗi load user info: $e");
+      debugPrint("Load user info error: $e");
     }
     return null;
   }
@@ -43,7 +41,7 @@ class ChatList extends StatelessWidget {
 
         final chats = snapshot.data!.docs;
         if (chats.isEmpty) {
-          return const Center(child: Text("Không có cuộc trò chuyện nào."));
+          return const Center(child: Text("No conversations yet."));
         }
 
         return ListView.builder(
@@ -51,47 +49,80 @@ class ChatList extends StatelessWidget {
           itemBuilder: (context, index) {
             final chat = chats[index].data();
             final participants = List<String>.from(chat['participants'] ?? []);
-
-            // ✅ Loại admin ra, chỉ lấy userId thật
             final userId = participants.firstWhere(
-                  (id) => id != ChatAdminService.adminId,
+              (id) => id != ChatAdminService.adminId,
               orElse: () => 'unknown',
             );
 
             final isSelected = selectedUserId == userId;
+            final unreadCount = chat['unreadCount'] ?? 0;
 
-            // ✅ Dùng FutureBuilder để lấy thông tin user
             return FutureBuilder<Map<String, dynamic>?>(
               future: _getUserData(userId),
               builder: (context, userSnap) {
                 final userData = userSnap.data;
                 final userName = userData?['name'] ?? userId;
-                final userAvatar = userData?['avatar'] ??
-                    'https://placehold.co/60x60/cccccc/ffffff?text=U';
+                final userAvatar = userData?['avatar'] ?? '';
                 final lastMessage = chat['lastMessage'] ?? '';
 
                 return ListTile(
-                  tileColor:
-                  isSelected ? AppColors.primary.withOpacity(0.05) : Colors.white,
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(userAvatar),
-                    backgroundColor: Colors.grey.shade300,
+                  tileColor: isSelected ? AppColors.primary.withOpacity(0.08) : Colors.white,
+                  leading: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.grey.shade200,
+                        ),
+                        child: ClipOval(
+                          child: Image.network(
+                            userAvatar,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) => 
+                              const Icon(Icons.person, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                      if (unreadCount > 0)
+                        Positioned(
+                          right: -2,
+                          top: -2,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                            child: Text(
+                              unreadCount > 9 ? '9+' : '$unreadCount',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   title: Text(
                     userName,
                     style: TextStyle(
-                      fontWeight:
-                      isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: Colors.black87,
+                      fontWeight: unreadCount > 0 || isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? AppColors.primary : Colors.black87,
                     ),
                   ),
                   subtitle: Text(
                     lastMessage,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                      color: unreadCount > 0 ? Colors.black87 : Colors.grey,
+                      fontWeight: unreadCount > 0 ? FontWeight.w500 : FontWeight.normal,
+                    ),
                   ),
-                  trailing: const Icon(Icons.chevron_right, color: Colors.grey),
                   onTap: () => onUserSelected({
                     'id': userId,
                     'name': userName,

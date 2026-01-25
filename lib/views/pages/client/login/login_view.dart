@@ -274,8 +274,9 @@ class _LoginViewState extends State<LoginView> {
                           alignment: Alignment.centerRight,
                           child: TextButton(
                             onPressed: () {
-                              context.push(
-                                  '/recovery?email=${_emailController.text.trim()}');
+                            final email = _emailController.text.trim();
+
+                              context.push('/find-account?email=$email'); 
                             },
                             style: TextButton.styleFrom(
                               foregroundColor: primaryBlue,
