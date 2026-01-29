@@ -76,7 +76,7 @@ class _InteractiveGuestAvatarState extends State<InteractiveGuestAvatar> {
     final List<Map<String, dynamic>> items = [
       {'text': 'Home', 'icon': Icons.home_outlined, 'value': 'Home'},
       if (isLoggedIn)
-      {'text': 'Profile', 'icon': Icons.person_outline, 'value': 'Profile'},
+        {'text': 'Profile', 'icon': Icons.person_outline, 'value': 'Profile'},
       {'text': "Cart", 'icon': Icons.shopping_cart_outlined, 'value': "Cart"},
       {'text': "Chatbot AI", 'icon': Icons.chat, 'value': "Chatbot AI"},
       {'text': "Support", 'icon': Icons.help_outline, 'value': "Support"},
@@ -189,98 +189,98 @@ class _DesktopSearchAndCart extends StatelessWidget {
   final GlobalKey<CartIconKey> cartKey;
   const _DesktopSearchAndCart({required this.cartKey});
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 600),
-            decoration: BoxDecoration(
-                color: _searchBarBackground,
-                borderRadius: BorderRadius.circular(5)),
-            child: Row(children: [
-              Expanded(
-                child: TextField(
-                  readOnly: true,
-                  onTap: () => context.push('/search'),
-                  decoration: const InputDecoration(
-                      hintText: 'Search products...',
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 15)),
-                  onSubmitted: (_) => context.push('/search'),
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                    color: _actionButtonColor,
-                    borderRadius: BorderRadius.circular(5)),
-                width: 50,
-                height: 48,
-                child: IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white),
-                    onPressed: () => context.push('/search')),
-              ),
-            ]),
-          ),
-        ),
-        const SizedBox(width: 20),
-        Consumer<CartProvider>(
-          builder: (context, cartProvider, child) {
-            final int count = cartProvider.totalItems;
-
-            return Badge(
-              label: Text('$count'),
-              isLabelVisible: count > 0,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(30),
-                onTap: () {
-                  context.push('/cart');
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(6),
-                  child: AddToCartIcon(
-                    key: cartKey,
-                    icon: const Icon(
-                      Icons.shopping_cart_outlined,
-                      size: 26,
-                      color: Colors.black87,
-                    ),
-                    badgeOptions: const BadgeOptions(active: false),
+    @override
+    Widget build(BuildContext context) {
+      return Row(
+        children: [
+          Expanded(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 600),
+              decoration: BoxDecoration(
+                  color: _searchBarBackground,
+                  borderRadius: BorderRadius.circular(5)),
+              child: Row(children: [
+                Expanded(
+                  child: TextField(
+                    readOnly: true,
+                    onTap: () => context.push('/search'),
+                    decoration: const InputDecoration(
+                        hintText: 'Search products...',
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 15)),
+                    onSubmitted: (_) => context.push('/search'),
                   ),
                 ),
-              ),
-            );
-          },
-        ),
-      ],
-    );
+                Container(
+                  decoration: BoxDecoration(
+                      color: _actionButtonColor,
+                      borderRadius: BorderRadius.circular(5)),
+                  width: 50,
+                  height: 48,
+                  child: IconButton(
+                      icon: const Icon(Icons.search, color: Colors.white),
+                      onPressed: () => context.push('/search')),
+                ),
+              ]),
+            ),
+          ),
+          const SizedBox(width: 20),
+          Consumer<CartProvider>(
+            builder: (context, cartProvider, child) {
+              final int count = cartProvider.totalItems;
+
+              return Badge(
+                label: Text('$count'),
+                isLabelVisible: count > 0,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(30),
+                  onTap: () {
+                    context.push('/cart');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(6),
+                    child: AddToCartIcon(
+                      key: cartKey,
+                      icon: const Icon(
+                        Icons.shopping_cart_outlined,
+                        size: 26,
+                        color: Colors.black87,
+                      ),
+                      badgeOptions: const BadgeOptions(active: false),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      );
+    }
   }
-}
 
-class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
-  final GlobalKey<CartIconKey> cartKey;
-  const AppBarHomeCustom({super.key, required this.cartKey});
+  class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
+    final GlobalKey<CartIconKey> cartKey;
+    const AppBarHomeCustom({super.key, required this.cartKey});
 
-  @override
-  Size get preferredSize => const Size.fromHeight(60);
+    @override
+    Size get preferredSize => const Size.fromHeight(60);
 
-  void _showAppInfo(BuildContext context) {
-    showAboutDialog(
-      context: context,
-      applicationName: 'RecoMart',
-      applicationVersion: '1.0.2+build.20260101',
-      applicationIcon: Image.asset('assets/logo/logo.png', width: 50, height: 50),
-      applicationLegalese: '© 2026 RecoMart Visionaries. All rights reserved.',
-      children: const [
-        SizedBox(height: 16),
-        Text('Developed by: Visionaries Team'),
-        Text('AI-Powered Personalized Shopping Experience.'),
-      ],
-    );
-  }
+    void _showAppInfo(BuildContext context) {
+      showAboutDialog(
+        context: context,
+        applicationName: 'RecoMart',
+        applicationVersion: '1.0.2+build.20260101',
+        applicationIcon: Image.asset('assets/logo/logo.png', width: 50, height: 50),
+        applicationLegalese: '© 2026 RecoMart Visionaries. All rights reserved.',
+        children: const [
+          SizedBox(height: 16),
+          Text('Developed by: Visionaries Team'),
+          Text('AI-Powered Personalized Shopping Experience.'),
+        ],
+      );
+    }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     final bool isDesktop = Responsive.isDesktop(context);
 
@@ -294,17 +294,39 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
               padding: const EdgeInsets.only(left: 32),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onDoubleTap: () => _showAppInfo(context),
-                    child: Row(
-                      children: [
-                        Image.asset('assets/logo/logo.png', height: 30, width: 30),
-                        const SizedBox(width: 8),
-                        const Text.rich(TextSpan(children: [
-                          TextSpan(text: 'Reco', style: TextStyle(color: _primaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
-                          TextSpan(text: 'Mart', style: TextStyle(color: _secondaryColor, fontSize: 20, fontWeight: FontWeight.bold)),
-                        ])),
-                      ],
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => context.go('/home'),
+                      onDoubleTap: () => _showAppInfo(context),
+                      child: Row(
+                        children: [
+                          Image.asset('assets/logo/logo.png', height: 30, width: 30),
+                          const SizedBox(width: 8),
+                          const Text.rich(
+                            TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Reco',
+                                  style: TextStyle(
+                                    color: _primaryColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: 'Mart',
+                                  style: TextStyle(
+                                    color: _secondaryColor,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   Expanded(
@@ -328,7 +350,11 @@ class AppBarHomeCustom extends StatelessWidget implements PreferredSizeWidget {
                   isLabelVisible: cartProvider.totalItems > 0,
                   child: AddToCartIcon(
                     key: cartKey,
-                    icon: const Icon(Icons.shopping_cart_outlined, color: Colors.black87, size: 28),
+                    icon: const Icon(
+                      Icons.shopping_cart_outlined,
+                      color: Colors.black87,
+                      size: 28,
+                    ),
                     badgeOptions: const BadgeOptions(active: false),
                   ),
                 ),

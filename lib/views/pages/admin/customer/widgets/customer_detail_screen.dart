@@ -72,48 +72,37 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   }
 
   void _syncPersonaData() {
-    final effectivePersona = _persona ?? {
-      'order_count': 0,
-      'total_spent': 0.0,
-    };
-
-    final random = math.Random();
-    final orders = effectivePersona['order_count'] ?? 0;
-
-    double spent = (effectivePersona['total_spent'] ?? 0).toDouble();
-    if (spent == 0 && orders > 0) {
-      spent = orders * (random.nextInt(500000) + 100000).toDouble();
-    }
-
-    List<Map<String, dynamic>> behaviorPool = [
-      {
-        "label": "CSAT Score", 
-        "value": "${(random.nextDouble() * (5.0 - 3.8) + 3.8).toStringAsFixed(1)} / 5.0",
-        "icon": Icons.sentiment_satisfied_alt,
-        "color": Colors.green,
-      },
-      {
-        "label": "Product Views",
-        "value": "${random.nextInt(150) + 20} views",
-        "icon": Icons.remove_red_eye_outlined,
-        "color": Colors.orange,
-      },
-      {
-        "label": "Avg. Session",
-        "value": "${random.nextInt(10) + 2}m ${(random.nextInt(59))}s",
-        "icon": Icons.timer_outlined,
-        "color": Colors.blue,
-      },
-      {
-        "label": "Conv. Prob.",
-        "value": "${random.nextInt(30) + 40}%", 
-        "icon": Icons.trending_up,
-        "color": Colors.purple,
-      }
-    ];
+    if (_persona == null) return;
+    
+    final stats = _persona!['stats'] ?? {};
 
     setState(() {
-      _selectedStats = behaviorPool;
+      _selectedStats = [
+        {
+          "label": "Avg.Value", 
+          "value": "${(stats['avg_order_value'] ?? 0)} pts",
+          "icon": Icons.bolt,
+          "color": Colors.orange, 
+        },
+        {
+          "label": "Risk Level",
+          "value": "${_persona!['churn_risk'] ?? 'Low'}",
+          "icon": Icons.warning_amber_rounded,
+          "color": _persona!['churn_risk'] == 'High' ? Colors.red : Colors.green,
+        },
+        {
+          "label": "VIP Status",
+          "value": "${_persona!['vip_level'] ?? 'Member'}",
+          "icon": Icons.verified_user,
+          "color": Colors.blue,
+        },
+        {
+          "label": "Order Count",
+          "value": "${_persona!['order_count'] ?? 0} Orders",
+          "icon": Icons.shopping_bag,
+          "color": Colors.orange,
+        }
+      ];
     });
   }
 
@@ -144,12 +133,9 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
       if (mounted) {
         setState(() {
           _persona = data;
-            if (data['history'] != null) {
-            _userOrders.clear();
-            _userOrders.addAll(data['history']);
-          }
           _isLoading = false;
         });
+        _syncPersonaData();
         _animController.forward();
         _getAIInsights();
       }
@@ -167,8 +153,8 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
     
     try {
       final model = GenerativeModel(
-        model: 'gemini-2.0-flash', 
-        apiKey: 'AIzaSyBiA3lyRH7DQ8t0_cKExGD9o7vMPYgZBp4',
+        model: 'gemini-2.5-flash', 
+        apiKey: 'AIzaSyAghMl5fXheLPmbj85O7WYQWuL9AOw1g8g',
       );
 
       final prompt = """
@@ -469,42 +455,11 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   }
 
   Widget _buildRFMSection() {
-    final orders = _persona!['order_count'] ?? 0;
-    final avgOrders = _persona!['system_avg_orders'] ?? 10;
-    final math.Random random = math.Random();
+    if (_persona == null) return const SizedBox.shrink();
 
-    String lastActive;
-    if (_persona!['last_active'] != null) {
-      lastActive = _persona!['last_active'];
-    } else {
-      DateTime fallbackDate;
-      if (orders > 0) {
-        fallbackDate = DateTime.now().subtract(const Duration(days: 1));
-      } else {
-        fallbackDate = DateTime.now().subtract(Duration(days: 14 + random.nextInt(21)));
-      }
-      lastActive = DateFormat('dd/MM/yyyy').format(fallbackDate);
-    }
-
-    final double totalSpending = orders == 0 
-        ? 0 
-        : orders * (random.nextInt(600000) + 200000).toDouble();
-    
-    final int points = orders == 0 
-        ? 0 
-        : (totalSpending * 0.01).toInt() + random.nextInt(1000);
-
-    final bool isHighFreq = orders > (avgOrders * 1.2);
-
-    String tier = "Bronze";
-    Color tierColor = Colors.brown;
-    if (totalSpending > 5000000) {
-      tier = "Platinum";
-      tierColor = const Color(0xFF326273);
-    } else if (totalSpending > 2000000) {
-      tier = "Gold";
-      tierColor = const Color(0xFFFFD700);
-    }
+    final int orders = _persona!['order_count'] ?? 0;
+    final double spent = (_persona!['total_spent'] ?? 0).toDouble();
+    final String risk = _persona!['churn_risk'] ?? "Low";
 
     final currencyFormat = NumberFormat.currency(locale: 'vi_VN', symbol: '₫');
 
@@ -518,77 +473,22 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text("RFM Analysis", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
-                  Text("Customer Value Score", style: TextStyle(color: Colors.grey[500], fontSize: 11)),
-                ],
-              ),
-              Row(
-                children: [
-                  if (isHighFreq)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: Colors.green.shade50, borderRadius: BorderRadius.circular(8)),
-                      child: Text("HIGH FREQ", style: TextStyle(color: Colors.green.shade700, fontSize: 10, fontWeight: FontWeight.bold)),
-                    ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: tierColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: tierColor.withOpacity(0.3)),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.stars, color: tierColor, size: 14),
-                        const SizedBox(width: 4),
-                        Text(tier, style: TextStyle(color: tierColor, fontSize: 11, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
+          Text("RFM Analysis", style: GoogleFonts.poppins(fontSize: 16, fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _buildRFMIndicator("Recency", lastActive, Colors.orange),
               _buildRFMIndicator("Frequency", "$orders Orders", Colors.blue),
-              _buildRFMIndicator(
-                "Status", 
-                orders == 0 ? "Inactive" : (orders > avgOrders ? "Active" : "At Risk"), 
-                orders == 0 ? Colors.grey : (orders > avgOrders ? Colors.green : Colors.red),
-              ),
+              _buildRFMIndicator("Churn Risk", risk, risk.toLowerCase() == "high" ? Colors.red : Colors.green),
+              _buildRFMIndicator("Loyalty Points", "0 pts", Colors.purple),
             ],
           ),
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 16),
-            child: Divider(height: 1, thickness: 0.5),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildRFMIndicator(
-                "Loyalty Points", 
-                NumberFormat('#,###').format(points), 
-                Colors.purple,
-                subValue: "Exp: 12/2026",
-              ),
-              _buildRFMIndicator(
-                "Monetary", 
-                currencyFormat.format(totalSpending), 
-                Colors.redAccent,
-                subValue: "Lifetime value",
-              ),
-            ],
+          const Divider(height: 32),
+          _buildRFMIndicator(
+            "Monetary (Lifetime)", 
+            currencyFormat.format(spent), 
+            Colors.redAccent,
+            subValue: "Total spending amount",
           ),
         ],
       ),
@@ -735,31 +635,15 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
   }
 
   Widget _buildModernProfileHeader() {
-    bool hasOrdersProfile = _userOrders.isNotEmpty || (_persona?['order_count'] ?? 0) > 0;
+    String displayAvatar = (_persona?['avatar'] != null && _persona!['avatar'].toString().isNotEmpty) 
+        ? _persona!['avatar'] 
+        : widget.userAvatar;
     
-    int orderQty = _userOrders.isNotEmpty ? _userOrders.length : (_persona?['order_count'] ?? 0);
-
-    String tierName;
-    Color tierColor;
-    IconData tierIcon;
-
-    if (!hasOrdersProfile) {
-      tierName = "STANDARD MEMBER";
-      tierColor = const Color(0xFF00FFC8);
-      tierIcon = Icons.person_outline;
-    } else if (orderQty > 15) {
-      tierName = "DIAMOND MEMBER";
-      tierColor = const Color(0xFF00E5FF);
-      tierIcon = Icons.diamond;
-    } else if (orderQty > 10) {
-      tierName = "GOLD MEMBER";
-      tierColor = Colors.amber;
-      tierIcon = Icons.stars;
-    } else {
-      tierName = "SILVER MEMBER";
-      tierColor = const Color.fromARGB(255, 20, 18, 18);
-      tierIcon = Icons.military_tech;
-    }
+    String displayName = _persona?['full_name'] ?? widget.userName;
+    String tierName = (_persona?['vip_level'] ?? "MEMBER").toUpperCase();
+    
+    Color tierColor = tierName.contains("DIAMOND") ? Colors.cyan : (tierName.contains("GOLD") ? Colors.amber : Colors.blueGrey);
+    IconData tierIcon = tierName.contains("DIAMOND") ? Icons.diamond : Icons.stars;
 
     return Center(
       child: Column(
@@ -769,54 +653,40 @@ class _CustomerDetailScreenState extends State<CustomerDetailScreen> with Single
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: tierColor.withOpacity(0.5), width: 2.5),
-              boxShadow: [
-                BoxShadow(color: tierColor.withOpacity(0.1), blurRadius: 20, spreadRadius: 5)
-              ],
             ),
             child: Hero(
               tag: widget.userId,
               child: CircleAvatar(
                 radius: 50, 
-                backgroundColor: Colors.white10,
-                backgroundImage: NetworkImage(widget.userAvatar)
+                backgroundColor: Colors.grey[200],
+                backgroundImage: NetworkImage(displayAvatar),
+                onBackgroundImageError: (_, __) => const Icon(Icons.person),
               ),
             ),
           ),
-          
           const SizedBox(height: 16),
-          
-          Text(
-            widget.userName, 
-            style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)
-          ),
-          
+          Text(displayName, style: GoogleFonts.poppins(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black)),
           const SizedBox(height: 12),
+          _buildTierBadge(tierName, tierColor, tierIcon),
+        ],
+      ),
+    );
+  }
 
-          // Badge Tier (Khung nhãn xịn)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: tierColor.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: tierColor.withOpacity(0.4), width: 1.5),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(tierIcon, size: 16, color: tierColor),
-                const SizedBox(width: 8),
-                Text(
-                  tierName,
-                  style: GoogleFonts.poppins(
-                    color: tierColor, 
-                    fontWeight: FontWeight.w800, 
-                    letterSpacing: 1.2, 
-                    fontSize: 11
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _buildTierBadge(String name, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: color.withOpacity(0.4), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Text(name, style: GoogleFonts.poppins(color: color, fontWeight: FontWeight.w800, fontSize: 11)),
         ],
       ),
     );
@@ -941,55 +811,26 @@ Widget _buildTimelineTile(String title, String date, IconData icon, bool hasLine
 }
 
   Widget _buildRadarChartSection() {
-    final categories = _persona!['favorite_categories'] as Map<String, dynamic>? ?? {};
-    final int orderCount = _persona!['order_count'] ?? 0;
+    final categories = _persona?['favorite_categories'] as Map<String, dynamic>? ?? {};
+    final int orderCount = _persona?['order_count'] ?? 0;
 
     if (orderCount == 0 || categories.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Text("Interest Radar", style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Spacer(),
-                const Icon(Icons.info_outline, size: 18, color: Colors.grey),
-              ],
-            ),
-            const SizedBox(height: 40),
-            Icon(Icons.analytics_outlined, size: 48, color: Colors.grey.shade300),
-            const SizedBox(height: 16),
-            Text(
-              "No Analytical Data",
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "This customer has no order history for AI preference analysis.",
-              textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey.shade400),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      );
+      return _buildEmptyRadarPlaceholder(); 
     }
 
     List<String> keys = categories.keys.toList();
-    List<double> values = categories.values.map((e) => (e as num).toDouble()).toList();
-    final mockLabels = ["Engagement", "Loyalty", "Trendiness", "Diversity", "Spender Score", "Frequency"];
-    final random = math.Random();
+    
+    List<double> values = categories.values.map((e) {
+      double val = (e as num).toDouble();
+      return val > 10 ? val / 10 : val; 
+    }).toList();
 
-    if (keys.length < 5) {
-      for (var label in mockLabels) {
-        if (!keys.contains(label) && keys.length < 6) {
+    if (keys.length < 3) {
+      final paddingLabels = ["Trend", "Engagement", "Loyalty"];
+      for (var label in paddingLabels) {
+        if (!keys.contains(label) && keys.length < 4) {
           keys.add(label);
-          values.add(random.nextDouble() * 6 + 2); 
+          values.add(1.5);
         }
       }
     }
@@ -1027,7 +868,11 @@ Widget _buildTimelineTile(String title, String date, IconData icon, bool hasLine
                       dataEntries: values.map((e) => RadarEntry(value: e * _animController.value)).toList(),
                     )
                   ],
-                  getTitle: (index, angle) => RadarChartTitle(text: keys[index % keys.length], angle: angle),
+                  // Hiển thị tên danh mục lấy từ BE
+                  getTitle: (index, angle) => RadarChartTitle(
+                    text: keys[index % keys.length], 
+                    angle: angle
+                  ),
                   titleTextStyle: GoogleFonts.poppins(fontSize: 11, color: Colors.grey[600]),
                   tickCount: 2,
                   ticksTextStyle: const TextStyle(color: Colors.transparent),
@@ -1041,65 +886,67 @@ Widget _buildTimelineTile(String title, String date, IconData icon, bool hasLine
     );
   }
 
-  Widget _buildTopFavorites() {
-    final favorites = List.from((_persona!['top_favorites'] as List?) ?? []);
-    final math.Random random = math.Random();
+  Widget _buildEmptyRadarPlaceholder() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      child: Column(
+        children: [
+          const Row(
+            children: [
+              Text("Interest Radar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Spacer(),
+              Icon(Icons.info_outline, size: 18, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 40),
+          Icon(Icons.analytics_outlined, size: 48, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text("No Analytical Data", style: GoogleFonts.poppins(fontWeight: FontWeight.w600, color: Colors.grey.shade600)),
+          const SizedBox(height: 8),
+          Text("Wait for more orders to analyze preferences.", style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
 
-    if (favorites.isEmpty) {
-      return _buildEmptyState();
-    }
+  Widget _buildTopFavorites() {
+    final favorites = List.from((_persona?['recommended_items'] as List?) ?? []);
+
+    if (favorites.isEmpty) return _buildEmptyState();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Top Favorites", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text("See all", style: TextStyle(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.w600)),
-          ],
-        ),
+        const Text("AI Recommendations", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 12),
         SizedBox(
-          height: 120,
+          height: 140,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             itemCount: favorites.length,
             itemBuilder: (context, i) {
-              final rating = (random.nextDouble() * 1.5 + 3.5).toStringAsFixed(1);
-              final sales = random.nextInt(500) + 50;
-              final price = (random.nextInt(5) + 1) * 150000;
-
+              final item = favorites[i];
               return Container(
-                width: 260,
+                width: 280,
                 margin: const EdgeInsets.only(right: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 15, offset: const Offset(0, 5))],
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
                 ),
                 child: Row(
                   children: [
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.network(favorites[i]['image'], width: 70, height: 70, fit: BoxFit.cover),
-                        ),
-                        if (sales > 300)
-                          Positioned(
-                            top: 0, left: 0,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.only(bottomRight: Radius.circular(8), topLeft: Radius.circular(16))
-                              ),
-                              child: const Text("HOT", style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold)),
-                            ),
-                          ),
-                      ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        item['image'] ?? "https://via.placeholder.com/150", 
+                        width: 80, height: 80, fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(width: 80, height: 80, color: Colors.grey[200], child: const Icon(Icons.broken_image)),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -1107,25 +954,16 @@ Widget _buildTimelineTile(String title, String date, IconData icon, bool hasLine
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(favorites[i]['name'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const Icon(Icons.star, color: Colors.amber, size: 14),
-                              Text(" $rating", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                              Text(" ($sales)", style: TextStyle(color: Colors.grey[400], fontSize: 11)),
-                            ],
-                          ),
+                          Text(item['productName'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), maxLines: 2),
+                          Text(item['reason'] ?? 'AI Match', style: const TextStyle(color: Colors.blue, fontSize: 10)),
                           const SizedBox(height: 4),
                           Text(
-                            NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(price),
-                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13),
+                            NumberFormat.currency(locale: 'vi_VN', symbol: '₫').format(item['price'] ?? 0),
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
                           ),
                         ],
                       ),
                     ),
-                    // Nút hành động nhỏ
-                    Icon(Icons.arrow_forward_ios, size: 12, color: Colors.grey[300]),
                   ],
                 ),
               );

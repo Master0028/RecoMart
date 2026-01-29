@@ -282,18 +282,39 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final item = _searchResults[index];
-                
-                String productImg = (item['imageUrl'] ?? '').toString();
 
-                if (productImg.isEmpty || !productImg.startsWith('http')) {
-                  productImg = 'https://via.placeholder.com/600x600?text=No+Image';
+                // --- BƯỚC 1: Lấy dữ liệu thô ---
+                // Ưu tiên 'imageUrl', nếu không có thì tìm 'image', không có nữa thì lấy rỗng
+                String rawImg = (item['imageUrl'] ?? item['image'] ?? '').toString();
+
+                // --- BƯỚC 2: In ra log để bắt lỗi (Xem ở tab Run/Terminal) ---
+                print("--- DEBUG ẢNH VỊ TRÍ $index ---");
+                print("Tên SP: ${item['name']}");
+                print("Link gốc: '$rawImg'"); // Để trong nháy đơn để xem có dư khoảng trắng không
+
+                // --- BƯỚC 3: Xử lý làm sạch chuỗi (Quan trọng nhất) ---
+                String productImg = rawImg.trim(); // Cắt bỏ khoảng trắng đầu/cuối
+
+                // Logic chọn ảnh cuối cùng
+                if (productImg.isEmpty) {
+                  // Link dự phòng nếu không có ảnh
+                  productImg = 'https://via.placeholder.com/300x300.png?text=No+Image';
+                } else if (!productImg.startsWith('http')) {
+                   // Nếu link là đường dẫn nội bộ (không có http), nối thêm Base URL
+                   // Ví dụ: assets/img.jpg -> https://api.com/assets/img.jpg
+                   var baseUrl = RecommendationService.baseUrl;
+                   // Xử lý dấu / để tránh bị 2 dấu //
+                   if (!productImg.startsWith('/')) productImg = '/$productImg';
+                   productImg = '$baseUrl$productImg';
                 }
+
+                print("Link sau xử lý: $productImg");
 
                 return ProductView(
                   id: (item['id'] ?? '').toString(),
                   categoryId: (item['category'] ?? '').toString(),
                   name: (item['name'] ?? 'No Name').toString(),
-                  image: productImg,
+                  image: productImg, // Truyền link đã xử lý sạch sẽ
                   price: (item['price'] ?? 0).toDouble(),
                   averageRating: (item['rating'] ?? '0').toString(),
                 );

@@ -153,64 +153,70 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
         child: Column(
           children: [
             const RecoveryHeader(),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32.0),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Set New Password',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Your new password must be different from previous passwords.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 16, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 40),
-                    AnimatedPasswordField(
-                      controller: _newPasswordCtrl,
-                      hintText: 'New Password',
-                    ),
-                    const SizedBox(height: 20),
-                    AnimatedPasswordField(
-                      controller: _repeatPasswordCtrl,
-                      hintText: 'Confirm Password',
-                    ),
-                    const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _changePassword,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryBlue,
-                          disabledBackgroundColor: primaryBlue.withOpacity(0.6),
-                          padding: const EdgeInsets.symmetric(vertical: 18),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 500),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Set New Password',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                         ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                              )
-                            : const Text(
-                                'Save Password',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
-                              ),
-                      ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Your new password must be different from previous passwords.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16, color: Colors.black54),
+                        ),
+                        const SizedBox(height: 40),
+                        AnimatedPasswordField(
+                          controller: _newPasswordCtrl,
+                          hintText: 'New Password',
+                        ),
+                        const SizedBox(height: 20),
+                        AnimatedPasswordField(
+                          controller: _repeatPasswordCtrl,
+                          hintText: 'Confirm Password',
+                        ),
+                        const SizedBox(height: 40),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _changePassword,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryBlue,
+                              disabledBackgroundColor: primaryBlue.withOpacity(0.6),
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  )
+                                : const Text(
+                                    'Save Password',
+                                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextButton(
+                          onPressed: () => context.pop(),
+                          child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                        ),
+                        const SizedBox(height: 40),
+                      ],
                     ),
-                    const SizedBox(height: 10),
-                    TextButton(
-                      onPressed: () => context.pop(),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 16)),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
               ),
             ),

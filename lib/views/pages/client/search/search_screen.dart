@@ -124,7 +124,7 @@ class _SearchScreenState extends State<SearchScreen> {
 
   SliverGridDelegate _gridDelegate() => SliverGridDelegateWithFixedCrossAxisCount(
     crossAxisCount: Responsive.isDesktop(context) ? 4 : 2,
-    childAspectRatio: 0.62, // Optimized ratio to prevent overflow
+    childAspectRatio: 0.62,
     crossAxisSpacing: 12, 
     mainAxisSpacing: 12,
   );
@@ -139,42 +139,50 @@ class ProductItem extends StatelessWidget {
     final String name = data['name'] ?? data['variantName'] ?? 'Unknown';
     final double price = (data['price'] is num) ? (data['price'] as num).toDouble() : 0.0;
     
-    // Improved Image Logic
-    String img = 'https://via.placeholder.com/300';
+    String rawImg = '';
+    
     if (data['images'] != null && (data['images'] as List).isNotEmpty) {
-      var firstImg = data['images'][0];
-      img = (firstImg is Map) ? (firstImg['url'] ?? img) : firstImg.toString();
-    } else if (data['image'] != null) {
-      img = data['image'].toString();
+      var first = data['images'][0];
+      rawImg = (first is Map) ? (first['url'] ?? first['imageUrl'] ?? '') : first.toString();
+    } else {
+      rawImg = (data['image'] ?? data['imageUrl'] ?? '').toString();
+    }
+
+    String cleanImg = rawImg.trim();
+    if (cleanImg.isNotEmpty && cleanImg.startsWith('http')) {
+      cleanImg = Uri.encodeFull(cleanImg); 
+    } else {
+      cleanImg = 'https://via.placeholder.com/300';
     }
 
     return GestureDetector(
       onTap: () => context.push('/product-detail/${data['id']}'),
       child: Card(
         elevation: 1,
-        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image section with fixed ratio
             AspectRatio(
-              aspectRatio: 1, 
+              aspectRatio: 1,
               child: ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
                 child: CachedNetworkImage(
-                  imageUrl: img, 
-                  fit: BoxFit.cover, 
+                  imageUrl: cleanImg,
+                  fit: BoxFit.cover,
                   width: double.infinity,
+                  memCacheHeight: 400, 
                   placeholder: (_, __) => const Skeleton(),
-                  errorWidget: (_, __, ___) => Container(
-                    color: Colors.grey[200],
-                    child: const Icon(Icons.broken_image, color: Colors.grey),
-                  ),
+                  errorWidget: (context, url, error) {
+                    debugPrint("Error to load image: $url | Error: $error");
+                    return Container(
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.broken_image, color: Colors.grey),
+                    );
+                  },
                 ),
               ),
             ),
-            // Text Content section
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(8.0),
@@ -182,20 +190,15 @@ class ProductItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      name, 
-                      maxLines: 2, 
-                      overflow: TextOverflow.ellipsis, 
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, height: 1.2)
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, height: 1.2),
                     ),
-                    const Spacer(), // Pushes price to the bottom
+                    const Spacer(),
                     Text(
-                      '${price.toStringAsFixed(0)} VND', 
-                      maxLines: 1,
-                      style: const TextStyle(
-                        color: Colors.blue, 
-                        fontSize: 14, 
-                        fontWeight: FontWeight.bold
-                      )
+                      '${price.toStringAsFixed(0)} VND',
+                      style: const TextStyle(color: Colors.blue, fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),

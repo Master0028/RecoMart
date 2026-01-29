@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:feather_icons/feather_icons.dart';
 import 'package:intl/intl.dart';
@@ -26,12 +27,56 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   List<LogEntry> _filteredLogs = [];
   String _selectedLevel = 'ALL';
   bool _isLoading = true;
+
   bool _isRetraining = false;
+  String _trainingStatusMessage = "";
+  StreamSubscription<DocumentSnapshot>? _trainingStatusSubscription;
 
   @override
   void initState() {
     super.initState();
     _fetchLogs();
+    _listenToTrainingStatus();
+  }
+
+  @override
+  void dispose() {
+    _trainingStatusSubscription?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _listenToTrainingStatus() {
+    _trainingStatusSubscription = FirebaseFirestore.instance
+        .collection('system_status') // Collection name
+        .doc('training_model')       // Document ID
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists) {
+        final data = snapshot.data();
+        final status = data?['status'] ?? 'IDLE';
+        final message = data?['message'] ?? '';
+
+        if (mounted) {
+          setState(() {
+            _trainingStatusMessage = message;
+
+            if (status == 'RUNNING') {
+              _isRetraining = true;
+            } else if (status == 'SUCCESS' && _isRetraining) {
+              _isRetraining = false;
+              _showSnackBar('Retrain completed successfully!', Colors.green);
+              _fetchLogs(); // Refresh logs to show new activity
+            } else if (status == 'ERROR' && _isRetraining) {
+              _isRetraining = false;
+              _showSnackBar('Retrain failed: $message', Colors.red);
+            } else {
+              _isRetraining = false;
+            }
+          });
+        }
+      }
+    });
   }
 
   Future<void> _fetchLogs() async {
@@ -39,21 +84,19 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
 
     try {
       final snapshot = await FirebaseFirestore.instance
-          .collectionGroup('interactions') // ⭐ QUAN TRỌNG
+          .collectionGroup('interactions')
           .orderBy('timestamp', descending: true)
           .limit(300)
           .get();
 
       final logs = snapshot.docs.map((doc) {
         final data = doc.data();
-
         final type = data['interaction_type'] ?? 'unknown';
 
         String level = 'INFO';
         if (type == 'click' || type == 'addToCart') level = 'DEBUG';
         if (type == 'purchase' || type == 'purchase_mock') level = 'INFO';
 
-        // 🔹 lấy userId từ đường dẫn users/{userId}/interactions/{id}
         final userId = doc.reference.parent.parent?.id ?? 'Unknown';
 
         return LogEntry(
@@ -64,14 +107,17 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
         );
       }).toList();
 
-      setState(() {
-        _allLogs = logs;
-        _filterLogs(_selectedLevel);
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _allLogs = logs;
+          _filterLogs(_selectedLevel);
+          _isLoading = false;
+        });
+      }
     } catch (e, st) {
-      debugPrint('🔥 Firestore error: $e');
+      debugPrint('Firestore error: $e');
       debugPrintStack(stackTrace: st);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -123,24 +169,22 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
   }
 
   Future<void> _performRetrain(String password) async {
-    setState(() => _isRetraining = true);
     try {
       await ApiService.retrainModel(password);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Retrain started successfully!'), backgroundColor: Colors.green),
-        );
-        _fetchLogs();
+        _showSnackBar('Signal sent! Waiting for server...', Colors.blue);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Retrain Error: $e'), backgroundColor: Colors.red),
-        );
+        _showSnackBar('Failed to send retrain signal: $e', Colors.red);
       }
-    } finally {
-      if (mounted) setState(() => _isRetraining = false);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   void _filterLogs(String level) {
@@ -177,13 +221,14 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
+                Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'System Log Viewer',
                       style: TextStyle(
                         fontSize: 28,
@@ -191,15 +236,27 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                         color: Color(0xFF333333),
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Real-time system activities and error tracking',
-                      style: TextStyle(fontSize: 14, color: Colors.black54),
-                    ),
+                    const SizedBox(height: 8),
+                    _isRetraining 
+                    ? Text(
+                        'Status: $_trainingStatusMessage', 
+                        style: const TextStyle(fontSize: 14, color: Colors.orange, fontWeight: FontWeight.bold),
+                      )
+                    : const Text(
+                        'Real-time system activities and error tracking',
+                        style: TextStyle(fontSize: 14, color: Colors.black54),
+                      ),
                   ],
                 ),
+                // Dynamic Button / Loader
                 _isRetraining
-                    ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator())
+                    ? const Row(
+                        children: [
+                          SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                          SizedBox(width: 8),
+                          Text("Training...", style: TextStyle(color: Colors.grey)),
+                        ],
+                      )
                     : ElevatedButton.icon(
                         onPressed: _showRetrainDialog,
                         icon: const Icon(FeatherIcons.refreshCw, size: 16),
@@ -215,6 +272,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
             ),
             const SizedBox(height: 20),
 
+            // Filter Chips Row
             Row(
               children: [
                 Expanded(child: _buildFilterChips()),
@@ -227,7 +285,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Log Table
+            // Log Table Area
             Expanded(
               child: Container(
                 decoration: BoxDecoration(
@@ -245,10 +303,10 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
                   ? const Center(child: CircularProgressIndicator()) 
                   : Column(
                     children: [
-                      // Header Bảng
+                      // Table Header
                       _buildTableHeader(),
                       const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
-                      // Danh sách Log
+                      // Log List
                       Expanded(
                         child: _filteredLogs.isEmpty
                             ? const Center(child: Text('No logs found.'))
@@ -271,6 +329,8 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
     );
   }
 
+  // --- UI Helper Methods ---
+  
   Widget _buildFilterChips() {
     final levels = ['ALL', 'ERROR', 'WARN', 'INFO', 'DEBUG'];
     return Wrap(
@@ -308,7 +368,7 @@ class _LogViewerScreenState extends State<LogViewerScreen> {
           Expanded(flex: 2, child: Text('TIMESTAMP', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
           Expanded(flex: 1, child: Text('LEVEL', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
           Expanded(flex: 4, child: Text('MESSAGE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
-          Expanded(flex: 2, child: Text('USER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))), // Đổi Source thành User cho khớp ngữ cảnh
+          Expanded(flex: 2, child: Text('USER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black54))),
         ],
       ),
     );

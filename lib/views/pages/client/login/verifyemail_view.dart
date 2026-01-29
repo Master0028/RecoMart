@@ -197,68 +197,76 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       ),
       backgroundColor: Colors.white,
       body: SafeArea(
+        child: Center(
           child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 50),
-            Center(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 450),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 100,
-                    height: 100,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(25),
-                      color: primaryPink.withOpacity(0.3),
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(25),
+                            color: primaryPink.withOpacity(0.3),
+                          ),
+                          child: const Icon(
+                            Icons.email_rounded,
+                            size: 50,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        const Text(
+                          'Password Recovery',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          'Please enter your registered email to receive the verification code.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16, color: Colors.black54),
+                        ),
+                      ],
                     ),
-                    child: const Icon(
-                      Icons.email_rounded,
-                      size: 50,
-                      color: Colors.orange,
-                    ),
                   ),
-                  const SizedBox(height: 30),
-                  const Text(
-                    'Password Recovery',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black),
+                  const SizedBox(height: 40),
+                  MyTextField(
+                    hintText: 'Your Email',
+                    prefixIcon: Icons.email,
+                    controller: _emailCtrl,
+                    obscureText: false,
                   ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Please enter your registered email to receive the verification code.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  const SizedBox(height: 40),
+                  MyButton(
+                    text: 'Send Verification Code',
+                    onTap: (_) => _sendCode(),
+                    isLoading: _loading,
                   ),
+                  const SizedBox(height: 20),
+                  TextButton(
+                    onPressed: () => context.pop(),
+                    child: const Text('Cancel',
+                        style: TextStyle(color: Colors.grey, fontSize: 16)),
+                  ),
+                  const SizedBox(height: 50),
                 ],
               ),
             ),
-            const SizedBox(height: 40),
-            MyTextField(
-              hintText: 'Your Email',
-              prefixIcon: Icons.email,
-              controller: _emailCtrl,
-              obscureText: false,
-            ),
-            const SizedBox(height: 40),
-            MyButton(
-              text: 'Send Verification Code',
-              onTap: (_) => _sendCode(),
-              isLoading: _loading,
-            ),
-            const SizedBox(height: 20),
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text('Cancel',
-                  style: TextStyle(color: Colors.grey, fontSize: 16)),
-            ),
-          ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }

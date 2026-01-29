@@ -298,80 +298,80 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       ),
 
                       SafeArea(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const SizedBox(height: 50),
-                              buildHeader(),
-                              const SizedBox(height: 30),
+                        child: Center( 
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 450), 
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const SizedBox(height: 50),
+                                buildHeader(),
+                                const SizedBox(height: 30),
 
-                              const Text(
-                                'Your password must be strong and different from the previous one.',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.black54,
+                                const Text(
+                                  'Your password must be strong and different from the previous one.',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black54,
+                                  ),
                                 ),
-                              ),
-                              const SizedBox(height: 30),
+                                const SizedBox(height: 30),
 
-                              _buildAnimatedInputField(
-                                hintText: 'Old Password',
-                                icon: Icons.lock_open_outlined,
-                                controller: _oldPasswordController,
-                                focusNode: _oldPassFocus,
-                                isVisible: _oldPasswordVisible,
-                                onToggleVisibility: () {
-                                  setState(() {
-                                    _oldPasswordVisible =
-                                        !_oldPasswordVisible;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
+                                _buildAnimatedInputField(
+                                  hintText: 'Old Password',
+                                  icon: Icons.lock_open_outlined,
+                                  controller: _oldPasswordController,
+                                  focusNode: _oldPassFocus,
+                                  isVisible: _oldPasswordVisible,
+                                  onToggleVisibility: () {
+                                    setState(() {
+                                      _oldPasswordVisible = !_oldPasswordVisible;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 20),
 
-                              // New Password with Animation
-                              _buildAnimatedInputField(
-                                hintText: 'New Password',
-                                icon: Icons.lock_outline,
-                                controller: _newPasswordController,
-                                focusNode: _newPassFocus,
-                                isVisible: _newPasswordVisible,
-                                onToggleVisibility: () {
-                                  setState(() {
-                                    _newPasswordVisible =
-                                        !_newPasswordVisible;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 20),
+                                _buildAnimatedInputField(
+                                  hintText: 'New Password',
+                                  icon: Icons.lock_outline,
+                                  controller: _newPasswordController,
+                                  focusNode: _newPassFocus,
+                                  isVisible: _newPasswordVisible,
+                                  onToggleVisibility: () {
+                                    setState(() {
+                                      _newPasswordVisible = !_newPasswordVisible;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 20),
 
-                              // Confirm Password with Animation
-                              _buildAnimatedInputField(
-                                hintText: 'Confirm New Password',
-                                icon: Icons.lock_outline,
-                                controller: _confirmedPasswordController,
-                                focusNode: _confirmPassFocus,
-                                isVisible: _confirmPasswordVisible,
-                                onToggleVisibility: () {
-                                  setState(() {
-                                    _confirmPasswordVisible =
-                                        !_confirmPasswordVisible;
-                                  });
-                                },
-                              ),
-                              const SizedBox(height: 40),
+                                _buildAnimatedInputField(
+                                  hintText: 'Confirm New Password',
+                                  icon: Icons.lock_outline,
+                                  controller: _confirmedPasswordController,
+                                  focusNode: _confirmPassFocus,
+                                  isVisible: _confirmPasswordVisible,
+                                  onToggleVisibility: () {
+                                    setState(() {
+                                      _confirmPasswordVisible = !_confirmPasswordVisible;
+                                    });
+                                  },
+                                ),
+                                const SizedBox(height: 40),
 
-                              buildDoneButton(),
-                              const SizedBox(height: 20),
+                                buildDoneButton(),
+                                const SizedBox(height: 20),
 
-                              buildCancelButton(context),
-                              const SizedBox(height: 40),
-                            ],
+                                buildCancelButton(context),
+                                const SizedBox(height: 40),
+                              ],
+                            ),
                           ),
                         ),
                       ),
+                    ),
                     ],
                   ),
                 ),

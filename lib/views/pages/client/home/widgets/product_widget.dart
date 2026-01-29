@@ -497,9 +497,9 @@ class _ProductListState extends State<ProductList> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ProductProvider>(context, listen: false);
       if (widget.categoryId != null) {
-          provider.updateFilters(categoryId: widget.categoryId);
+        provider.updateFilters(categoryId: widget.categoryId);
       } else {
-          provider.fetchProductsPaginated(refresh: true);
+        provider.fetchProductsPaginated(refresh: true);
       }
     });
   }
@@ -507,37 +507,61 @@ class _ProductListState extends State<ProductList> {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<ProductProvider>(context);
-    
+
     if (provider.loading && provider.products.isEmpty) {
       return GridView.builder(
-        itemCount: 10, physics: const NeverScrollableScrollPhysics(), shrinkWrap: true,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: Responsive.isDesktop(context) ? 4 : 2, childAspectRatio: 0.55, crossAxisSpacing: 20, mainAxisSpacing: 20, mainAxisExtent: 350),
+        itemCount: 18, 
+        physics: const NeverScrollableScrollPhysics(),
+        shrinkWrap: true,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: Responsive.isDesktop(context) ? 6 : 3, 
+          childAspectRatio: 0.6,
+          crossAxisSpacing: 12, 
+          mainAxisSpacing: 12, 
+          mainAxisExtent: 220, 
+        ),
         itemBuilder: (context, index) => const Skeleton(),
       );
     }
-    
-    if (provider.products.isEmpty) return const Center(child: Text('No products found!', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)));
+
+    if (provider.products.isEmpty) {
+      return const Center(
+          child: Text('No products found!',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)));
+    }
 
     return Column(
       children: [
         GridView.builder(
-          itemCount: provider.products.length, physics: const NeverScrollableScrollPhysics(), shrinkWrap: true,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: Responsive.isDesktop(context) ? 4 : 2, childAspectRatio: 0.55, crossAxisSpacing: 20, mainAxisSpacing: 20, mainAxisExtent: 350),
+          itemCount: provider.products.length,
+          physics: const NeverScrollableScrollPhysics(),
+          shrinkWrap: true,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: Responsive.isDesktop(context) ? 6 : 3,
+            childAspectRatio: 0.55,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+            mainAxisExtent: 240,
+          ),
           itemBuilder: (context, index) {
             final p = provider.products[index];
-            return ProductView(id: p.id, categoryId: p.categoryId, name: p.name, image: p.imageUrl, price: p.price, averageRating: p.averageRating.toString());
+            return ProductView(
+                id: p.id,
+                categoryId: p.categoryId,
+                name: p.name,
+                image: p.imageUrl,
+                price: p.price,
+                averageRating: p.averageRating.toString());
           },
         ),
         const SizedBox(height: 20),
-        
         if (provider.hasMore)
-            ElevatedButton(
-                onPressed: () => provider.fetchProductsPaginated(page: provider.currentPage + 1),
-                child: const Text("Load More")
-            )
-        else 
-            const Padding(padding: EdgeInsets.all(16), child: Text("End of list")),
-            
+          ElevatedButton(
+              onPressed: () =>
+                  provider.fetchProductsPaginated(page: provider.currentPage + 1),
+              child: const Text("Load More"))
+        else
+          const Padding(padding: EdgeInsets.all(16), child: Text("End of list")),
         const SizedBox(height: 20),
       ],
     );

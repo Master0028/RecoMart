@@ -68,68 +68,73 @@ class _RecoveryMethodScreenState extends State<RecoveryMethodScreen> {
                   ),
                 ),
                 SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 30),
-                        buildAvatar(widget.userAvatar),
-                        const SizedBox(height: 20),
-                        Text(
-                          widget.userName,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 450), 
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const SizedBox(height: 30),
+                            buildAvatar(widget.userAvatar),
+                            const SizedBox(height: 20),
+                            Text(
+                              widget.userName,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.black,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            const Text(
+                              'How would you like to restore\nyour password?',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.black54,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 30),
+                            buildOptionTile(
+                              label: 'SMS',
+                              value: 'SMS',
+                              icon: Icons.sms_outlined,
+                              isSelected: _selectedMethod == 'SMS',
+                              activeColor: Colors.blue.shade100.withOpacity(0.7),
+                            ),
+                            const SizedBox(height: 15),
+                            buildOptionTile(
+                              label: 'Email',
+                              value: 'Email',
+                              icon: Icons.email_outlined,
+                              isSelected: _selectedMethod == 'Email',
+                              activeColor: Colors.pink.shade100.withOpacity(0.7),
+                            ),
+                            const SizedBox(height: 30),
+                            SmoothInputField(
+                              controller: _inputController,
+                              hintText: _selectedMethod == 'SMS' 
+                                  ? 'Enter your Phone Number' 
+                                  : 'Enter your Email Address',
+                              icon: _selectedMethod == 'SMS' 
+                                  ? Icons.phone_iphone 
+                                  : Icons.alternate_email,
+                              inputType: _selectedMethod == 'SMS' 
+                                  ? TextInputType.phone 
+                                  : TextInputType.emailAddress,
+                            ),
+                            const Expanded(child: SizedBox(height: 20)), 
+                            buildNextButton(context),
+                            const SizedBox(height: 15),
+                            buildCancelButton(context),
+                            const SizedBox(height: 30),
+                          ],
                         ),
-                        const SizedBox(height: 10),
-                        const Text(
-                          'How would you like to restore\nyour password?',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 30),
-                        buildOptionTile(
-                          label: 'SMS',
-                          value: 'SMS',
-                          icon: Icons.sms_outlined,
-                          isSelected: _selectedMethod == 'SMS',
-                          activeColor: Colors.blue.shade100.withOpacity(0.7),
-                        ),
-                        const SizedBox(height: 15),
-                        buildOptionTile(
-                          label: 'Email',
-                          value: 'Email',
-                          icon: Icons.email_outlined,
-                          isSelected: _selectedMethod == 'Email',
-                          activeColor: Colors.pink.shade100.withOpacity(0.7),
-                        ),
-                        const SizedBox(height: 30),
-                        SmoothInputField(
-                          controller: _inputController,
-                          hintText: _selectedMethod == 'SMS' 
-                              ? 'Enter your Phone Number' 
-                              : 'Enter your Email Address',
-                          icon: _selectedMethod == 'SMS' 
-                              ? Icons.phone_iphone 
-                              : Icons.alternate_email,
-                          inputType: _selectedMethod == 'SMS' 
-                              ? TextInputType.phone 
-                              : TextInputType.emailAddress,
-                        ),
-                        const Spacer(),
-                        buildNextButton(context),
-                        const SizedBox(height: 15),
-                        buildCancelButton(context),
-                        const SizedBox(height: 30),
-                      ],
+                      ),
                     ),
                   ),
                 ),

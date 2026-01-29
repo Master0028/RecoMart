@@ -204,121 +204,127 @@ class _LoginViewState extends State<LoginView> {
                 ),
 
                 SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const SizedBox(height: 80),
-                        buildLogo(),
-                        const SizedBox(height: 50),
-                        const Text(
-                          'Login',
-                          style: TextStyle(
-                            fontSize: 42,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        const Row(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                        maxWidth: 450,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Text(
-                              'So good to see you back!',
+                            const SizedBox(height: 80),
+                            buildLogo(),
+                            const SizedBox(height: 50),
+                            const Text(
+                              'Login',
                               style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.black54,
-                                fontWeight: FontWeight.w500,
+                                fontSize: 42,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black,
+                                letterSpacing: -1,
                               ),
                             ),
-                            SizedBox(width: 8),
-                            Icon(Icons.favorite, size: 20, color: Colors.black),
-                          ],
-                        ),
-                        const SizedBox(height: 40),
-
-                        AnimatedInputField(
-                          controller: _emailController,
-                          focusNode: _emailFocus,
-                          hintText: "Email",
-                          icon: Icons.email_outlined,
-                          inputType: TextInputType.emailAddress,
-                          inputAction: TextInputAction.next,
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        AnimatedInputField(
-                          controller: _passwordController,
-                          focusNode: _passwordFocus,
-                          hintText: "Password",
-                          icon: Icons.lock_outline,
-                          inputType: TextInputType.visiblePassword,
-                          inputAction: TextInputAction.done,
-                          isPassword: true,
-                          isPasswordVisible: _isPasswordVisible,
-                          onVisibilityToggle: () {
-                            setState(() {
-                              _isPasswordVisible = !_isPasswordVisible;
-                            });
-                          },
-                          onSubmitted: (_) {
-                            if (!_loading) signIn();
-                          },
-                        ),
-
-                        const SizedBox(height: 10),
-
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton(
-                            onPressed: () {
-                            final email = _emailController.text.trim();
-
-                              context.push('/find-account?email=$email'); 
-                            },
-                            style: TextButton.styleFrom(
-                              foregroundColor: primaryBlue,
+                            const SizedBox(height: 10),
+                            const Row(
+                              children: [
+                                Text(
+                                  'So good to see you back!',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: Colors.black54,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                Icon(Icons.favorite, size: 20, color: Colors.black),
+                              ],
                             ),
-                            child: const Text(
-                              'Forgot Password?',
-                              style: TextStyle(fontWeight: FontWeight.bold),
+                            const SizedBox(height: 40),
+
+                            AnimatedInputField(
+                              controller: _emailController,
+                              focusNode: _emailFocus,
+                              hintText: "Email",
+                              icon: Icons.email_outlined,
+                              inputType: TextInputType.emailAddress,
+                              inputAction: TextInputAction.next,
                             ),
-                          ),
-                        ),
 
-                        const SizedBox(height: 10),
+                            const SizedBox(height: 20),
 
-                        buildSignInButton(),
-
-                        const SizedBox(height: 40),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text(
-                              "Don't have an account?",
-                              style: TextStyle(
-                                  fontSize: 16, color: Colors.black54),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                context.push('/signup');
+                            AnimatedInputField(
+                              controller: _passwordController,
+                              focusNode: _passwordFocus,
+                              hintText: "Password",
+                              icon: Icons.lock_outline,
+                              inputType: TextInputType.visiblePassword,
+                              inputAction: TextInputAction.done,
+                              isPassword: true,
+                              isPasswordVisible: _isPasswordVisible,
+                              onVisibilityToggle: () {
+                                setState(() {
+                                  _isPasswordVisible = !_isPasswordVisible;
+                                });
                               },
-                              child: Text(
-                                'Sign up',
-                                style: TextStyle(
-                                  color: primaryBlue,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
+                              onSubmitted: (_) {
+                                if (!_loading) signIn();
+                              },
+                            ),
+
+                            const SizedBox(height: 10),
+
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: () {
+                                  final email = _emailController.text.trim();
+                                  context.push('/find-account?email=$email'); 
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: primaryBlue,
+                                ),
+                                child: const Text(
+                                  'Forgot Password?',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
+
+                            const SizedBox(height: 10),
+
+                            buildSignInButton(),
+
+                            const SizedBox(height: 40),
+
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text(
+                                  "Don't have an account?",
+                                  style: TextStyle(
+                                      fontSize: 16, color: Colors.black54),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    context.push('/signup');
+                                  },
+                                  child: Text(
+                                    'Sign up',
+                                    style: TextStyle(
+                                      color: primaryBlue,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 40),
                           ],
                         ),
-                        const SizedBox(height: 40),
-                      ],
+                      ),
                     ),
                   ),
                 ),
