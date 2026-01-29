@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
@@ -13,7 +14,8 @@ class _AiRecommendationTestWidgetState extends State<AiRecommendationTestWidget>
   bool _isLoading = false;
   String _status = "";
 
-  final String apiUrl = "https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/recommend"; 
+  final String apiUrl = "https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/recommend";
+  //static String get apiUrl => dotenv.env['API_URL'] ?? "https://my-fastapi-app-0pub.onrender.com";
 
   Future<void> _getRecommendations() async {
     String userId = _userIdController.text.trim();

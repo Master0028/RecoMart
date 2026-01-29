@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:recomart/models/user.model.dart';
 
 class ApiService {
-  static const String baseUrl = "https://lordlier-nonmaritally-margrett.ngrok-free.dev"; 
+  static const String baseUrl = "https://lordlier-nonmaritally-margrett.ngrok-free.dev";
+  //static String get baseUrl => dotenv.env['API_URL'] ?? "https://my-fastapi-app-0pub.onrender.com"; 
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(

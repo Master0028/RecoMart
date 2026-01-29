@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:recomart/components/custom/snackbar.dart';
+import 'package:recomart/constants.dart';
 
 const Color primaryBlue = Color(0xFF1976D2);
 final Color primaryPink = Colors.pink.shade300;
@@ -107,6 +108,7 @@ class _SetupNewPasswordScreenState extends State<SetupNewPasswordScreen> {
 
     try {
       final url = Uri.parse('https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/reset-password');
+      //final url = Uri.parse('${AppConstants.baseUrl}/api/reset-password');
       
       final response = await http.post(
         url,

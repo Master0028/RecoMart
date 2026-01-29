@@ -8,12 +8,20 @@ import 'package:recomart/provider/product_provider.dart';
 import 'package:recomart/provider/user_provider.dart';
 import 'package:recomart/provider/coupon_provider.dart';
 import 'package:recomart/routes/app_routes.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    await dotenv.load(fileName: ".env");
+    print("Environment loaded: ${dotenv.env['API_URL']}");
+  } catch (e) {
+    print("Error loading .env file: $e");
+  }
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

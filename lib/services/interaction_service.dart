@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import '../models/interaction_model.dart';
 
 class InteractionService{
   static const String baseUrl = 'https://lordlier-nonmaritally-margrett.ngrok-free.dev';
+  //static String get baseUrl => dotenv.env['API_URL'] ?? "https://my-fastapi-app-0pub.onrender.com";
   Future<void> logInteraction(InteractionModel model) async {
     final url = Uri.parse('$baseUrl/interaction');
     

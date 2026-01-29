@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:recomart/constants.dart';
 
 final Color primaryBlue = Colors.blue.shade700;
 
@@ -27,7 +28,8 @@ class _FindAccountViewState extends State<FindAccountView> {
 
     try {
       final response = await http.post(
-        Uri.parse('https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/check-user-email'), 
+        Uri.parse('https://lordlier-nonmaritally-margrett.ngrok-free.dev/api/check-user-email'),
+        //Uri.parse('${AppConstants.baseUrl}/api/check-user-email'), 
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );

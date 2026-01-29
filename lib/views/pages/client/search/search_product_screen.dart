@@ -108,7 +108,7 @@ class _SearchProductScreenState extends State<SearchProductScreen> {
     });
 
     try {
-      const baseUrl = RecommendationService.baseUrl;
+      var baseUrl = RecommendationService.baseUrl;
       final url = '$baseUrl/api/search?keyword=$keyword';
       final response = await http.get(Uri.parse(url), headers: {
         "ngrok-skip-browser-warning": "true",

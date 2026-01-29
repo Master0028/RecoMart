@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:intl/intl.dart';
+import 'package:recomart/constants.dart';
 
 class VnpayService {
   static const String vnpVersion = '2.1.0';
@@ -9,6 +10,7 @@ class VnpayService {
   static const String vnpHashSecret = 'LRLG4KNISR73DY7KNZY9DLA1JTQVOP0V';
   static const String vnpUrl = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html';
   static const String vnpReturnUrl = 'https://lordlier-nonmaritally-margrett.ngrok-free.dev/vnpay_return';
+  //static String get vnpReturnUrl => '${AppConstants.baseUrl}/vnpay_return';
 
   String generatePaymentUrl({required String orderId, required double amount}) {
     final date = DateTime.now();

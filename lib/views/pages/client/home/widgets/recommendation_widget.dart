@@ -64,7 +64,32 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
     }
 
     if (_recommendations.isEmpty) {
-      return const SizedBox.shrink();
+      return Container(
+        width: double.infinity,
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+        ),
+        child: const Column(
+          children: [
+            Icon(Icons.auto_awesome, color: AppColors.primary, size: 40),
+            SizedBox(height: 12),
+            Text(
+              "Start your shopping journey so we can create great recommendations for you!",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black87,
+                height: 1.5,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     return Column(
@@ -96,11 +121,9 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                     .snapshots(),
                 builder: (context, snapshot) {
                   if (snapshot.hasError) return const SizedBox.shrink();
-
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return _buildLoadingCard();
                   }
-
                   if (!snapshot.hasData || !snapshot.data!.exists) {
                     return const SizedBox.shrink();
                   }
@@ -110,70 +133,7 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
                   final String name = data['name'] ?? item.name;
                   final double price = (data['price'] ?? 0).toDouble();
 
-                  return GestureDetector(
-                    onTap: () => context.push('/product-detail/${item.id}'),
-                    child: Container(
-                      width: 150,
-                      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 5,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                              child: imageUrl.isNotEmpty
-                                  ? Image.network(
-                                      imageUrl,
-                                      fit: BoxFit.cover,
-                                      width: double.infinity,
-                                      errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
-                                    )
-                                  : const Icon(Icons.image, color: Colors.grey),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.all(10),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    height: 1.2,
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  formatMoney(price),
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
+                  return _buildProductCard(context, item.id, name, imageUrl, price);
                 },
               );
             },
@@ -181,6 +141,69 @@ class _RecommendationWidgetState extends State<RecommendationWidget> {
         ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, dynamic id, String name, String imageUrl, double price) {
+    return GestureDetector(
+      onTap: () => context.push('/product-detail/$id'),
+      child: Container(
+        width: 150,
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 5,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                      )
+                    : const Icon(Icons.image, color: Colors.grey),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    formatMoney(price),
+                    style: const TextStyle(
+                      fontSize: 13, 
+                      fontWeight: FontWeight.bold, 
+                      color: AppColors.primary
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

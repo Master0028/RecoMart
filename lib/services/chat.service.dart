@@ -13,7 +13,7 @@ class ChatService {
   static const String adminId = "pvIwRP6zV8cSfcH7rqGe6bbfzNz1";
 
   Future<Map<String, dynamic>> sendMessageToAI(String query) async {
-    const String baseUrl = RecommendationService.baseUrl;
+    String baseUrl = RecommendationService.baseUrl;
     final Uri url = Uri.parse('$baseUrl/api/chat');
     final user = _auth.currentUser;
 
